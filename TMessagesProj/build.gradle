@@ -78,8 +78,46 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 }
 
+// API Keys
+def getAppId() {
+    Properties properties = new Properties()
+    properties.load(new FileInputStream(rootProject.file("API_KEYS").absolutePath))
+    return properties.get("APP_ID")
+}
+
+def getAppHash() {
+    Properties properties = new Properties()
+    properties.load(new FileInputStream(rootProject.file("API_KEYS").absolutePath))
+    return "\"" + properties.get("APP_HASH") + "\""
+}
+
+// F-Droid ABI Detection
+def detectSingleFdAbi() {
+    def fdFlavorToAbi = [
+            'AfatFdArm64'  : 'arm64-v8a',
+            'AfatFdArm32'  : 'armeabi-v7a',
+            'AfatFdX86_64' : 'x86_64',
+            'AfatFdX86'    : 'x86',
+    ]
+    def detectedAbis = [] as Set
+    gradle.startParameter.taskNames.each { taskName ->
+        def matched = fdFlavorToAbi.sort { -it.key.length() }.find { flavor, _ ->
+            taskName.contains(flavor)
+        }
+        if (matched) detectedAbis << matched.value
+    }
+    return detectedAbis.size() == 1 ? detectedAbis.first() : null
+}
+def singleFdAbi = detectSingleFdAbi()
+
 def isWindows = String.valueOf(DefaultNativePlatform.currentOperatingSystem.toFamilyName() == OperatingSystemFamily.WINDOWS)
+
 android {
+    android {
+        buildFeatures {
+            buildConfig = true
+        }
+    }
     compileSdkVersion 35
     buildToolsVersion '35.0.0'
     ndkVersion "27.2.12479018"
@@ -113,6 +151,12 @@ android {
         vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
 
         multiDexEnabled true
+
+        // F-Droid per-ABI build
+        if (singleFdAbi) ndk.abiFilters singleFdAbi
+
+        buildConfigField "int", "APP_ID", getAppId()
+        buildConfigField "String", "APP_HASH", getAppHash()
 
         externalNativeBuild {
             cmake {
@@ -236,6 +280,7 @@ def getProps(String propName) {
         return "";
     }
 }
+
 apply plugin: 'com.google.gms.google-services'
 
 task checkVisibility {
