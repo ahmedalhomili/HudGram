@@ -13,16 +13,30 @@
         }
       },
       "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCqVd3-L1fnsCgWuhjpC5lSn1lW5j54qr0"
+      "api_key": [{ "current_key": "AIzaSyCqVd3-L1fnsCgWuhjpC5lSn1lW5j54qr0" }],
+      "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:637532655497:android:52c8872578eefbdcc21b58",
+        "android_client_info": {
+          "package_name": "com.hudgram.messenger.beta"
         }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
+      },
+      "oauth_client": [],
+      "api_key": [{ "current_key": "AIzaSyCqVd3-L1fnsCgWuhjpC5lSn1lW5j54qr0" }],
+      "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:637532655497:android:52c8872578eefbdcc21b58",
+        "android_client_info": {
+          "package_name": "org.telegram.messenger"
         }
-      }
+      },
+      "oauth_client": [],
+      "api_key": [{ "current_key": "AIzaSyCqVd3-L1fnsCgWuhjpC5lSn1lW5j54qr0" }],
+      "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
     }
   ],
   "configuration_version": "1"
