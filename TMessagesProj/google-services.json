@@ -1,42 +1,28 @@
 {
   "project_info": {
-    "project_number": "890987005393",
-    "project_id": "yegram-35fc4",
-    "storage_bucket": "yegram-35fc4.firebasestorage.app"
+    "project_number": "637532655497",
+    "project_id": "hudgram",
+    "storage_bucket": "hudgram.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:890987005393:android:af148324676f2706518cf0",
+        "mobilesdk_app_id": "1:637532655497:android:52c8872578eefbdcc21b58",
         "android_client_info": {
-          "package_name": "dev.yegram.messenger"
+          "package_name": "com.hudgram.messenger"
         }
       },
       "oauth_client": [],
-      "api_key": [{ "current_key": "AIzaSyAZLxJ4sA-gk5kx8QL8plqe18j6O8VS9wY" }],
-      "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:890987005393:android:af148324676f2706518cf0",
-        "android_client_info": {
-          "package_name": "dev.yegram.messenger.beta"
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqVd3-L1fnsCgWuhjpC5lSn1lW5j54qr0"
         }
-      },
-      "oauth_client": [],
-      "api_key": [{ "current_key": "AIzaSyAZLxJ4sA-gk5kx8QL8plqe18j6O8VS9wY" }],
-      "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:890987005393:android:af148324676f2706518cf0",
-        "android_client_info": {
-          "package_name": "org.telegram.messenger"
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
         }
-      },
-      "oauth_client": [],
-      "api_key": [{ "current_key": "AIzaSyAZLxJ4sA-gk5kx8QL8plqe18j6O8VS9wY" }],
-      "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+      }
     }
   ],
   "configuration_version": "1"

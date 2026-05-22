@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">YeGram</string>
-    <string name="AppNameBeta">(Beta) YeGram</string>
+    <string name="AppName">HudGram</string>
+    <string name="AppNameBeta">(Beta) HudGram</string>
     <string name="LanguageName">العربية</string>
     <string name="English">الإنجليزية</string>
     <string name="LanguageNameInEnglish">Arabic</string>
@@ -1860,7 +1860,7 @@
     <string name="DebugMenuWebViewDebugEnabled">تم تفعيل التصحيح!</string>
     <string name="DebugMenuWebViewDebugDisabled">تم تعطيل التصحيح!</string>
     <string name="UseProxyTitle">خادم الوكيل</string>
-    <string name="AppUpdateBeta">تحديث YeGram بيتا</string>
+    <string name="AppUpdateBeta">تحديث HudGram بيتا</string>
     <string name="AppBetaUpdateVersion">الإصدار %1$s (%2$s)</string>
     <string name="CheckPhoneNumberYes2">👍 نعم</string>
 
