@@ -36,11 +36,12 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
     private final int ANIMATOR_ID_PROGRESS_VISIBLE = 1;
 
     private final BoolAnimator animatorButtonVisible = new BoolAnimator(ANIMATOR_ID_BUTTON_VISIBLE, this,
-        CubicBezierInterpolator.EASE_OUT_QUINT, 380, true);
+            CubicBezierInterpolator.EASE_OUT_QUINT, 380, true);
 
     private final BoolAnimator animatorProgressVisible = new BoolAnimator(ANIMATOR_ID_PROGRESS_VISIBLE, this,
-        CubicBezierInterpolator.EASE_OUT_QUINT, 380);
+            CubicBezierInterpolator.EASE_OUT_QUINT, 380);
 
+    private static final int FAB_RADIUS = 12;
 
     public final RLottieImageView imageView;
     public final RadialProgressView progressView;
@@ -70,7 +71,13 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
 
         ScaleStateListAnimator.apply(this);
         if (!isSubButton) {
-            setOutlineProvider(ViewOutlineProviderImpl.BOUNDS_OVAL);
+            setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, android.graphics.Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(FAB_RADIUS));
+                }
+            });
+            setClipToOutline(true);
             setTranslationZ(dpf2(0.5f));
         }
 
@@ -95,7 +102,7 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
             iBlur3Background = iBlur3SourceColor.createDrawable();
             iBlur3Background.setColorProvider(iBlur3ColorProviderTabs);
             iBlur3Background.setStrokeWidth(dpf2(0.4f), dpf2(0.4f));
-            iBlur3Background.setRadius(dp(18));
+            iBlur3Background.setRadius(dp(FAB_RADIUS));
             iBlur3Background.setPadding(dp(5.66f));
         }
 
@@ -157,16 +164,14 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
             iBlur3Background.updateColors();
             invalidate();
 
-            int rad = dp(18);
             int pressedColor = Theme.getColor(Theme.key_listSelector, resourcesProvider);
-            setBackground(Theme.createInsetRoundRectDrawable(pressedColor, rad, dp(6)));
+            setBackground(Theme.createInsetRoundRectDrawable(pressedColor, dp(FAB_RADIUS), dp(6)));
         } else {
             imageView.setColorFilter(Theme.getColor(Theme.key_chats_actionIcon, resourcesProvider), PorterDuff.Mode.SRC_IN);
             progressView.setProgressColor(Theme.getColor(Theme.key_chats_actionIcon, resourcesProvider));
-            setBackground(Theme.createSimpleSelectorCircleDrawable(dp(48),
-                Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider),
-                Theme.getColor(Theme.key_featuredStickers_addButtonPressed, resourcesProvider)
-            ));
+
+            setBackground(Theme.createRoundRectDrawable(dp(FAB_RADIUS),
+                    Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider)));
         }
     }
 
@@ -184,11 +189,10 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
                 20, 0, 20, 14);
     }
 
-
     public static FrameLayout.LayoutParams createDefaultLayoutParamsBig() {
         return LayoutHelper.createFrame(56, 56,
                 (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM,
-                20 /*24*/, 0, 20 /*24*/, 14 /*16*/);
+                20, 0, 20, 14);
     }
 
     private float additionalTranslationY;
@@ -235,7 +239,6 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
         if (setTranslationInternal) {
             return super.getTranslationY();
         }
-
         return internalTranslationY;
     }
 
@@ -251,7 +254,6 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
         if (v == null) {
             return;
         }
-
         v.setAlpha(f);
         v.setScaleX(lerp(0.4f, 1f, f));
         v.setScaleY(lerp(0.4f, 1f, f));
