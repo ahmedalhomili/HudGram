@@ -1,4 +1,4 @@
-package org.telegram.ui;
+package com.hudgram.ui;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.LocaleController.getString;
@@ -26,19 +26,18 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_stories;
-import org.telegram.ui.ActionBar.ActionBar;
-import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.ActionBar.Theme;
+
+// Native Telegram UI packages
+import org.telegram.ui.*;
+import org.telegram.ui.ActionBar.*;
 import org.telegram.ui.Cells.DialogCell;
-import org.telegram.ui.Cells.UpdatesStoryCell;
-import org.telegram.ui.Cells.UpdatesChannelCell;
-import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.Components.MediaActivity;
-import org.telegram.ui.Components.RecyclerListView;
-import org.telegram.ui.Stories.StoriesController;
-import org.telegram.ui.Stories.StoriesListPlaceProvider;
-import org.telegram.ui.Stories.StoryViewer;
-import org.telegram.ui.Stories.recorder.StoryRecorder;
+import org.telegram.ui.Components.*;
+import org.telegram.ui.Stories.*;
+import org.telegram.ui.Stories.recorder.*;
+
+// Custom cells under the com.hudgram.ui.cells package
+import com.hudgram.ui.cells.UpdatesStoryCell;
+import com.hudgram.ui.cells.UpdatesChannelCell;
 
 import android.os.Bundle;
 import android.widget.ImageView;
@@ -55,18 +54,6 @@ import org.telegram.messenger.NotificationsController;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.TLObject;
-import org.telegram.ui.ActionBar.ActionBarMenuSubItem;
-import org.telegram.ui.ActionBar.ActionBarPopupWindow;
-import org.telegram.ui.ChatActivity;
-import org.telegram.ui.FilterCreateActivity;
-import org.telegram.ui.Components.AnimatedEmojiDrawable;
-import org.telegram.ui.Components.BulletinFactory;
-import org.telegram.ui.Components.FiltersListBottomSheet;
-import org.telegram.ui.Components.FolderDrawable;
-import org.telegram.ui.Components.FragmentFloatingButton;
-import org.telegram.ui.Components.ItemOptions;
-import org.telegram.ui.Components.SharedMediaLayout;
-import org.telegram.ui.Components.UndoView;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -791,7 +778,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                             (int) Math.min(
                                     MeasureSpec.getSize(heightMeasureSpec),
                                     Math.min(AndroidUtilities.displaySize.y * 0.35f, dp(400))
-                            ),
+                             ),
                             MeasureSpec.getMode(heightMeasureSpec)
                     ));
                 }

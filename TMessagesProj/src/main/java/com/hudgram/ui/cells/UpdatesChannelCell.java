@@ -1,4 +1,4 @@
-package org.telegram.ui.Cells;
+package com.hudgram.ui.cells;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 
