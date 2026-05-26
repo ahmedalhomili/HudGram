@@ -1,0 +1,1515 @@
+package org.telegram.ui;
+
+import static org.telegram.messenger.AndroidUtilities.dp;
+import static org.telegram.messenger.LocaleController.getString;
+
+import android.content.Context;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.R;
+import org.telegram.messenger.UserConfig;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.tgnet.tl.TL_stories;
+import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Cells.DialogCell;
+import org.telegram.ui.Cells.UpdatesStoryCell;
+import org.telegram.ui.Cells.UpdatesChannelCell;
+import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.MediaActivity;
+import org.telegram.ui.Components.RecyclerListView;
+import org.telegram.ui.Stories.StoriesController;
+import org.telegram.ui.Stories.StoriesListPlaceProvider;
+import org.telegram.ui.Stories.StoryViewer;
+import org.telegram.ui.Stories.recorder.StoryRecorder;
+
+import android.os.Bundle;
+import android.widget.ImageView;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.BitmapDrawable;
+import android.view.accessibility.AccessibilityNodeInfo;
+import org.telegram.messenger.AccountInstance;
+import org.telegram.messenger.ContactsController;
+import org.telegram.messenger.DialogObject;
+import org.telegram.messenger.Emoji;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.NotificationsController;
+import org.telegram.messenger.UserObject;
+import org.telegram.messenger.Utilities;
+import org.telegram.tgnet.TLObject;
+import org.telegram.ui.ActionBar.ActionBarMenuSubItem;
+import org.telegram.ui.ActionBar.ActionBarPopupWindow;
+import org.telegram.ui.ChatActivity;
+import org.telegram.ui.FilterCreateActivity;
+import org.telegram.ui.Components.AnimatedEmojiDrawable;
+import org.telegram.ui.Components.BulletinFactory;
+import org.telegram.ui.Components.FiltersListBottomSheet;
+import org.telegram.ui.Components.FolderDrawable;
+import org.telegram.ui.Components.FragmentFloatingButton;
+import org.telegram.ui.Components.ItemOptions;
+import org.telegram.ui.Components.SharedMediaLayout;
+import org.telegram.ui.Components.UndoView;
+
+import java.util.ArrayList;
+import java.util.Collections;
+
+public class UpdatesActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
+
+    private LinearLayout contentLayout;
+    private RecyclerListView storiesRecyclerView;
+    private LinearLayout channelsContainer;
+    private StoriesAdapter storiesAdapter;
+    private boolean hasMainTabs;
+    private boolean searching;
+    private String searchQuery;
+    private View blurredView;
+    private UndoView undoView;
+
+    public UpdatesActivity(android.os.Bundle args) {
+        super(args);
+    }
+    private TextView noChannelsView;
+    private final java.util.HashSet<Long> selectedDialogIds = new java.util.HashSet<>();
+    private boolean inSelectionMode = false;
+    private org.telegram.ui.Components.NumberTextView selectedDialogsCountTextView;
+    private org.telegram.ui.ActionBar.ActionBarMenuItem muteItem;
+    private org.telegram.ui.ActionBar.ActionBarMenuItem archiveItem;
+    private org.telegram.ui.ActionBar.ActionBarMenuItem deleteItem;
+    private org.telegram.ui.ActionBar.ActionBarMenuSubItem pinItem;
+    private org.telegram.ui.ActionBar.ActionBarMenuSubItem readItem;
+    private boolean showArchivedChannels = false;
+    private TextView channelsArchiveButton;
+    private TextView channelsHeaderTextView;
+
+    private final ArrayList<TL_stories.PeerStories> storyItems = new ArrayList<>();
+    private final ArrayList<TLRPC.Dialog> channelDialogs = new ArrayList<>();
+
+    @Override
+    public boolean onFragmentCreate() {
+        super.onFragmentCreate();
+        if (getArguments() != null) {
+            hasMainTabs = getArguments().getBoolean("hasMainTabs", false);
+        }
+
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.storiesUpdated);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.dialogsNeedReload);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.updateInterfaces);
+
+        loadData();
+        return true;
+    }
+
+    @Override
+    public void onFragmentDestroy() {
+        super.onFragmentDestroy();
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.storiesUpdated);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.dialogsNeedReload);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.updateInterfaces);
+    }
+
+    private void loadData() {
+        // Load stories
+        storyItems.clear();
+        StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
+        ArrayList<TL_stories.PeerStories> allStories = storiesController.getDialogListStories();
+        if (allStories != null) {
+            long selfId = UserConfig.getInstance(currentAccount).getClientUserId();
+            for (TL_stories.PeerStories ps : allStories) {
+                // Skip self stories (already shown in the self card)
+                long peerId = getDialogIdFromPeerStories(ps);
+                if (peerId != selfId) {
+                    if (searching && searchQuery != null && !searchQuery.isEmpty()) {
+                        String name = "";
+                        if (peerId > 0) {
+                            TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(peerId);
+                            if (user != null) {
+                                name = (user.first_name != null ? user.first_name : "") + " " + (user.last_name != null ? user.last_name : "");
+                            }
+                        } else {
+                            TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-peerId);
+                            if (chat != null) {
+                                name = chat.title != null ? chat.title : "";
+                            }
+                        }
+                        if (!name.toLowerCase().contains(searchQuery.toLowerCase())) {
+                            continue;
+                        }
+                    }
+                    storyItems.add(ps);
+                }
+            }
+        }
+
+        // Load channels
+        channelDialogs.clear();
+        ArrayList<TLRPC.Dialog> channels = MessagesController.getInstance(currentAccount).dialogsChannelsOnly;
+        if (channels != null) {
+            for (TLRPC.Dialog dialog : channels) {
+                if (showArchivedChannels) {
+                    if (dialog.folder_id != 1) {
+                        continue; // Skip active channels if showing archived
+                    }
+                } else {
+                    if (dialog.folder_id == 1) {
+                        continue; // Skip archived channels if showing active
+                    }
+                }
+                if (searching && searchQuery != null && !searchQuery.isEmpty()) {
+                    TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialog.id);
+                    String title = chat != null && chat.title != null ? chat.title : "";
+                    if (!title.toLowerCase().contains(searchQuery.toLowerCase())) {
+                        continue;
+                    }
+                }
+                channelDialogs.add(dialog);
+            }
+        }
+    }
+
+    @Override
+    public View createView(Context context) {
+        hasOwnBackground = true;
+
+        // Action bar
+        actionBar.setTitle(getString(R.string.MainTabsUpdates));
+        actionBar.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefault));
+        actionBar.setTitleColor(Theme.getColor(Theme.key_actionBarDefaultTitle));
+        actionBar.setItemsColor(Theme.getColor(Theme.key_actionBarDefaultIcon), false);
+        actionBar.setItemsBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSelector), false);
+        actionBar.setBackButtonImage(R.drawable.ic_ab_back);
+        if (actionBar.getBackButton() != null) {
+            actionBar.getBackButton().setVisibility(View.GONE);
+        }
+
+        actionBar.setActionBarMenuOnItemClick(new org.telegram.ui.ActionBar.ActionBar.ActionBarMenuOnItemClick() {
+            @Override
+            public void onItemClick(int id) {
+                if (id == -1) {
+                    if (inSelectionMode) {
+                        hideActionMode();
+                    } else if (searching) {
+                        actionBar.closeSearchField();
+                    } else {
+                        finishFragment();
+                    }
+                } else if (id == 1) { // Status Privacy
+                    try {
+                        org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet sheet = 
+                            new org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet(getContext(), 86400, getResourceProvider());
+                        showDialog(sheet);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else if (id == 2) { // New Channel
+                    Bundle args = new Bundle();
+                    presentFragment(new ChannelCreateActivity(args));
+                } else if (id == 101) { // Mute
+                    toggleMuteSelectedChannels();
+                } else if (id == 102) { // Archive
+                    archiveSelectedChannels();
+                } else if (id == 103) { // Delete
+                    deleteSelectedChannels();
+                } else if (id == 105) { // Copy link
+                    copySelectedChannelLink();
+                } else if (id == 201) { // Pin/Unpin
+                    pinOrUnpinSelectedChannels();
+                } else if (id == 202) { // Add to folder
+                    addToFolderSelectedChannels();
+                } else if (id == 203) { // Mark as read/unread
+                    markSelectedChannelsReadOrUnread();
+                } else if (id == 204) { // Clear Cache
+                    deleteCacheSelectedChannels();
+                } else if (id == 205) { // Select all
+                    selectAllChannels();
+                } else if (id == 206) { // Channel Info
+                    openSelectedChannelInfo();
+                } else if (id == 207) { // Unfollow
+                    unfollowSelectedChannels();
+                }
+            }
+        });
+
+        org.telegram.ui.ActionBar.ActionBarMenu menu = actionBar.createMenu();
+        
+        // 1. Camera icon
+        org.telegram.ui.ActionBar.ActionBarMenuItem cameraItem = menu.addItem(10, R.drawable.msg_camera);
+        cameraItem.setOnClickListener(v -> {
+            if (getParentActivity() != null) {
+                StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
+            }
+        });
+        
+        // 2. Search icon
+        org.telegram.ui.ActionBar.ActionBarMenuItem searchItem = menu.addItem(20, R.drawable.outline_header_search).setIsSearchField(true);
+        searchItem.setSearchFieldHint(LocaleController.getString(R.string.Search));
+        searchItem.setActionBarMenuItemSearchListener(new org.telegram.ui.ActionBar.ActionBarMenuItem.ActionBarMenuItemSearchListener() {
+            @Override
+            public void onSearchExpand() {
+                searching = true;
+                if (actionBar.getBackButton() != null) {
+                    actionBar.getBackButton().setVisibility(View.VISIBLE);
+                    actionBar.getBackButton().setAlpha(0f);
+                    actionBar.getBackButton().animate().alpha(1f).setDuration(150).start();
+                    actionBar.getBackButton().setOnClickListener(v -> {
+                        actionBar.closeSearchField();
+                    });
+                }
+            }
+
+            @Override
+            public void onSearchCollapse() {
+                searching = false;
+                searchQuery = null;
+                if (actionBar.getBackButton() != null) {
+                    actionBar.getBackButton().animate().alpha(0f).setDuration(150).withEndAction(() -> {
+                        actionBar.getBackButton().setVisibility(View.GONE);
+                    }).start();
+                    actionBar.getBackButton().setOnClickListener(v -> {
+                        if (actionBar.getActionBarMenuOnItemClick() != null) {
+                            actionBar.getActionBarMenuOnItemClick().onItemClick(-1);
+                        }
+                    });
+                }
+                updateUI();
+            }
+
+            @Override
+            public void onTextChanged(android.widget.EditText editText) {
+                searchQuery = editText.getText().toString();
+                updateUI();
+            }
+        });
+
+        // 3. Three-dots icon
+        org.telegram.ui.ActionBar.ActionBarMenuItem otherItem = menu.addItem(30, R.drawable.ic_ab_other);
+        otherItem.addSubItem(1, R.drawable.msg_secret, LocaleController.getString(R.string.StoryPrivacyAlertEditTitle));
+        otherItem.addSubItem(2, R.drawable.msg_channel, LocaleController.getString(R.string.NewChannel));
+
+        // Main container
+        FrameLayout rootLayout = new FrameLayout(context);
+        rootLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+
+        ScrollView scrollView = new ScrollView(context);
+        scrollView.setFillViewport(true);
+
+        contentLayout = new LinearLayout(context);
+        contentLayout.setOrientation(LinearLayout.VERTICAL);
+
+        // === Status/Stories section ===
+        TextView statusHeader = createSectionHeader(context, getString(R.string.UpdatesStatusHeader));
+        contentLayout.addView(statusHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 16, 0, 8));
+
+        // Horizontal stories RecyclerView
+        storiesRecyclerView = new RecyclerListView(context);
+        storiesRecyclerView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false));
+        storiesRecyclerView.setClipToPadding(false);
+        storiesRecyclerView.setPadding(dp(12), 0, dp(12), 0);
+        storiesRecyclerView.setSelectorRadius(dp(14)); // match card radius
+        storiesRecyclerView.setSelectorDrawableColor(Theme.getColor(Theme.key_listSelector));
+        storiesAdapter = new StoriesAdapter(context);
+        storiesRecyclerView.setAdapter(storiesAdapter);
+        storiesRecyclerView.setOnItemClickListener((view, position) -> {
+            if (position >= 0 && position < storyItems.size() + 1) {
+                if (position == 0) {
+                    // Self story - open story recorder or viewer
+                    StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
+                    if (storiesController.hasSelfStories()) {
+                        openStoryViewer(UserConfig.getInstance(currentAccount).getClientUserId());
+                    } else {
+                        // Open StoryRecorder to create a new story
+                        if (getParentActivity() != null) {
+                            StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
+                        }
+                    }
+                } else {
+                    TL_stories.PeerStories peerStories = storyItems.get(position - 1);
+                    long dialogId = getDialogIdFromPeerStories(peerStories);
+                    openStoryViewer(dialogId);
+                }
+            }
+        });
+        storiesRecyclerView.setOnItemLongClickListener((view, position) -> {
+            if (position >= 0 && position < storyItems.size() + 1) {
+                if (position == 0) {
+                    // Personal "My status" card long-press menu
+                    ItemOptions.makeOptions(UpdatesActivity.this, view)
+                        .add(R.drawable.msg_stories_add, LocaleController.getString(R.string.AddStory), Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
+                            if (getParentActivity() != null) {
+                                StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
+                            }
+                        })
+                        .add(R.drawable.msg_stories_archive, LocaleController.getString(R.string.ArchivedStories), Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
+                            Bundle args = new Bundle();
+                            args.putLong("dialog_id", UserConfig.getInstance(currentAccount).getClientUserId());
+                            args.putInt("type", MediaActivity.TYPE_STORIES);
+                            args.putInt("start_from", SharedMediaLayout.TAB_ARCHIVED_STORIES);
+                            presentFragment(new MediaActivity(args, null));
+                        })
+                        .add(R.drawable.msg_stories_saved, LocaleController.getString(R.string.SavedStories), Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
+                            Bundle args = new Bundle();
+                            args.putLong("dialog_id", UserConfig.getInstance(currentAccount).getClientUserId());
+                            args.putInt("type", MediaActivity.TYPE_STORIES);
+                            presentFragment(new MediaActivity(args, null));
+                        })
+                        .show();
+                } else {
+                    // Other user's card long-press menu
+                    TL_stories.PeerStories peerStories = storyItems.get(position - 1);
+                    long dialogId = getDialogIdFromPeerStories(peerStories);
+                    if (dialogId == 0) return true;
+
+                    boolean muted = !NotificationsCustomSettingsActivity.areStoriesNotMuted(currentAccount, dialogId);
+                    
+                    boolean hidden = false;
+                    if (dialogId > 0) {
+                        TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogId);
+                        if (user != null) {
+                            hidden = user.stories_hidden;
+                        }
+                    } else {
+                        TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
+                        if (chat != null) {
+                            hidden = chat.stories_hidden;
+                        }
+                    }
+                    
+                    final boolean isHiddenFinal = hidden;
+
+                    ItemOptions.makeOptions(UpdatesActivity.this, view)
+                        .addIf(dialogId > 0, R.drawable.msg_discussion, LocaleController.getString(R.string.SendMessage), () -> {
+                            presentFragment(ChatActivity.of(dialogId));
+                        })
+                        .addIf(dialogId > 0, R.drawable.msg_openprofile, LocaleController.getString(R.string.OpenProfile), () -> {
+                            presentFragment(ProfileActivity.of(dialogId));
+                        })
+                        .add(muted ? R.drawable.msg_unmute : R.drawable.msg_mute,
+                             muted ? LocaleController.getString(R.string.NotificationsStoryUnmute2) : LocaleController.getString(R.string.NotificationsStoryMute2),
+                             Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
+                                 final String key = NotificationsController.getSharedPrefKey(dialogId, 0);
+                                 boolean nextMute = !muted;
+                                 MessagesController.getNotificationsSettings(currentAccount).edit().putBoolean("stories_" + key, !nextMute).apply();
+                                 getNotificationsController().updateServerNotificationsSettings(dialogId, 0);
+                                 
+                                 TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogId);
+                                 if (user != null) {
+                                     String name = user.first_name != null ? user.first_name.trim() : "";
+                                     int index = name.indexOf(" ");
+                                     if (index > 0) {
+                                         name = name.substring(0, index);
+                                     }
+                                     if (nextMute) {
+                                         BulletinFactory.global().createUsersBulletin(
+                                             Collections.singletonList(user),
+                                             AndroidUtilities.replaceTags(LocaleController.formatString("NotificationsStoryMutedHint", R.string.NotificationsStoryMutedHint, name))
+                                         ).show();
+                                     } else {
+                                         BulletinFactory.global().createUsersBulletin(
+                                             Collections.singletonList(user),
+                                             AndroidUtilities.replaceTags(LocaleController.formatString("NotificationsStoryUnmutedHint", R.string.NotificationsStoryUnmutedHint, name))
+                                         ).show();
+                                     }
+                                 }
+                             })
+                        .add(isHiddenFinal ? R.drawable.msg_unarchive : R.drawable.msg_archive,
+                             isHiddenFinal ? LocaleController.getString(R.string.UnarchiveStories) : LocaleController.getString(R.string.ArchivePeerStories),
+                             Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
+                                 boolean nextHide = !isHiddenFinal;
+                                 getMessagesController().getStoriesController().toggleHidden(dialogId, nextHide, true, true);
+                                 
+                                 BulletinFactory.UndoObject undoObject = new BulletinFactory.UndoObject();
+                                 undoObject.onUndo = () -> {
+                                     getMessagesController().getStoriesController().toggleHidden(dialogId, !nextHide, false, true);
+                                 };
+                                 undoObject.onAction = () -> {
+                                     getMessagesController().getStoriesController().toggleHidden(dialogId, nextHide, true, true);
+                                 };
+                                 
+                                 CharSequence str;
+                                 String name;
+                                 TLObject object;
+                                 if (dialogId >= 0) {
+                                     TLRPC.User user = getMessagesController().getUser(dialogId);
+                                     name = ContactsController.formatName(user.first_name, null, 15);
+                                     object = user;
+                                 } else {
+                                     TLRPC.Chat chat = getMessagesController().getChat(-dialogId);
+                                     name = chat.title;
+                                     object = chat;
+                                 }
+                                 if (nextHide) {
+                                     str = AndroidUtilities.replaceTags(LocaleController.formatString("StoriesMovedToContacts", R.string.StoriesMovedToContacts, ContactsController.formatName(name, null, 15)));
+                                 } else {
+                                     str = AndroidUtilities.replaceTags(LocaleController.formatString("StoriesMovedToDialogs", R.string.StoriesMovedToDialogs, name));
+                                 }
+                                 
+                                 BulletinFactory.global().createUsersBulletin(
+                                     Collections.singletonList(object),
+                                     str,
+                                     null,
+                                     undoObject
+                                 ).show();
+                             })
+                        .show();
+                }
+            }
+            return true;
+        });
+
+        contentLayout.addView(storiesRecyclerView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 140, 0, 0, 0, 8));
+
+        // === Channels section ===
+        FrameLayout channelsHeaderLayout = new FrameLayout(context);
+        channelsHeaderLayout.setPadding(0, dp(16), 0, dp(8));
+
+        int headerGravity = LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT;
+        int iconGravity = LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT;
+
+        channelsHeaderTextView = new TextView(context);
+        channelsHeaderTextView.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات المؤرشفة" : "Archived Channels") : getString(R.string.UpdatesChannelsHeader));
+        channelsHeaderTextView.setTextSize(17);
+        channelsHeaderTextView.setTypeface(AndroidUtilities.bold());
+        channelsHeaderTextView.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+        channelsHeaderTextView.setPadding(dp(16), dp(8), dp(16), dp(4));
+        channelsHeaderLayout.addView(channelsHeaderTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, headerGravity | Gravity.CENTER_VERTICAL));
+
+        // Horizontal container for Archive action
+        LinearLayout headerActionsLayout = new LinearLayout(context);
+        headerActionsLayout.setOrientation(LinearLayout.HORIZONTAL);
+        headerActionsLayout.setGravity(Gravity.CENTER_VERTICAL);
+
+        // 1. Archive Capsule Button
+        channelsArchiveButton = new TextView(context);
+        channelsArchiveButton.setText(LocaleController.isRTL ? "المؤرشفة" : "Archive");
+        channelsArchiveButton.setTextSize(13);
+        channelsArchiveButton.setGravity(Gravity.CENTER);
+        channelsArchiveButton.setTypeface(AndroidUtilities.bold());
+        channelsArchiveButton.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
+
+        android.graphics.drawable.GradientDrawable archiveBg = new android.graphics.drawable.GradientDrawable();
+        archiveBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        archiveBg.setCornerRadius(dp(16));
+        archiveBg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton));
+        channelsArchiveButton.setBackground(archiveBg);
+        channelsArchiveButton.setOnClickListener(v -> {
+            showArchivedChannels = !showArchivedChannels;
+            channelsHeaderTextView.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات المؤرشفة" : "Archived Channels") : getString(R.string.UpdatesChannelsHeader));
+            updateUI();
+        });
+        headerActionsLayout.addView(channelsArchiveButton, LayoutHelper.createLinear(84, 32, 0, 0, 8, 0));
+
+        channelsHeaderLayout.addView(headerActionsLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, iconGravity | Gravity.CENTER_VERTICAL, LocaleController.isRTL ? 16 : 0, 0, LocaleController.isRTL ? 0 : 16, 0));
+
+        contentLayout.addView(channelsHeaderLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        channelsContainer = new LinearLayout(context);
+        channelsContainer.setOrientation(LinearLayout.VERTICAL);
+        contentLayout.addView(channelsContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // No channels placeholder
+        noChannelsView = new TextView(context);
+        noChannelsView.setText(getString(R.string.UpdatesNoChannels));
+        noChannelsView.setTextSize(15);
+        noChannelsView.setGravity(Gravity.CENTER);
+        noChannelsView.setTextColor(Theme.getColor(Theme.key_emptyListPlaceholder));
+        noChannelsView.setPadding(dp(16), dp(32), dp(16), dp(32));
+        contentLayout.addView(noChannelsView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // Bottom padding for tabs
+        View bottomPadding = new View(context);
+        contentLayout.addView(bottomPadding, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS));
+
+        scrollView.addView(contentLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        rootLayout.addView(scrollView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 0, 0, 0));
+        rootLayout.addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // Blurred view for premium chat previews
+        blurredView = new View(context);
+        blurredView.setVisibility(View.GONE);
+        blurredView.setFocusable(false);
+        blurredView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        blurredView.setOnClickListener(e -> {
+            finishPreviewFragment();
+        });
+        rootLayout.addView(blurredView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        // === Telegram-style floating action buttons ===
+        int bottomTabsHeight = DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS;
+
+        // 1. Camera Floating Button (Bottom - Main)
+        FragmentFloatingButton cameraFab = new FragmentFloatingButton(context, getResourceProvider());
+        cameraFab.setImageResource(R.drawable.msg_camera);
+        cameraFab.setOnClickListener(v -> {
+            if (getParentActivity() != null) {
+                StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
+            }
+        });
+
+        rootLayout.addView(cameraFab, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 80));
+
+        // 2. Pencil Floating Button (Above Camera - Sub)
+        FragmentFloatingButton pencilFab = new FragmentFloatingButton(context, getResourceProvider(), true);
+        pencilFab.setImageResource(R.drawable.msg_edit);
+        pencilFab.setOnClickListener(v -> {
+            if (getParentActivity() != null) {
+                StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
+                BulletinFactory.of(UpdatesActivity.this).createSimpleBulletin(R.drawable.msg_edit, LocaleController.isRTL ? "اكتب حالتك النصية الجديدة!" : "Write your new text status!").show();
+            }
+        });
+
+        rootLayout.addView(pencilFab, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 70 + 48 + 16));
+
+        // Auto-hide buttons on scroll
+        scrollView.getViewTreeObserver().addOnScrollChangedListener(new android.view.ViewTreeObserver.OnScrollChangedListener() {
+            private int lastScrollY;
+            @Override
+            public void onScrollChanged() {
+                int scrollY = scrollView.getScrollY();
+                if (scrollY > lastScrollY + dp(8)) {
+                    cameraFab.setButtonVisible(false, true);
+                    pencilFab.setButtonVisible(false, true);
+                } else if (scrollY < lastScrollY - dp(8) || scrollY <= 0) {
+                    cameraFab.setButtonVisible(true, true);
+                    pencilFab.setButtonVisible(true, true);
+                }
+                lastScrollY = scrollY;
+            }
+        });
+
+        // Undo view for actions
+        undoView = new UndoView(context);
+        rootLayout.addView(undoView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT, 8, 0, 8, 8));
+
+        fragmentView = rootLayout;
+
+        ViewCompat.setOnApplyWindowInsetsListener(fragmentView, (v, insets) -> {
+            scrollView.setPadding(0, AndroidUtilities.getStatusBarHeight(context) + ActionBar.getCurrentActionBarHeight(), 0, 0);
+            return insets;
+        });
+
+        updateUI();
+
+        return fragmentView;
+    }
+
+    private void openStoryViewer(long dialogId) {
+        if (getParentActivity() == null) return;
+        StoryViewer storyViewer = getOrCreateStoryViewer();
+        storyViewer.open(getParentActivity(), dialogId, StoriesListPlaceProvider.of(storiesRecyclerView));
+    }
+
+    private long getDialogIdFromPeerStories(TL_stories.PeerStories peerStories) {
+        if (peerStories.peer == null) return 0;
+        if (peerStories.peer.user_id != 0) return peerStories.peer.user_id;
+        if (peerStories.peer.chat_id != 0) return -peerStories.peer.chat_id;
+        if (peerStories.peer.channel_id != 0) return -peerStories.peer.channel_id;
+        return 0;
+    }
+
+    private TextView createSectionHeader(Context context, String text) {
+        TextView header = new TextView(context);
+        header.setText(text);
+        header.setTextSize(17);
+        header.setTypeface(AndroidUtilities.bold());
+        header.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+        header.setPadding(dp(16), dp(8), dp(16), dp(4));
+        return header;
+    }
+
+    private void updateUI() {
+        boolean hasArchived = false;
+        ArrayList<TLRPC.Dialog> allChannels = MessagesController.getInstance(currentAccount).dialogsChannelsOnly;
+        if (allChannels != null) {
+            for (TLRPC.Dialog dialog : allChannels) {
+                if (dialog.folder_id == 1) {
+                    hasArchived = true;
+                    break;
+                }
+            }
+        }
+        if (!hasArchived && showArchivedChannels) {
+            showArchivedChannels = false;
+            if (channelsHeaderTextView != null) {
+                channelsHeaderTextView.setText(getString(R.string.UpdatesChannelsHeader));
+            }
+        }
+        if (channelsArchiveButton != null) {
+            channelsArchiveButton.setVisibility(hasArchived ? View.VISIBLE : View.GONE);
+            channelsArchiveButton.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات" : "Channels") : (LocaleController.isRTL ? "المؤرشفة" : "Archive"));
+        }
+
+        loadData();
+
+        if (storiesAdapter != null) {
+            storiesAdapter.notifyDataSetChanged();
+        }
+
+        if (channelsContainer != null) {
+            channelsContainer.removeAllViews();
+
+            if (channelDialogs.isEmpty()) {
+                if (noChannelsView != null) noChannelsView.setVisibility(View.VISIBLE);
+            } else {
+                if (noChannelsView != null) noChannelsView.setVisibility(View.GONE);
+
+                for (TLRPC.Dialog dialog : channelDialogs) {
+                    UpdatesChannelCell cell = new UpdatesChannelCell(channelsContainer.getContext());
+                    cell.setChannel(currentAccount, dialog);
+                    cell.setChecked(inSelectionMode && selectedDialogIds.contains(dialog.id), false);
+
+                    final float[] lastTouchX = new float[1];
+                    final float[] lastTouchY = new float[1];
+                    cell.setOnTouchListener((v, event) -> {
+                        if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                            lastTouchX[0] = event.getX();
+                            lastTouchY[0] = event.getY();
+                        }
+                        return false;
+                    });
+
+                    cell.setOnClickListener(v -> {
+                        if (inSelectionMode) {
+                            toggleSelection(dialog.id);
+                        } else {
+                            long id = cell.getDialogId();
+                            if (id != 0) {
+                                presentFragment(ChatActivity.of(id));
+                            }
+                        }
+                    });
+                    cell.setOnLongClickListener(v -> {
+                        if (cell.isPointInsideAvatar(lastTouchX[0], lastTouchY[0])) {
+                            if (!inSelectionMode) {
+                                return showChatPreview(cell);
+                            }
+                        } else {
+                            toggleSelection(dialog.id);
+                            return true;
+                        }
+                        return false;
+                    });
+                    channelsContainer.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+                }
+            }
+        }
+    }
+
+    @Override
+    public void didReceivedNotification(int id, int account, Object... args) {
+        if (id == NotificationCenter.storiesUpdated ||
+                id == NotificationCenter.dialogsNeedReload ||
+                id == NotificationCenter.updateInterfaces) {
+            AndroidUtilities.runOnUIThread(this::updateUI);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateUI();
+    }
+
+    @Override
+    public boolean canBeginSlide() {
+        return true;
+    }
+
+    @Override
+    public boolean onBackPressed(boolean invoked) {
+        if (hasShownSheet()) {
+            if (invoked) closeSheet();
+            return false;
+        }
+        if (inSelectionMode) {
+            if (invoked) {
+                hideActionMode();
+            }
+            return false;
+        }
+        if (actionBar != null && actionBar.isSearchFieldVisible()) {
+            if (invoked) {
+                actionBar.closeSearchField();
+            }
+            return false;
+        }
+        return super.onBackPressed(invoked);
+    }
+
+    public boolean showChatPreview(UpdatesChannelCell cell) {
+        long dialogId = cell.getDialogId();
+        Bundle args = new Bundle();
+        if (DialogObject.isEncryptedDialog(dialogId)) {
+            return false;
+        } else {
+            if (DialogObject.isUserDialog(dialogId)) {
+                args.putLong("user_id", dialogId);
+            } else {
+                args.putLong("chat_id", -dialogId);
+            }
+        }
+
+        final ArrayList<Long> dialogIdArray = new ArrayList<>();
+        dialogIdArray.add(dialogId);
+
+        boolean hasFolders = getMessagesController().filtersEnabled && getMessagesController().dialogFiltersLoaded && getMessagesController().dialogFilters != null && getMessagesController().dialogFilters.size() > 0;
+        final ActionBarPopupWindow.ActionBarPopupWindowLayout[] previewMenu = new ActionBarPopupWindow.ActionBarPopupWindowLayout[1];
+
+        int flags = ActionBarPopupWindow.ActionBarPopupWindowLayout.FLAG_SHOWN_FROM_BOTTOM;
+        if (hasFolders) {
+            flags |= ActionBarPopupWindow.ActionBarPopupWindowLayout.FLAG_USE_SWIPEBACK;
+        }
+        final ActionBarPopupWindow.ActionBarPopupWindowLayout popupLayout = new ActionBarPopupWindow.ActionBarPopupWindowLayout(getParentActivity(), R.drawable.popup_fixed_alert4, getResourceProvider(), flags);
+        previewMenu[0] = popupLayout;
+
+        LinearLayout foldersMenuView = null;
+        int[] foldersMenu = new int[1];
+        if (hasFolders) {
+            foldersMenuView = new LinearLayout(getParentActivity());
+            foldersMenuView.setOrientation(LinearLayout.VERTICAL);
+
+            ScrollView scrollView = new ScrollView(getParentActivity()) {
+                @Override
+                protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                    super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(
+                            (int) Math.min(
+                                    MeasureSpec.getSize(heightMeasureSpec),
+                                    Math.min(AndroidUtilities.displaySize.y * 0.35f, dp(400))
+                            ),
+                            MeasureSpec.getMode(heightMeasureSpec)
+                    ));
+                }
+            };
+            LinearLayout linearLayout = new LinearLayout(getParentActivity());
+            linearLayout.setOrientation(LinearLayout.VERTICAL);
+            scrollView.addView(linearLayout);
+            final boolean backButtonAtTop = true;
+
+            final int foldersCount = getMessagesController().dialogFilters.size();
+            ActionBarMenuSubItem lastItem = null;
+            for (int i = 0; i < foldersCount; ++i) {
+                MessagesController.DialogFilter folder = getMessagesController().dialogFilters.get(i);
+                if (folder.isDefault()) {
+                    continue;
+                }
+                final boolean contains = folder.includesDialog(AccountInstance.getInstance(currentAccount), dialogId);
+                final ArrayList<Long> alwaysShow = FiltersListBottomSheet.getDialogsCount(UpdatesActivity.this, folder, dialogIdArray, true, false);
+                if (!contains) {
+                    int currentCount = folder.alwaysShow.size();
+                    if (currentCount + alwaysShow.size() > 100) {
+                        continue;
+                    }
+                }
+                ActionBarMenuSubItem folderItem = lastItem = new ActionBarMenuSubItem(getParentActivity(), 2, !backButtonAtTop && linearLayout.getChildCount() == 0, false, null);
+                folderItem.setChecked(contains);
+                CharSequence title = folder.name;
+                title = Emoji.replaceEmoji(title, folderItem.getTextView().getPaint().getFontMetricsInt(), false);
+                title = MessageObject.replaceAnimatedEmoji(title, folder.entities, folderItem.getTextView().getPaint().getFontMetricsInt());
+                folderItem.setEmojiCacheType(folder.title_noanimate ? AnimatedEmojiDrawable.CACHE_TYPE_NOANIMATE_FOLDER : AnimatedEmojiDrawable.CACHE_TYPE_MESSAGES);
+                folderItem.setTextAndIcon(title, 0, new FolderDrawable(getContext(), R.drawable.msg_folders, folder.color));
+                folderItem.getTextView().setEmojiColor(Theme.getColor(Theme.key_featuredStickers_addButton));
+                folderItem.setMinimumWidth(160);
+                folderItem.setOnClickListener(e -> {
+                    if (!contains) {
+                        if (!alwaysShow.isEmpty()) {
+                            for (int a = 0; a < alwaysShow.size(); a++) {
+                                folder.neverShow.remove(alwaysShow.get(a));
+                            }
+                            folder.alwaysShow.addAll(alwaysShow);
+                            FilterCreateActivity.saveFilterToServer(folder, folder.flags, folder.name, folder.entities, folder.title_noanimate, folder.color, folder.alwaysShow, folder.neverShow, folder.pinnedDialogs, false, false, true, true, false, UpdatesActivity.this, null);
+                        }
+                        if (getUndoView() != null) {
+                            getUndoView().showWithAction(dialogId, UndoView.ACTION_ADDED_TO_FOLDER, alwaysShow.size(), folder, null, null);
+                        }
+                    } else {
+                        folder.alwaysShow.remove(dialogId);
+                        folder.neverShow.add(dialogId);
+                        FilterCreateActivity.saveFilterToServer(folder, folder.flags, folder.name, folder.entities, folder.title_noanimate, folder.color, folder.alwaysShow, folder.neverShow, folder.pinnedDialogs, false, false, true, true, false, UpdatesActivity.this, null);
+                        if (getUndoView() != null) {
+                            getUndoView().showWithAction(dialogId, UndoView.ACTION_REMOVED_FROM_FOLDER, alwaysShow.size(), folder, null, null);
+                        }
+                    }
+                    finishPreviewFragment();
+                });
+                linearLayout.addView(folderItem);
+            }
+            if (lastItem != null && backButtonAtTop) {
+                lastItem.updateSelectorBackground(false, true);
+            }
+            if (linearLayout.getChildCount() <= 0) {
+                hasFolders = false;
+            } else {
+                ActionBarPopupWindow.GapView gap = new ActionBarPopupWindow.GapView(getParentActivity(), getResourceProvider(), Theme.key_actionBarDefaultSubmenuSeparator);
+                gap.setTag(R.id.fit_width_tag, 1);
+                ActionBarMenuSubItem backItem = new ActionBarMenuSubItem(getParentActivity(), backButtonAtTop, !backButtonAtTop);
+                backItem.setTextAndIcon(LocaleController.getString(R.string.Back), R.drawable.ic_ab_back);
+                backItem.setMinimumWidth(160);
+                backItem.setOnClickListener(e -> {
+                    if (popupLayout != null && popupLayout.getSwipeBack() != null) {
+                        popupLayout.getSwipeBack().closeForeground();
+                    }
+                });
+                if (backButtonAtTop) {
+                    foldersMenuView.addView(backItem);
+                    foldersMenuView.addView(gap, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));
+                    foldersMenuView.addView(scrollView);
+                } else {
+                    foldersMenuView.addView(scrollView);
+                    foldersMenuView.addView(gap, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));
+                    foldersMenuView.addView(backItem);
+                }
+            }
+        }
+
+        final ChatActivity[] chatActivity = new ChatActivity[1];
+
+        if (hasFolders) {
+            foldersMenu[0] = previewMenu[0].addViewToSwipeBack(foldersMenuView);
+            ActionBarMenuSubItem addToFolderItem = new ActionBarMenuSubItem(getParentActivity(), true, false);
+            addToFolderItem.setTextAndIcon(LocaleController.getString(R.string.FilterAddTo), R.drawable.msg_addfolder);
+            addToFolderItem.setMinimumWidth(160);
+            addToFolderItem.setOnClickListener(e ->
+                    previewMenu[0].getSwipeBack().openForeground(foldersMenu[0])
+            );
+            previewMenu[0].addView(addToFolderItem);
+            previewMenu[0].getSwipeBack().setOnHeightUpdateListener(height -> {
+                if (chatActivity[0] == null || chatActivity[0].getFragmentView() == null || !chatActivity[0].isInPreviewMode()) {
+                    return;
+                }
+                ViewGroup.LayoutParams lp = chatActivity[0].getFragmentView().getLayoutParams();
+                if (lp instanceof ViewGroup.MarginLayoutParams) {
+                    ((ViewGroup.MarginLayoutParams) lp).bottomMargin = dp(24 + 16 + 8) + height;
+                    chatActivity[0].getFragmentView().setLayoutParams(lp);
+                }
+            });
+        }
+
+        ActionBarMenuSubItem markAsUnreadItem = new ActionBarMenuSubItem(getParentActivity(), true, false);
+        if (cell.getHasUnread()) {
+            markAsUnreadItem.setTextAndIcon(LocaleController.getString(R.string.MarkAsRead), R.drawable.msg_markread);
+        } else {
+            markAsUnreadItem.setTextAndIcon(LocaleController.getString(R.string.MarkAsUnread), R.drawable.msg_markunread);
+        }
+        markAsUnreadItem.setMinimumWidth(160);
+        markAsUnreadItem.setOnClickListener(e -> {
+            if (cell.getHasUnread()) {
+                markAsRead(dialogId);
+            } else {
+                markAsUnread(dialogId);
+            }
+            finishPreviewFragment();
+            updateUI();
+        });
+        previewMenu[0].addView(markAsUnreadItem);
+
+        TLRPC.Dialog dialog = findDialogById(dialogId);
+        boolean isPinned = dialog != null && dialog.pinned;
+        ActionBarMenuSubItem unpinItem = new ActionBarMenuSubItem(getParentActivity(), false, false);
+        if (isPinned) {
+            unpinItem.setTextAndIcon(LocaleController.getString(R.string.UnpinMessage), R.drawable.msg_unpin);
+        } else {
+            unpinItem.setTextAndIcon(LocaleController.getString(R.string.PinMessage), R.drawable.msg_pin);
+        }
+        unpinItem.setMinimumWidth(160);
+        unpinItem.setOnClickListener(e -> {
+            finishPreviewFragment();
+            getMessagesController().pinDialog(dialogId, !isPinned, null, -1);
+            if (getUndoView() != null) {
+                getUndoView().showWithAction(0, !isPinned ? UndoView.ACTION_PIN_DIALOGS : UndoView.ACTION_UNPIN_DIALOGS, 1, 1600, null, null);
+            }
+            updateUI();
+        });
+        previewMenu[0].addView(unpinItem);
+
+        ActionBarMenuSubItem muteItem = new ActionBarMenuSubItem(getParentActivity(), false, false);
+        boolean isMuted = getMessagesController().isDialogMuted(dialogId, 0);
+        if (!isMuted) {
+            muteItem.setTextAndIcon(LocaleController.getString(R.string.Mute), R.drawable.msg_mute);
+        } else {
+            muteItem.setTextAndIcon(LocaleController.getString(R.string.Unmute), R.drawable.msg_unmute);
+        }
+        muteItem.setMinimumWidth(160);
+        muteItem.setOnClickListener(e -> {
+            if (!isMuted) {
+                getNotificationsController().setDialogNotificationsSettings(dialogId, 0, NotificationsController.SETTING_MUTE_FOREVER);
+            } else {
+                getNotificationsController().setDialogNotificationsSettings(dialogId, 0, NotificationsController.SETTING_MUTE_UNMUTE);
+            }
+            BulletinFactory.createMuteBulletin(UpdatesActivity.this, !isMuted, null).show();
+            finishPreviewFragment();
+            updateUI();
+        });
+        previewMenu[0].addView(muteItem);
+
+        ActionBarMenuSubItem deleteItem = new ActionBarMenuSubItem(getParentActivity(), false, true);
+        deleteItem.setIconColor(Theme.getColor(Theme.key_text_RedRegular));
+        deleteItem.setTextColor(Theme.getColor(Theme.key_text_RedBold));
+        deleteItem.setSelectorColor(Theme.multAlpha(Theme.getColor(Theme.key_text_RedBold), .12f));
+        deleteItem.setTextAndIcon(LocaleController.getString(R.string.Delete), R.drawable.msg_delete);
+        deleteItem.setMinimumWidth(160);
+        deleteItem.setOnClickListener(e -> {
+            finishPreviewFragment();
+            TLRPC.Chat chat = getMessagesController().getChat(-dialogId);
+            org.telegram.ui.Components.AlertsCreator.createClearOrDeleteDialogAlert(UpdatesActivity.this, false, chat, null, false, false, (revoke) -> {
+                getMessagesController().deleteDialog(dialogId, 0, revoke);
+                updateUI();
+            });
+        });
+        previewMenu[0].addView(deleteItem);
+
+        if (getMessagesController().checkCanOpenChat(args, UpdatesActivity.this)) {
+            prepareBlurBitmap();
+            if (parentLayout != null) {
+                parentLayout.setHighlightActionButtons(true);
+            }
+            if (AndroidUtilities.displaySize.x > AndroidUtilities.displaySize.y) {
+                presentFragmentAsPreview(chatActivity[0] = new ChatActivity(args));
+            } else {
+                presentFragmentAsPreviewWithMenu(chatActivity[0] = new ChatActivity(args), previewMenu[0]);
+                if (chatActivity[0] != null) {
+                    chatActivity[0].allowExpandPreviewByClick = true;
+                    try {
+                        chatActivity[0].getAvatarContainer().getAvatarImageView().performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null);
+                    } catch (Exception ignore) {
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public UndoView getUndoView() {
+        return undoView;
+    }
+
+    private void prepareBlurBitmap() {
+        if (blurredView == null || fragmentView == null) {
+            return;
+        }
+        int w = (int) (fragmentView.getMeasuredWidth() / 9.0f);
+        int h = (int) (fragmentView.getMeasuredHeight() / 9.0f);
+        if (w <= 0 || h <= 0) return;
+        Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        bitmap.eraseColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        Canvas canvas = new Canvas(bitmap);
+        canvas.scale(1.0f / 9.0f, 1.0f / 9.0f);
+        fragmentView.draw(canvas);
+        Utilities.stackBlurBitmap(bitmap, Math.max(9, Math.max(w, h) / 180));
+        blurredView.setBackground(new BitmapDrawable(getParentActivity().getResources(), bitmap));
+        blurredView.setAlpha(0.0f);
+        blurredView.setVisibility(View.VISIBLE);
+    }
+
+    private void markAsRead(long did) {
+        TLRPC.Dialog dialog = findDialogById(did);
+        if (dialog == null) return;
+        getMessagesController().markMentionsAsRead(did, 0);
+        getMessagesController().markDialogAsRead(did, dialog.top_message, dialog.top_message, dialog.last_message_date, false, 0, 0, true, 0);
+    }
+
+    private void markAsUnread(long did) {
+        getMessagesController().markDialogAsUnread(did, null, 0);
+    }
+
+    private void toggleSelection(long dialogId) {
+        if (selectedDialogIds.contains(dialogId)) {
+            selectedDialogIds.remove(dialogId);
+        } else {
+            selectedDialogIds.add(dialogId);
+        }
+
+        if (selectedDialogIds.isEmpty()) {
+            hideActionMode();
+        } else {
+            if (!inSelectionMode) {
+                inSelectionMode = true;
+                createActionMode();
+                if (actionBar != null) {
+                    actionBar.showActionMode();
+                }
+            }
+            if (selectedDialogsCountTextView != null) {
+                selectedDialogsCountTextView.setNumber(selectedDialogIds.size(), true);
+            }
+            updateActionMode();
+            updateUI();
+        }
+    }
+
+    private TLRPC.Dialog findDialogById(long dialogId) {
+        for (TLRPC.Dialog d : channelDialogs) {
+            if (d.id == dialogId) {
+                return d;
+            }
+        }
+        return getMessagesController().dialogs_dict.get(dialogId);
+    }
+
+    private void updateActionMode() {
+        if (archiveItem == null) return;
+
+        int canPinCount = 0;
+        int canUnpinCount = 0;
+        int canMuteCount = 0;
+        int canUnmuteCount = 0;
+        int canReadCount = 0;
+        int canArchiveCount = 0;
+        int canUnarchiveCount = 0;
+
+        for (long dialogId : selectedDialogIds) {
+            TLRPC.Dialog dialog = findDialogById(dialogId);
+            if (dialog == null) {
+                continue;
+            }
+
+            boolean pinned = dialog.pinned;
+            boolean isMuted = getMessagesController().isDialogMuted(dialogId, 0);
+            boolean hasUnread = dialog.unread_count != 0 || dialog.unread_mark;
+
+            if (pinned) {
+                canUnpinCount++;
+            } else {
+                canPinCount++;
+            }
+
+            if (isMuted) {
+                canUnmuteCount++;
+            } else {
+                canMuteCount++;
+            }
+
+            if (hasUnread) {
+                canReadCount++;
+            }
+
+            if (dialog.folder_id == 1) {
+                canUnarchiveCount++;
+            } else {
+                canArchiveCount++;
+            }
+        }
+
+        // Update archiveItem icon
+        if (canUnarchiveCount != 0) {
+            archiveItem.setIcon(R.drawable.msg_unarchive);
+        } else {
+            archiveItem.setIcon(R.drawable.msg_archive);
+        }
+
+        // Update muteItem icon
+        if (muteItem != null) {
+            if (canUnmuteCount != 0) {
+                muteItem.setIcon(R.drawable.msg_unmute);
+            } else {
+                muteItem.setIcon(R.drawable.msg_mute);
+            }
+        }
+
+        // Update pinItem icon
+        if (pinItem != null) {
+            if (canPinCount != 0) {
+                pinItem.setTextAndIcon(LocaleController.getString(R.string.PinToTop), R.drawable.msg_pin);
+            } else {
+                pinItem.setTextAndIcon(LocaleController.getString(R.string.UnpinFromTop), R.drawable.msg_unpin);
+            }
+        }
+
+        // Update readItem (Mark as read / unread subitem)
+        if (readItem != null) {
+            if (canReadCount != 0) {
+                readItem.setTextAndIcon(LocaleController.getString(R.string.MarkAsRead), R.drawable.msg_markread);
+            } else {
+                readItem.setTextAndIcon(LocaleController.getString(R.string.MarkAsUnread), R.drawable.msg_markunread);
+            }
+        }
+    }
+
+    private void createActionMode() {
+        if (actionBar == null || actionBar.actionModeIsExist(null)) {
+            return;
+        }
+        final org.telegram.ui.ActionBar.ActionBarMenu actionMode = actionBar.createActionMode(true, null);
+
+        ImageView actionModeCloseView = new ImageView(getContext());
+        actionModeCloseView.setScaleType(ImageView.ScaleType.CENTER);
+        actionModeCloseView.setImageDrawable(new org.telegram.ui.ActionBar.BackDrawable(true));
+        actionModeCloseView.setColorFilter(new android.graphics.PorterDuffColorFilter(getThemedColor(Theme.key_actionBarActionModeDefaultIcon), android.graphics.PorterDuff.Mode.MULTIPLY));
+        actionModeCloseView.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_actionBarActionModeDefaultSelector)));
+        actionModeCloseView.setOnClickListener(v -> hideActionMode());
+        actionMode.addView(actionModeCloseView, LayoutHelper.createLinear(54, 54, Gravity.CENTER_VERTICAL));
+
+        selectedDialogsCountTextView = new org.telegram.ui.Components.NumberTextView(actionMode.getContext());
+        selectedDialogsCountTextView.setTextSize(18);
+        selectedDialogsCountTextView.setTypeface(AndroidUtilities.bold());
+        selectedDialogsCountTextView.setTextColor(Theme.getColor(Theme.key_actionBarActionModeDefaultIcon));
+        actionMode.addView(selectedDialogsCountTextView, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1.0f, 18, 0, 0, 0));
+
+        // 1. Mute item
+        muteItem = actionMode.addItemWithWidth(101, R.drawable.msg_mute, dp(54));
+ 
+        // 2. Archive item
+        archiveItem = actionMode.addItemWithWidth(102, R.drawable.msg_archive, dp(54));
+ 
+        // 3. Delete item
+        deleteItem = actionMode.addItemWithWidth(103, R.drawable.msg_delete, dp(54));
+ 
+        // 4. Options item
+        org.telegram.ui.ActionBar.ActionBarMenuItem otherItem = actionMode.addItemWithWidth(104, R.drawable.ic_ab_other, dp(54));
+        pinItem = otherItem.addSubItem(201, R.drawable.msg_pin, LocaleController.getString(R.string.PinToTop)); // Pin / Unpin
+        otherItem.addSubItem(105, R.drawable.msg_link, LocaleController.getString(R.string.CopyLink)); // Copy link
+        readItem = otherItem.addSubItem(203, R.drawable.msg_markread, LocaleController.getString(R.string.MarkAsRead)); // Mark as read / unread
+        otherItem.addSubItem(205, R.drawable.msg_contacts, LocaleController.getString(R.string.SelectAll)); // Select all
+        otherItem.addSubItem(206, R.drawable.msg_info, LocaleController.getString(R.string.ViewChannel)); // Channel Info
+        otherItem.addSubItem(207, R.drawable.msg_leave, LocaleController.getString(R.string.LeaveChannel)); // Unfollow / Leave
+        otherItem.addSubItem(202, R.drawable.msg_addfolder, LocaleController.getString(R.string.FilterAddTo)); // Add to folder
+        otherItem.addSubItem(204, R.drawable.msg_clear, LocaleController.getString(R.string.ClearCache)); // Delete from cache
+    }
+
+    private void hideActionMode() {
+        if (actionBar != null) {
+            actionBar.hideActionMode();
+        }
+        inSelectionMode = false;
+        selectedDialogIds.clear();
+        updateUI();
+    }
+
+    private void toggleMuteSelectedChannels() {
+        if (selectedDialogIds.isEmpty()) return;
+
+        ArrayList<CharSequence> items = new ArrayList<>();
+        ArrayList<Integer> itemIds = new ArrayList<>();
+
+        items.add(LocaleController.formatString("MuteFor", R.string.MuteFor, LocaleController.formatPluralString("Hours", 1)));
+        itemIds.add(0); // 1 hour
+
+        items.add(LocaleController.formatString("MuteFor", R.string.MuteFor, LocaleController.formatPluralString("Hours", 8)));
+        itemIds.add(1); // 8 hours
+
+        items.add(LocaleController.formatString("MuteFor", R.string.MuteFor, LocaleController.formatPluralString("Days", 2)));
+        itemIds.add(2); // 2 days
+
+        items.add(LocaleController.getString(R.string.MuteDisable)); // Disable (Mute forever)
+        itemIds.add(3);
+
+        boolean hasMuted = false;
+        for (long dialogId : selectedDialogIds) {
+            if (MessagesController.getInstance(currentAccount).isDialogMuted(dialogId, 0)) {
+                hasMuted = true;
+                break;
+            }
+        }
+        if (hasMuted) {
+            items.add(LocaleController.getString(R.string.Unmute)); // Unmute
+            itemIds.add(4);
+        }
+
+        org.telegram.ui.ActionBar.BottomSheet.Builder builder = new org.telegram.ui.ActionBar.BottomSheet.Builder(getParentActivity(), false);
+        builder.setTitle(LocaleController.getString(R.string.Notifications), true);
+        builder.setItems(items.toArray(new CharSequence[0]), (dialogInterface, i) -> {
+            int action = itemIds.get(i);
+            int setting;
+            if (action == 0) {
+                setting = NotificationsController.SETTING_MUTE_HOUR;
+            } else if (action == 1) {
+                setting = NotificationsController.SETTING_MUTE_8_HOURS;
+            } else if (action == 2) {
+                setting = NotificationsController.SETTING_MUTE_2_DAYS;
+            } else if (action == 3) {
+                setting = NotificationsController.SETTING_MUTE_FOREVER;
+            } else {
+                setting = NotificationsController.SETTING_MUTE_UNMUTE;
+            }
+
+            for (long dialogId : selectedDialogIds) {
+                getNotificationsController().setDialogNotificationsSettings(dialogId, 0, setting);
+            }
+
+            BulletinFactory.createMuteBulletin(UpdatesActivity.this, setting, 0, null).show();
+            hideActionMode();
+        });
+
+        showDialog(builder.create());
+    }
+
+    private void archiveSelectedChannels() {
+        if (selectedDialogIds.isEmpty()) return;
+        ArrayList<Long> copy = new ArrayList<>(selectedDialogIds);
+        
+        boolean unarchive = false;
+        for (long dialogId : selectedDialogIds) {
+            TLRPC.Dialog d = findDialogById(dialogId);
+            if (d != null && d.folder_id == 1) {
+                unarchive = true;
+                break;
+            }
+        }
+        
+        getMessagesController().addDialogToFolder(copy, unarchive ? 0 : 1, -1, null, 0);
+        if (getUndoView() != null) {
+            getUndoView().showWithAction(0, unarchive ? UndoView.ACTION_CHAT_UNARCHIVED : UndoView.ACTION_ARCHIVE, selectedDialogIds.size(), 1600, null, null);
+        }
+        hideActionMode();
+    }
+
+    private void deleteSelectedChannels() {
+        if (selectedDialogIds.isEmpty()) return;
+        if (selectedDialogIds.size() == 1) {
+            long dialogId = selectedDialogIds.iterator().next();
+            TLRPC.Chat chat = getMessagesController().getChat(-dialogId);
+            org.telegram.ui.Components.AlertsCreator.createClearOrDeleteDialogAlert(UpdatesActivity.this, false, chat, null, false, false, (revoke) -> {
+                getMessagesController().deleteDialog(dialogId, 0, revoke);
+                hideActionMode();
+            });
+        } else {
+            org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
+            builder.setTitle(LocaleController.getString(R.string.AppName));
+            builder.setMessage(LocaleController.getString(R.string.AreYouSureDeleteFewChats));
+            builder.setPositiveButton(LocaleController.getString(R.string.OK), (dialogInterface, i) -> {
+                for (long dialogId : selectedDialogIds) {
+                    getMessagesController().deleteDialog(dialogId, 0, false);
+                }
+                hideActionMode();
+            });
+            builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+            showDialog(builder.create());
+        }
+    }
+
+    private void pinOrUnpinSelectedChannels() {
+        if (selectedDialogIds.isEmpty()) return;
+        boolean pin = false;
+        for (long dialogId : selectedDialogIds) {
+            TLRPC.Dialog d = findDialogById(dialogId);
+            if (d != null && !d.pinned) {
+                pin = true;
+                break;
+            }
+        }
+        for (long dialogId : selectedDialogIds) {
+            getMessagesController().pinDialog(dialogId, pin, null, 0L);
+        }
+        if (getUndoView() != null) {
+            getUndoView().showWithAction(0, pin ? UndoView.ACTION_PIN_DIALOGS : UndoView.ACTION_UNPIN_DIALOGS, selectedDialogIds.size(), 1600, null, null);
+        }
+        hideActionMode();
+    }
+
+    private void addToFolderSelectedChannels() {
+        if (selectedDialogIds.isEmpty()) return;
+        ArrayList<MessagesController.DialogFilter> filters = new ArrayList<>();
+        ArrayList<MessagesController.DialogFilter> allFilters = getMessagesController().dialogFilters;
+        for (int i = 0; i < allFilters.size(); i++) {
+            MessagesController.DialogFilter filter = allFilters.get(i);
+            if (!filter.isDefault()) {
+                filters.add(filter);
+            }
+        }
+        if (filters.isEmpty()) {
+            return;
+        }
+        org.telegram.ui.ActionBar.BottomSheet.Builder builder = new org.telegram.ui.ActionBar.BottomSheet.Builder(getParentActivity());
+        CharSequence[] items = new CharSequence[filters.size()];
+        int[] icons = new int[filters.size()];
+        for (int i = 0; i < filters.size(); i++) {
+            items[i] = filters.get(i).name;
+            icons[i] = R.drawable.msg_folders;
+        }
+        builder.setItems(items, icons, (dialogInterface, position) -> {
+            MessagesController.DialogFilter filter = filters.get(position);
+            ArrayList<Long> alwaysShow = new ArrayList<>();
+            for (long did : selectedDialogIds) {
+                if (!filter.alwaysShow.contains(did)) {
+                    alwaysShow.add(did);
+                }
+            }
+            if (!alwaysShow.isEmpty()) {
+                for (int a = 0; a < alwaysShow.size(); a++) {
+                    filter.neverShow.remove(alwaysShow.get(a));
+                }
+                filter.alwaysShow.addAll(alwaysShow);
+                org.telegram.ui.FilterCreateActivity.saveFilterToServer(
+                    filter, filter.flags, filter.name, filter.entities, 
+                    filter.title_noanimate, filter.color, filter.alwaysShow, 
+                    filter.neverShow, filter.pinnedDialogs, false, false, 
+                    true, true, false, UpdatesActivity.this, null
+                );
+                if (getUndoView() != null) {
+                    getUndoView().showWithAction(0, UndoView.ACTION_ADDED_TO_FOLDER, alwaysShow.size(), filter, null, null);
+                }
+            }
+            hideActionMode();
+        });
+        showDialog(builder.create());
+    }
+
+    private void markSelectedChannelsReadOrUnread() {
+        if (selectedDialogIds.isEmpty()) return;
+        boolean markRead = false;
+        for (long dialogId : selectedDialogIds) {
+            TLRPC.Dialog d = findDialogById(dialogId);
+            if (d != null && (d.unread_count != 0 || d.unread_mark)) {
+                markRead = true;
+                break;
+            }
+        }
+        for (long dialogId : selectedDialogIds) {
+            if (markRead) {
+                markAsRead(dialogId);
+            } else {
+                markAsUnread(dialogId);
+            }
+        }
+        hideActionMode();
+    }
+
+    private void deleteCacheSelectedChannels() {
+        if (selectedDialogIds.isEmpty()) return;
+        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
+        builder.setTitle(LocaleController.getString(R.string.ClearCache));
+        builder.setMessage(LocaleController.getString(R.string.ClearCacheForChats));
+        builder.setPositiveButton(LocaleController.getString(R.string.OK), (dialogInterface, i) -> {
+            for (long dialogId : selectedDialogIds) {
+                getMessagesController().deleteDialog(dialogId, 2, false);
+            }
+            hideActionMode();
+        });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
+    }
+
+    private void copySelectedChannelLink() {
+        if (selectedDialogIds.isEmpty()) return;
+        long dialogId = selectedDialogIds.iterator().next();
+        TLRPC.Chat chat = getMessagesController().getChat(-dialogId);
+        if (chat != null) {
+            String link;
+            if (!android.text.TextUtils.isEmpty(chat.username)) {
+                link = "https://t.me/" + chat.username;
+            } else {
+                link = chat.title;
+            }
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getParentActivity().getSystemService(Context.CLIPBOARD_SERVICE);
+            android.content.ClipData clip = android.content.ClipData.newPlainText("channel_link", link);
+            clipboard.setPrimaryClip(clip);
+            BulletinFactory.of(UpdatesActivity.this).createCopyLinkBulletin().show();
+        }
+        hideActionMode();
+    }
+
+    private void selectAllChannels() {
+        selectedDialogIds.clear();
+        for (TLRPC.Dialog d : channelDialogs) {
+            selectedDialogIds.add(d.id);
+        }
+        if (selectedDialogsCountTextView != null) {
+            selectedDialogsCountTextView.setNumber(selectedDialogIds.size(), true);
+        }
+        updateActionMode();
+        updateUI();
+    }
+
+    private void openSelectedChannelInfo() {
+        if (selectedDialogIds.size() == 1) {
+            long dialogId = selectedDialogIds.iterator().next();
+            Bundle args = new Bundle();
+            args.putLong("chat_id", -dialogId);
+            presentFragment(new org.telegram.ui.ProfileActivity(args));
+            hideActionMode();
+        }
+    }
+
+    private void unfollowSelectedChannels() {
+        deleteSelectedChannels();
+    }
+
+    @Override
+    public void onTransitionAnimationProgress(boolean isOpen, float progress) {
+        if (blurredView != null && blurredView.getVisibility() == View.VISIBLE) {
+            if (isOpen) {
+                blurredView.setAlpha(1.0f - progress);
+            } else {
+                blurredView.setAlpha(progress);
+            }
+        }
+    }
+
+    @Override
+    public void onTransitionAnimationEnd(boolean isOpen, boolean backward) {
+        if (isOpen && blurredView != null && blurredView.getVisibility() == View.VISIBLE) {
+            blurredView.setVisibility(View.GONE);
+            blurredView.setBackground(null);
+        }
+    }
+
+    // Stories Adapter
+    private class StoriesAdapter extends RecyclerListView.SelectionAdapter {
+        private final Context context;
+
+        public StoriesAdapter(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        public boolean isEnabled(RecyclerView.ViewHolder holder) {
+            return true;
+        }
+
+        @NonNull
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            UpdatesStoryCell cell = new UpdatesStoryCell(context);
+            cell.setLayoutParams(new RecyclerView.LayoutParams(dp(76), dp(135)));
+            return new RecyclerListView.Holder(cell);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            UpdatesStoryCell cell = (UpdatesStoryCell) holder.itemView;
+
+            if (position == 0) {
+                // Self story
+                StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
+                long selfId = UserConfig.getInstance(currentAccount).getClientUserId();
+                TL_stories.PeerStories selfStories = storiesController.getStories(selfId);
+                cell.setStory(currentAccount, selfStories, true);
+            } else {
+                int storyIndex = position - 1;
+                if (storyIndex < storyItems.size()) {
+                    TL_stories.PeerStories peerStories = storyItems.get(storyIndex);
+                    long id = getDialogIdFromPeerStories(peerStories);
+                    boolean isSelf = id == UserConfig.getInstance(currentAccount).getClientUserId();
+                    cell.setStory(currentAccount, peerStories, isSelf);
+                }
+            }
+
+            // Add spacing between cards
+            RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) cell.getLayoutParams();
+            params.rightMargin = dp(6);
+            params.leftMargin = position == 0 ? 0 : 0;
+            cell.setLayoutParams(params);
+        }
+
+        @Override
+        public int getItemCount() {
+            return 1 + storyItems.size(); // +1 for self
+        }
+    }
+}

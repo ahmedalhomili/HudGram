@@ -10445,6 +10445,12 @@
     <string name="MainTabsChats">Chats</string>
     <string name="MainTabsProfile">Profile</string>
     <string name="MainTabsSettings">Settings</string>
+    <string name="MainTabsUpdates">Updates</string>
+    <string name="UpdatesStatusHeader">Status</string>
+    <string name="UpdatesChannelsHeader">Channels</string>
+    <string name="UpdatesMyStatus">My status</string>
+    <string name="UpdatesAddStatus">Tap to add status</string>
+    <string name="UpdatesNoChannels">No channels yet</string>
     <string name="SwitchThemeToDay">Day Mode</string>
     <string name="SwitchThemeToNight">Night Mode</string>
 

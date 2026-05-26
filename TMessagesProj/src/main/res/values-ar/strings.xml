@@ -10474,6 +10474,12 @@
     <string name="MainTabsChats">الدردشات</string>
     <string name="MainTabsProfile">الملف الشخصي</string>
     <string name="MainTabsSettings">الإعدادات</string>
+    <string name="MainTabsUpdates">التحديثات</string>
+    <string name="UpdatesStatusHeader">الحالة</string>
+    <string name="UpdatesChannelsHeader">القنوات</string>
+    <string name="UpdatesMyStatus">إضافة حالة</string>
+    <string name="UpdatesAddStatus">اضغط لإضافة حالة</string>
+    <string name="UpdatesNoChannels">لا توجد قنوات بعد</string>
     <string name="SwitchThemeToDay">الوضع النهاري</string>
     <string name="SwitchThemeToNight">الوضع الليلي</string>
     <string name="SettingsAccount">الحساب</string>
