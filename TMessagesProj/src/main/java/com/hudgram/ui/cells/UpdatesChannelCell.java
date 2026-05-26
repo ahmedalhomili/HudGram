@@ -7,28 +7,40 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.text.Layout;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.graphics.drawable.Drawable;
 import android.widget.FrameLayout;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.ImageLocation;
+import org.telegram.messenger.FileLoader;
+import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.StaticLayoutEx;
+import org.telegram.ui.Components.TextStyleSpan;
+import org.telegram.ui.Components.spoilers.SpoilerEffect;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
 public class UpdatesChannelCell extends FrameLayout {
 
     private final ImageReceiver avatarImage;
     private final AvatarDrawable avatarDrawable;
+    private final ImageReceiver mediaImage;
     private final TextPaint namePaint;
     private final TextPaint messagePaint;
     private final TextPaint timePaint;
@@ -37,7 +49,6 @@ public class UpdatesChannelCell extends FrameLayout {
     private final Paint dividerPaint;
     private final RectF counterRect = new RectF();
     private final RectF capsuleRect = new RectF();
-    private final Paint capsuleBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private final Paint checkBgPaint;
     private final Paint checkPaint;
@@ -45,11 +56,17 @@ public class UpdatesChannelCell extends FrameLayout {
     private boolean isChecked;
     private boolean isPinned;
     private boolean isMuted;
+    private boolean isActionMessage;
+    private boolean isAttachMessage;
+    private boolean hasMediaThumb;
+
+    private final Stack<SpoilerEffect> spoilersPool = new Stack<>();
+    private final List<SpoilerEffect> spoilers = new ArrayList<>();
 
     private long dialogId;
     private int currentAccount;
     private String channelName = "";
-    private String lastMessage = "";
+    private CharSequence lastMessage = "";
     private String timeText = "";
     private int unreadCount;
 
@@ -66,6 +83,11 @@ public class UpdatesChannelCell extends FrameLayout {
         avatarImage.setRoundRadius(dp(24));
 
         avatarDrawable = new AvatarDrawable();
+        
+        mediaImage = new ImageReceiver(this);
+        mediaImage.setRoundRadius(dp(2));
+        mediaImage.ignoreNotifications = true;
+        mediaImage.setAllowLoadingOnAttachedOnly(true);
 
         namePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         namePaint.setTextSize(dp(16));
@@ -87,10 +109,8 @@ public class UpdatesChannelCell extends FrameLayout {
         dividerPaint.setStrokeWidth(1);
 
         checkBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        checkBgPaint.setColor(0xFF25D366); // WhatsApp green
 
         checkPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        checkPaint.setColor(android.graphics.Color.WHITE);
         checkPaint.setStrokeWidth(dp(2));
         checkPaint.setStrokeCap(Paint.Cap.ROUND);
         checkPaint.setStyle(Paint.Style.STROKE);
@@ -102,13 +122,23 @@ public class UpdatesChannelCell extends FrameLayout {
 
     private void updateColors() {
         namePaint.setColor(Theme.getColor(Theme.key_chats_name));
-        messagePaint.setColor(Theme.getColor(Theme.key_chats_message));
+        
+        int messageColor;
+        if (isActionMessage) {
+            messageColor = Theme.getColor(Theme.key_chats_actionMessage);
+        } else if (isAttachMessage) {
+            messageColor = Theme.getColor(Theme.key_chats_attachMessage);
+        } else {
+            messageColor = Theme.getColor(Theme.key_chats_message);
+        }
+        messagePaint.setColor(messageColor);
+        
         timePaint.setColor(Theme.getColor(Theme.key_chats_date));
         counterPaint.setColor(Theme.getColor(Theme.key_chats_unreadCounterText));
         dividerPaint.setColor(Theme.getColor(Theme.key_divider));
-        avatarBgPaint.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        boolean isDark = Theme.isCurrentThemeDark();
-        capsuleBgPaint.setColor(isDark ? 0x25FFFFFF : 0x1E000000);
+        avatarBgPaint.setColor(Theme.getColor(isChecked ? Theme.key_chats_tabletSelectedOverlay : Theme.key_windowBackgroundWhite));
+        checkBgPaint.setColor(Theme.getColor(Theme.key_checkbox));
+        checkPaint.setColor(Theme.getColor(Theme.key_checkboxCheck));
 
         isMuted = MessagesController.getInstance(currentAccount).isDialogMuted(dialogId, 0);
         TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(dialogId);
@@ -119,11 +149,14 @@ public class UpdatesChannelCell extends FrameLayout {
         } else {
             counterBgPaint.setColor(Theme.getColor(Theme.key_chats_unreadCounter));
         }
+
+        setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2));
     }
 
     public void setChecked(boolean checked, boolean animated) {
         if (this.isChecked != checked) {
             this.isChecked = checked;
+            updateColors();
             invalidate();
         }
     }
@@ -162,11 +195,63 @@ public class UpdatesChannelCell extends FrameLayout {
 
         // Get last message
         MessageObject msg = null;
+        isActionMessage = false;
+        isAttachMessage = false;
+        hasMediaThumb = false;
+        
         ArrayList<MessageObject> messages = MessagesController.getInstance(currentAccount).dialogMessage.get(dialog.id);
         if (messages != null && !messages.isEmpty()) {
             msg = messages.get(0);
-            if (msg != null && msg.messageText != null) {
-                lastMessage = msg.messageText.toString().replace("\n", " ");
+            if (msg != null) {
+                if (msg.messageOwner != null && msg.messageOwner.action != null) {
+                    isActionMessage = true;
+                } else if (msg.messageOwner != null && msg.messageOwner.media != null && !(msg.messageOwner.media instanceof TLRPC.TL_messageMediaEmpty)) {
+                    isAttachMessage = true;
+                }
+                
+                if (msg.messageText != null) {
+                    // Build a SpannableStringBuilder and add TextStyleSpan runs
+                    // (including spoiler/strike) from the message entities,
+                    // exactly as DialogCell does.
+                    CharSequence rawText = msg.messageText;
+                    SpannableStringBuilder sb = new SpannableStringBuilder(rawText);
+                    // Replace newlines while preserving spans
+                    for (int i = 0; i < sb.length(); i++) {
+                        if (sb.charAt(i) == '\n') {
+                            sb.replace(i, i + 1, " ");
+                        }
+                    }
+                    // Add spoiler and strikethrough style spans from entities
+                    MediaDataController.addTextStyleRuns(msg, sb, TextStyleSpan.FLAG_STYLE_SPOILER | TextStyleSpan.FLAG_STYLE_STRIKE);
+                    lastMessage = sb;
+                } else {
+                    lastMessage = "";
+                }
+                
+                // Try loading media thumbnail if it has media
+                if (msg.messageOwner != null && msg.messageOwner.media != null) {
+                    TLRPC.MessageMedia media = msg.messageOwner.media;
+                    TLObject object = null;
+                    ArrayList<TLRPC.PhotoSize> photoThumbs = null;
+                    if (media instanceof TLRPC.TL_messageMediaPhoto && media.photo != null) {
+                         object = media.photo;
+                         photoThumbs = media.photo.sizes;
+                    } else if (media instanceof TLRPC.TL_messageMediaDocument && media.document != null && MessageObject.isVideoDocument(media.document)) {
+                         object = media.document;
+                         photoThumbs = media.document.thumbs;
+                    }
+                    
+                    if (photoThumbs != null && !photoThumbs.isEmpty()) {
+                         TLRPC.PhotoSize smallThumb = FileLoader.getStrippedPhotoSize(photoThumbs);
+                         if (smallThumb == null) {
+                             smallThumb = FileLoader.getClosestPhotoSizeWithSize(photoThumbs, 40);
+                         }
+                         if (smallThumb != null) {
+                             hasMediaThumb = true;
+                             mediaImage.setImage(ImageLocation.getForObject(smallThumb, object), "20_20", null, null, 0, null, msg, 0);
+                         }
+                    }
+                }
             } else {
                 lastMessage = "";
             }
@@ -197,15 +282,29 @@ public class UpdatesChannelCell extends FrameLayout {
         return unreadCount > 0 || (dialog != null && dialog.unread_mark);
     }
 
+    private boolean getDrawCount() {
+        TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(dialogId);
+        boolean hasUnreadMark = dialog != null && dialog.unread_mark;
+        return unreadCount > 0 || hasUnreadMark;
+    }
+
+    private TextPaint getTimeTextPaint() {
+        if (Theme.dialogs_timePaint == null) {
+            return timePaint;
+        }
+        return getDrawCount() ? (isMuted ? Theme.dialogs_timePaintBold : Theme.dialogs_timePaintBoldAccent) : Theme.dialogs_timePaint;
+    }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
         int textLeft = dp(76);
         int rightPadding = dp(16);
 
+        TextPaint timePaintToUse = getTimeTextPaint();
         float timeWidth = 0;
         if (!TextUtils.isEmpty(timeText)) {
-            timeWidth = timePaint.measureText(timeText);
+            timeWidth = timePaintToUse.measureText(timeText);
         }
 
         float nameMaxWidth = width - textLeft - rightPadding - timeWidth - dp(8);
@@ -213,7 +312,8 @@ public class UpdatesChannelCell extends FrameLayout {
             nameMaxWidth -= dp(24); // room for checkmarks
         }
 
-        int pinWidth = isPinned && Theme.dialogs_pinnedDrawable2 != null ? Theme.dialogs_pinnedDrawable2.getIntrinsicWidth() : 0;
+        Drawable pd = getDrawCount() && !isMuted ? Theme.dialogs_pinnedDrawable2Accent : Theme.dialogs_pinnedDrawable2;
+        int pinWidth = isPinned && pd != null ? pd.getIntrinsicWidth() : 0;
         int muteWidth = isMuted && Theme.dialogs_muteDrawable != null ? Theme.dialogs_muteDrawable.getIntrinsicWidth() : 0;
 
         if (pinWidth > 0) {
@@ -225,20 +325,31 @@ public class UpdatesChannelCell extends FrameLayout {
 
         if (nameMaxWidth > 0) {
             CharSequence formattedName = Emoji.replaceEmoji(channelName, namePaint.getFontMetricsInt(), false);
-            nameLayout = StaticLayoutEx.createStaticLayout(formattedName, namePaint, (int) nameMaxWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false, TextUtils.TruncateAt.END, (int) nameMaxWidth, 1);
+            nameLayout = StaticLayoutEx.createStaticLayout(formattedName, namePaint, (int) nameMaxWidth, StaticLayoutEx.ALIGN_LEFT(), 1.0f, 0.0f, false, TextUtils.TruncateAt.END, (int) nameMaxWidth, 1);
         } else {
             nameLayout = null;
         }
 
         float msgMaxWidth = width - textLeft - rightPadding;
+        if (hasMediaThumb) {
+            msgMaxWidth -= dp(24);
+        }
         TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(dialogId);
         boolean hasUnreadMark = dialog != null && dialog.unread_mark;
         if (unreadCount > 0 || hasUnreadMark) {
             msgMaxWidth -= dp(32);
         }
+        // Recycle spoiler effects into pool before rebuilding
+        spoilersPool.addAll(spoilers);
+        spoilers.clear();
+
         if (msgMaxWidth > 0 && !TextUtils.isEmpty(lastMessage)) {
             CharSequence formattedMsg = Emoji.replaceEmoji(lastMessage, messagePaint.getFontMetricsInt(), false);
-            messageLayout = StaticLayoutEx.createStaticLayout(formattedMsg, messagePaint, (int) msgMaxWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false, TextUtils.TruncateAt.END, (int) msgMaxWidth, 1);
+            messageLayout = StaticLayoutEx.createStaticLayout(formattedMsg, messagePaint, (int) msgMaxWidth, StaticLayoutEx.ALIGN_LEFT(), 1.0f, 0.0f, false, TextUtils.TruncateAt.END, (int) msgMaxWidth, 1);
+            // Parse spoiler spans from the layout text and populate spoilers list
+            if (messageLayout != null && messageLayout.getText() instanceof Spanned) {
+                SpoilerEffect.addSpoilers(this, messageLayout, spoilersPool, spoilers);
+            }
         } else {
             messageLayout = null;
         }
@@ -257,6 +368,9 @@ public class UpdatesChannelCell extends FrameLayout {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        if (isChecked) {
+            canvas.drawColor(Theme.getColor(Theme.key_chats_tabletSelectedOverlay));
+        }
         super.onDraw(canvas);
         int w = getMeasuredWidth();
         int h = getMeasuredHeight();
@@ -286,48 +400,59 @@ public class UpdatesChannelCell extends FrameLayout {
         int rightPadding = dp(16);
 
         // Draw time inside capsule if pinned, otherwise draw normally
+        TextPaint timePaintToUse = getTimeTextPaint();
         float timeWidth = 0;
         if (!TextUtils.isEmpty(timeText)) {
-            timeWidth = timePaint.measureText(timeText);
+            timeWidth = timePaintToUse.measureText(timeText);
         }
 
         float capsuleWidth = 0;
         if (isPinned && Theme.dialogs_pinnedDrawable2 != null) {
-            int pinWidth = Theme.dialogs_pinnedDrawable2.getIntrinsicWidth();
-            int pinHeight = Theme.dialogs_pinnedDrawable2.getIntrinsicHeight();
+            Drawable pd = getDrawCount() && !isMuted ? Theme.dialogs_pinnedDrawable2Accent : Theme.dialogs_pinnedDrawable2;
+            int pinWidth = pd.getIntrinsicWidth();
+            int pinHeight = pd.getIntrinsicHeight();
             capsuleWidth = pinWidth + (timeWidth > 0 ? dp(4) : 0) + timeWidth + dp(16);
-            int capsuleHeight = dp(20);
+            int capsuleHeight = dp(17);
             float capsuleX = w - rightPadding - capsuleWidth;
-            float capsuleY = dp(28) - dp(14.5f);
+            float capsuleY = dp(21) + (dp(14) - capsuleHeight) / 2f;
 
             capsuleRect.set(capsuleX, capsuleY, capsuleX + capsuleWidth, capsuleY + capsuleHeight);
-            canvas.drawRoundRect(capsuleRect, dp(10), dp(10), capsuleBgPaint);
+            int originalAlpha = timePaintToUse.getAlpha();
+            timePaintToUse.setAlpha(27);
+            canvas.drawRoundRect(capsuleRect, dp(17 / 2f), dp(17 / 2f), timePaintToUse);
+            timePaintToUse.setAlpha(originalAlpha);
 
             int pinX = (int) (capsuleX + dp(8));
             int pinY = (int) (capsuleY + (capsuleHeight - pinHeight) / 2);
 
-            int originalColor = Theme.getColor(Theme.key_chats_pinnedIcon);
-            Theme.dialogs_pinnedDrawable2.setColorFilter(new android.graphics.PorterDuffColorFilter(0xFFE5A93B, android.graphics.PorterDuff.Mode.SRC_IN));
-            Theme.dialogs_pinnedDrawable2.setBounds(pinX, pinY, pinX + pinWidth, pinY + pinHeight);
-            Theme.dialogs_pinnedDrawable2.draw(canvas);
-            Theme.dialogs_pinnedDrawable2.setColorFilter(new android.graphics.PorterDuffColorFilter(originalColor, android.graphics.PorterDuff.Mode.SRC_IN));
+            pd.setBounds(pinX, pinY, pinX + pinWidth, pinY + pinHeight);
+            pd.draw(canvas);
 
             if (!TextUtils.isEmpty(timeText)) {
-                int originalTimeColor = timePaint.getColor();
-                timePaint.setColor(0xFFE5A93B);
                 float timeX = pinX + pinWidth + dp(4);
-                canvas.drawText(timeText, timeX, dp(28), timePaint);
-                timePaint.setColor(originalTimeColor);
+                Paint.FontMetricsInt fontMetrics = timePaintToUse.getFontMetricsInt();
+                float timeBaselineY = capsuleRect.centerY() - (fontMetrics.descent + fontMetrics.ascent) / 2f;
+                canvas.drawText(timeText, timeX, timeBaselineY, timePaintToUse);
             }
         } else {
             if (!TextUtils.isEmpty(timeText)) {
-                canvas.drawText(timeText, w - rightPadding - timeWidth, dp(28), timePaint);
+                canvas.drawText(timeText, w - rightPadding - timeWidth, dp(28), timePaintToUse);
             }
         }
 
-        // Draw checkmarks if sent by us
+        // Draw checkmarks if sent by us (aligned vertically and matching native DialogCell dimensions)
         if (drawCheck) {
-            int checkTop = dp(16);
+            int checkHeight = drawDoubleCheck 
+                ? Theme.dialogs_checkReadDrawable.getIntrinsicHeight() 
+                : Theme.dialogs_checkDrawable.getIntrinsicHeight();
+            
+            int checkTop;
+            if (isPinned && Theme.dialogs_pinnedDrawable2 != null) {
+                checkTop = (int) (capsuleRect.centerY() - checkHeight / 2f);
+            } else {
+                checkTop = (int) (dp(24) - checkHeight / 2f);
+            }
+            
             int checkLeft;
             if (isPinned && Theme.dialogs_pinnedDrawable2 != null) {
                 checkLeft = w - rightPadding - (int) capsuleWidth - dp(4);
@@ -338,13 +463,17 @@ public class UpdatesChannelCell extends FrameLayout {
             if (drawDoubleCheck) {
                 int width1 = Theme.dialogs_halfCheckDrawable.getIntrinsicWidth();
                 int height1 = Theme.dialogs_halfCheckDrawable.getIntrinsicHeight();
-                Theme.dialogs_halfCheckDrawable.setBounds(checkLeft - width1 - dp(4), checkTop, checkLeft - dp(4), checkTop + height1);
-                Theme.dialogs_halfCheckDrawable.draw(canvas);
+                int width2 = Theme.dialogs_checkReadDrawable.getIntrinsicWidth();
+                int height2 = Theme.dialogs_checkReadDrawable.getIntrinsicHeight();
+                
+                // Natively, checkReadDrawable (full check) is drawn on the left, and halfCheckDrawable (second tick) is on the right!
+                int checkDrawLeft = checkLeft - width1 - (int) dp(5.5f);
+                
+                Theme.dialogs_checkReadDrawable.setBounds(checkDrawLeft, checkTop, checkDrawLeft + width2, checkTop + height2);
+                Theme.dialogs_checkReadDrawable.draw(canvas);
 
-                int width2 = Theme.dialogs_checkDrawable.getIntrinsicWidth();
-                int height2 = Theme.dialogs_checkDrawable.getIntrinsicHeight();
-                Theme.dialogs_checkDrawable.setBounds(checkLeft - width2, checkTop, checkLeft, checkTop + height2);
-                Theme.dialogs_checkDrawable.draw(canvas);
+                Theme.dialogs_halfCheckDrawable.setBounds(checkDrawLeft + (int) dp(5.5f), checkTop, checkDrawLeft + (int) dp(5.5f) + width1, checkTop + height1);
+                Theme.dialogs_halfCheckDrawable.draw(canvas);
             } else {
                 int width = Theme.dialogs_checkDrawable.getIntrinsicWidth();
                 int height = Theme.dialogs_checkDrawable.getIntrinsicHeight();
@@ -372,11 +501,36 @@ public class UpdatesChannelCell extends FrameLayout {
             Theme.dialogs_muteDrawable.draw(canvas);
         }
 
-        // Draw last message
+        // Draw media preview thumbnail if available
+        if (hasMediaThumb) {
+            mediaImage.setImageCoords(textLeft, dp(38) + dp(1), dp(18), dp(18));
+            mediaImage.draw(canvas);
+        }
+
+        // Draw last message (shifted dynamically if there is a media thumbnail)
+        // With spoiler clipping and dot particle rendering
         if (messageLayout != null) {
             canvas.save();
-            canvas.translate(textLeft, dp(38));
-            messageLayout.draw(canvas);
+            canvas.translate(textLeft + (hasMediaThumb ? dp(24) : 0), dp(38));
+            if (!spoilers.isEmpty()) {
+                try {
+                    canvas.save();
+                    SpoilerEffect.clipOutCanvas(canvas, spoilers);
+                    SpoilerEffect.layoutDrawMaybe(messageLayout, canvas);
+                    canvas.restore();
+
+                    for (int i = 0; i < spoilers.size(); i++) {
+                        SpoilerEffect eff = spoilers.get(i);
+                        eff.setColor(messagePaint.getColor());
+                        eff.draw(canvas);
+                    }
+                } catch (Exception e) {
+                    // fallback: draw without spoiler masking
+                    messageLayout.draw(canvas);
+                }
+            } else {
+                messageLayout.draw(canvas);
+            }
             canvas.restore();
         }
 
@@ -396,26 +550,30 @@ public class UpdatesChannelCell extends FrameLayout {
             canvas.drawRoundRect(counterRect, badgeHeight / 2, badgeHeight / 2, counterBgPaint);
             canvas.drawText(countText, badgeX + (badgeWidth - countWidth) / 2, badgeY + dp(14.5f), counterPaint);
         } else if (hasUnreadMark) {
-            float badgeSize = dp(20);
-            float badgeX = w - rightPadding - badgeSize;
-            float badgeY = dp(38);
+            float badgeSize = dp(10);
+            float badgeX = w - rightPadding - badgeSize - dp(4);
+            float badgeY = dp(38) + dp(5);
             counterRect.set(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
             canvas.drawRoundRect(counterRect, badgeSize / 2, badgeSize / 2, counterBgPaint);
         }
 
-        // Draw divider
-        // canvas.drawLine(textLeft, h - 1, w, h - 1, dividerPaint);
+        // Divider removed to match visual preferences
     }
 
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         avatarImage.onAttachedToWindow();
+        mediaImage.onAttachedToWindow();
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         avatarImage.onDetachedFromWindow();
+        mediaImage.onDetachedFromWindow();
+        // Clean up spoiler effects to avoid memory leaks
+        spoilersPool.addAll(spoilers);
+        spoilers.clear();
     }
 }

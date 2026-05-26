@@ -91,23 +91,21 @@ public class UpdatesStoryCell extends FrameLayout {
 
         // Dark circle behind avatar (matches card background)
         avatarBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        avatarBgPaint.setColor(0xFF1B2024);
 
-        // Plus button background (Yellow matching screenshot exactly!)
+        // Plus button background
         plusBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        plusBgPaint.setColor(0xFFFAB814); // Gold/yellow color
 
         // Plus icon paint
         plusPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        plusPaint.setColor(0xFF1B2024); // Dark charcoal/black
         plusPaint.setStrokeWidth(dp(1.8f));
         plusPaint.setStrokeCap(Paint.Cap.ROUND);
 
         // Name text inside card at bottom
         namePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         namePaint.setTextSize(dp(11));
-        namePaint.setColor(Color.WHITE);
         namePaint.setTypeface(AndroidUtilities.bold());
+
+        updateColors();
     }
 
     public void setStory(int currentAccount, TL_stories.PeerStories peerStories, boolean isSelf) {
@@ -127,6 +125,8 @@ public class UpdatesStoryCell extends FrameLayout {
         this.isUnread = peerStories != null &&
                 MessagesController.getInstance(currentAccount).getStoriesController().getUnreadState(dialogId) != StoriesController.STATE_READ;
         this.hasStories = peerStories != null && peerStories.stories != null && !peerStories.stories.isEmpty();
+
+        updateColors();
 
         // Load user/chat info
         TLRPC.User user = null;
@@ -175,8 +175,8 @@ public class UpdatesStoryCell extends FrameLayout {
         }
 
         if (!cardLoaded) {
-            // No story content: use dark solid background
-            cardImageReceiver.setImageBitmap(new ColorDrawable(0xFF1B2024));
+            // No story content: use theme solid background
+            cardImageReceiver.setImageBitmap(new ColorDrawable(Theme.getColor(Theme.key_windowBackgroundGray)));
         }
 
         // === Load circular avatar ===
@@ -256,15 +256,17 @@ public class UpdatesStoryCell extends FrameLayout {
         // 1. Draw card background
         cardImageReceiver.draw(canvas);
 
-        // 2. Bottom gradient for text readability
-        if (lastWidth != w || lastHeight != h) {
-            gradient = new LinearGradient(0, h * 0.5f, 0, h,
-                    Color.TRANSPARENT, 0xCC000000, Shader.TileMode.CLAMP);
-            gradientPaint.setShader(gradient);
-            lastWidth = w;
-            lastHeight = h;
+        // 2. Bottom gradient for text readability (only if hasStories)
+        if (hasStories) {
+            if (lastWidth != w || lastHeight != h) {
+                gradient = new LinearGradient(0, h * 0.5f, 0, h,
+                        Color.TRANSPARENT, 0xCC000000, Shader.TileMode.CLAMP);
+                gradientPaint.setShader(gradient);
+                lastWidth = w;
+                lastHeight = h;
+            }
+            canvas.drawRect(0, 0, w, h, gradientPaint);
         }
-        canvas.drawRect(0, 0, w, h, gradientPaint);
 
         // 3. Avatar - centered at top of card
         float avatarR = dp(AVATAR_SIZE) / 2f;
@@ -328,5 +330,20 @@ public class UpdatesStoryCell extends FrameLayout {
         super.onDetachedFromWindow();
         cardImageReceiver.onDetachedFromWindow();
         avatarImageReceiver.onDetachedFromWindow();
+    }
+
+    private void updateColors() {
+        int cardBgColor;
+        if (hasStories) {
+            cardBgColor = 0xFF1B2024; // Keep dark background under story thumbnail edges
+            namePaint.setColor(Color.WHITE);
+        } else {
+            cardBgColor = Theme.getColor(Theme.key_windowBackgroundGray);
+            namePaint.setColor(Theme.getColor(Theme.key_chats_name));
+        }
+
+        avatarBgPaint.setColor(cardBgColor);
+        plusBgPaint.setColor(Theme.getColor(Theme.key_telegram_color));
+        plusPaint.setColor(Theme.getColor(Theme.key_actionBarDefault));
     }
 }

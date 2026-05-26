@@ -73,7 +73,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     public UpdatesActivity(android.os.Bundle args) {
         super(args);
     }
-    private TextView noChannelsView;
+    private StickerEmptyView noChannelsView;
     private final java.util.HashSet<Long> selectedDialogIds = new java.util.HashSet<>();
     private boolean inSelectionMode = false;
     private org.telegram.ui.Components.NumberTextView selectedDialogsCountTextView;
@@ -511,13 +511,14 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         contentLayout.addView(channelsContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         // No channels placeholder
-        noChannelsView = new TextView(context);
-        noChannelsView.setText(getString(R.string.UpdatesNoChannels));
-        noChannelsView.setTextSize(15);
-        noChannelsView.setGravity(Gravity.CENTER);
-        noChannelsView.setTextColor(Theme.getColor(Theme.key_emptyListPlaceholder));
-        noChannelsView.setPadding(dp(16), dp(32), dp(16), dp(32));
-        contentLayout.addView(noChannelsView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        noChannelsView = new StickerEmptyView(context, null, StickerEmptyView.STICKER_TYPE_NO_CONTACTS, getResourceProvider());
+        noChannelsView.title.setText(LocaleController.isRTL ? "لا توجد قنوات بعد" : "No channels yet");
+        noChannelsView.setSubtitle(LocaleController.isRTL ? "يمكنك إنشاء قناة جديدة أو البحث عن قنوات لمتابعتها." : "You can create a new channel or search for channels to follow.");
+        noChannelsView.createButtonLayout(LocaleController.isRTL ? "إنشاء قناة" : "Create Channel", () -> {
+            Bundle args = new Bundle();
+            presentFragment(new ChannelCreateActivity(args));
+        });
+        contentLayout.addView(noChannelsView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 16, 0, 16));
 
         // Bottom padding for tabs
         View bottomPadding = new View(context);
@@ -551,17 +552,18 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         rootLayout.addView(cameraFab, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 80));
 
-        // 2. Pencil Floating Button (Above Camera - Sub)
-        FragmentFloatingButton pencilFab = new FragmentFloatingButton(context, getResourceProvider(), true);
-        pencilFab.setImageResource(R.drawable.msg_edit);
-        pencilFab.setOnClickListener(v -> {
+        // 2. Live Stream Floating Button (Above Camera - Sub)
+        FragmentFloatingButton liveFab = new FragmentFloatingButton(context, getResourceProvider(), true);
+        liveFab.setImageResource(R.drawable.media_live_on);
+        liveFab.setOnClickListener(v -> {
             if (getParentActivity() != null) {
-                StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
-                BulletinFactory.of(UpdatesActivity.this).createSimpleBulletin(R.drawable.msg_edit, LocaleController.isRTL ? "اكتب حالتك النصية الجديدة!" : "Write your new text status!").show();
+                StoryRecorder.getInstance(getParentActivity(), currentAccount)
+                        .setMode(StoryRecorder.MODE_LIVE)
+                        .open(null);
             }
         });
 
-        rootLayout.addView(pencilFab, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 70 + 48 + 16));
+        rootLayout.addView(liveFab, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 70 + 48 + 16));
 
         // Auto-hide buttons on scroll
         scrollView.getViewTreeObserver().addOnScrollChangedListener(new android.view.ViewTreeObserver.OnScrollChangedListener() {
@@ -571,10 +573,10 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 int scrollY = scrollView.getScrollY();
                 if (scrollY > lastScrollY + dp(8)) {
                     cameraFab.setButtonVisible(false, true);
-                    pencilFab.setButtonVisible(false, true);
+                    liveFab.setButtonVisible(false, true);
                 } else if (scrollY < lastScrollY - dp(8) || scrollY <= 0) {
                     cameraFab.setButtonVisible(true, true);
-                    pencilFab.setButtonVisible(true, true);
+                    liveFab.setButtonVisible(true, true);
                 }
                 lastScrollY = scrollY;
             }
