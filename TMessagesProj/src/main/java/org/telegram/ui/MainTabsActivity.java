@@ -214,6 +214,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         blur3_updateColors();
         checkContactsTabBadge();
         checkUnreadCount(true);
+        checkUi_profileTabVisible(false);
 
         Bulletin.Delegate delegate = new Bulletin.Delegate() {
             @Override
@@ -302,6 +303,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             tabsView.setViewVisible(view, true, false);
         }
         checkUi_callTabVisible(getUserConfig().showCallsTab, false);
+        checkUi_profileTabVisible(false);
 
         selectTab(viewPager.getCurrentPosition(), false);
 
@@ -860,6 +862,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             if (tabs != null && tabs[INDEX_PROFILE] != null) {
                 tabs[INDEX_PROFILE].updateUserAvatar(currentAccount);
             }
+            checkUi_profileTabVisible(true);
+            checkUi_callTabVisible(getUserConfig().showCallsTab, true);
         } else if (id == NotificationCenter.contactsPermissionBadgeCheck) {
             checkContactsTabBadge();
         }
@@ -945,8 +949,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     private void checkUi_callTabVisible(boolean callTabsVisible, boolean animated) {
         if (tabsView != null) {
-            tabsView.setViewVisible(tabs[INDEX_SETTINGS], !callTabsVisible, animated);
+            boolean showSettings = !callTabsVisible && !com.hudgram.ui.HudConfig.hideSettingsTab;
+            tabsView.setViewVisible(tabs[INDEX_SETTINGS], showSettings, animated);
             tabsView.setViewVisible(tabs[INDEX_CALLS], callTabsVisible, animated);
+        }
+    }
+
+    public void checkUi_profileTabVisible(boolean animated) {
+        if (tabsView != null && tabs != null && tabs[INDEX_PROFILE] != null) {
+            tabsView.setViewVisible(tabs[INDEX_PROFILE], !com.hudgram.ui.HudConfig.showAvatarInHeader, animated);
         }
     }
 

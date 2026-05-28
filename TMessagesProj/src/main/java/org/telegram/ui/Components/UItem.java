@@ -31,6 +31,7 @@ public class UItem extends AdapterWithDiffUtils.Item {
 
     public View view;
     public int id;
+    public String slug;
     public boolean checked;
     public boolean collapsed;
     public boolean enabled = true;
@@ -619,6 +620,11 @@ public class UItem extends AdapterWithDiffUtils.Item {
 
     public UItem setId(int id) {
         this.id = id;
+        return this;
+    }
+
+    public UItem slug(String slug) {
+        this.slug = slug;
         return this;
     }
 

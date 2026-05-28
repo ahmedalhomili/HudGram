@@ -114,13 +114,7 @@ public class TranslateAlert3 extends BottomSheetWithRecyclerListView {
                     AndroidUtilities.addToClipboard(translated);
                 }
             } else if (item.id == 2) {
-                if (!UserConfig.getInstance(currentAccount).isPremium()) {
-                    final BaseFragment fragment = LaunchActivity.getSafeLastFragment();
-                    if (fragment == null) return;
-                    new PremiumFeatureBottomSheet(getContext(), PremiumPreviewFragment.PREMIUM_FEATURE_TRANSLATIONS, true, resourcesProvider)
-                        .show();
-                    return;
-                }
+                // Premium check bypassed for Hudgram
                 MessagesController.getInstance(currentAccount).getTranslateController().toggleTranslatingDialog(dialogId);
                 dismiss();
             }
@@ -415,44 +409,27 @@ public class TranslateAlert3 extends BottomSheetWithRecyclerListView {
                 adapter.update(true);
             });
         } else {
-
-            final TLRPC.TL_messages_translateText req = new TLRPC.TL_messages_translateText();
-            req.to_lang = to_lang;
-
-            if (dialogId != 0 && messageId != 0) {
-                req.flags |= TLObject.FLAG_0;
-                req.peer = MessagesController.getInstance(currentAccount).getInputPeer(dialogId);
-                req.id.add(messageId);
-            } else {
-                req.flags |= TLObject.FLAG_1;
-                req.text.add(fromText);
-            }
-
-            if (tone != 1) {
-                req.flags |= TLObject.FLAG_2;
-                req.tone = tones[tone];
-            }
-
-            requestId = ConnectionsManager.getInstance(currentAccount).sendRequestTyped(req, AndroidUtilities::runOnUIThread, (res, err) -> {
-                requestId = -1;
-
-                button.setLoading(false);
-                if (err != null) {
-                    BulletinFactory.of(topBulletinContainer, resourcesProvider).showForError(err);
-
-                    button.setText(getString(R.string.OK));
-                    button.setOnClickListener(v -> dismiss());
-                    return;
+            final String targetLang = to_lang;
+            com.hudgram.translator.Translator.translate(fromText, null, from_lang, targetLang, new com.hudgram.translator.Translator.TranslateCallBack() {
+                @Override
+                public void onSuccess(TLRPC.TL_textWithEntities translation, String sourceLanguage, String targetLanguage) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        button.setLoading(false);
+                        translated = MessageObject.formatTextWithEntities(translation);
+                        translatedLoading = false;
+                        adapter.update(true);
+                    });
                 }
-                if (res == null || res.result.isEmpty()) {
-                    button.setText(getString(R.string.OK));
-                    button.setOnClickListener(v -> dismiss());
-                    return;
-                }
-                translated = MessageObject.formatTextWithEntities(res.result.get(0));
-                translatedLoading = false;
 
-                adapter.update(true);
+                @Override
+                public void onError(Throwable t) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        button.setLoading(false);
+                        BulletinFactory.of(topBulletinContainer, resourcesProvider).createErrorBulletin(LocaleController.getString(R.string.TranslationFailedAlert2)).show();
+                        button.setText(getString(R.string.OK));
+                        button.setOnClickListener(v -> dismiss());
+                    });
+                }
             });
         }
 

@@ -282,15 +282,6 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
             reqId = null;
         }
 
-        final String method = MessagesController.getInstance(currentAccount).translationsManualEnabled;
-        if ("alternative".equalsIgnoreCase(method)) {
-            translateAlt();
-            return;
-        }/* else if ("system".equalsIgnoreCase(method)) {
-            translateSystem();
-            return;
-        }*/
-
         String lang = toLanguage;
         if (lang != null) {
             lang = lang.split("_")[0];
@@ -305,6 +296,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
             textWithEntities.entities = reqMessageEntities;
         }
 
+        // Summarization still uses Telegram API (requires server-side processing)
         if (reqSum && reqPeer != null) {
             TLRPC.TL_messages_summarizeText req = new TLRPC.TL_messages_summarizeText();
             req.flags |= 1;
@@ -335,47 +327,80 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
             return;
         }
 
-        TLRPC.TL_messages_translateText req = new TLRPC.TL_messages_translateText();
-        if (reqPeer != null) {
-            req.flags |= 1;
-            req.peer = reqPeer;
-            req.id.add(reqMessageId);
+        if ("telegram".equals(com.hudgram.ui.HudConfig.translationProvider)) {
+            TLRPC.TL_messages_translateText req = new TLRPC.TL_messages_translateText();
+            if (reqPeer != null) {
+                req.flags |= 1;
+                req.peer = reqPeer;
+                req.id.add(reqMessageId);
+            } else {
+                req.flags |= 2;
+                req.text.add(textWithEntities);
+            }
+    //        if (fromLanguage != null && !"und".equals(fromLanguage)) {
+    //            req.flags |= 4;
+    //            req.from_lang = fromLanguage;
+    //        }
+            req.to_lang = normalizeLanguage(lang);
+            reqId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (res, err) -> {
+                AndroidUtilities.runOnUIThread(() -> {
+                    reqId = null;
+                    if (err != null && "TRANSLATIONS_DISABLED_ALT".equalsIgnoreCase(err.text)) {
+                        translateAlt();
+                    } else if (res instanceof TLRPC.TL_messages_translateResult &&
+                        !((TLRPC.TL_messages_translateResult) res).result.isEmpty() &&
+                        ((TLRPC.TL_messages_translateResult) res).result.get(0) != null &&
+                        ((TLRPC.TL_messages_translateResult) res).result.get(0).text != null
+                    ) {
+                        firstTranslation = false;
+                        TLRPC.TL_textWithEntities text = preprocess(textWithEntities, ((TLRPC.TL_messages_translateResult) res).result.get(0));
+                        CharSequence translated = SpannableStringBuilder.valueOf(text.text);
+                        MessageObject.addEntitiesToText(translated, text.entities, false, true, false, false);
+                        translated = preprocessText(translated);
+                        textView.setText(translated);
+                        adapter.updateMainView(textViewContainer);
+                    } else if (firstTranslation) {
+                        dismiss();
+                        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.showBulletin, Bulletin.TYPE_ERROR, LocaleController.getString(R.string.TranslationFailedAlert2));
+                    } else {
+                        BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createErrorBulletin(LocaleController.getString(R.string.TranslationFailedAlert2)).show();
+                        headerView.toLanguageTextView.setText(languageName(toLanguage = prevToLanguage));
+                        adapter.updateMainView(textViewContainer);
+                    }
+                });
+            });
         } else {
-            req.flags |= 2;
-            req.text.add(textWithEntities);
-        }
-//        if (fromLanguage != null && !"und".equals(fromLanguage)) {
-//            req.flags |= 4;
-//            req.from_lang = fromLanguage;
-//        }
-        req.to_lang = normalizeLanguage(lang);
-        reqId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (res, err) -> {
-            AndroidUtilities.runOnUIThread(() -> {
-                reqId = null;
-                if (err != null && "TRANSLATIONS_DISABLED_ALT".equalsIgnoreCase(err.text)) {
-                    translateAlt();
-                } else if (res instanceof TLRPC.TL_messages_translateResult &&
-                    !((TLRPC.TL_messages_translateResult) res).result.isEmpty() &&
-                    ((TLRPC.TL_messages_translateResult) res).result.get(0) != null &&
-                    ((TLRPC.TL_messages_translateResult) res).result.get(0).text != null
-                ) {
-                    firstTranslation = false;
-                    TLRPC.TL_textWithEntities text = preprocess(textWithEntities, ((TLRPC.TL_messages_translateResult) res).result.get(0));
-                    CharSequence translated = SpannableStringBuilder.valueOf(text.text);
-                    MessageObject.addEntitiesToText(translated, text.entities, false, true, false, false);
-                    translated = preprocessText(translated);
-                    textView.setText(translated);
-                    adapter.updateMainView(textViewContainer);
-                } else if (firstTranslation) {
-                    dismiss();
-                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.showBulletin, Bulletin.TYPE_ERROR, LocaleController.getString(R.string.TranslationFailedAlert2));
-                } else {
-                    BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createErrorBulletin(LocaleController.getString(R.string.TranslationFailedAlert2)).show();
-                    headerView.toLanguageTextView.setText(languageName(toLanguage = prevToLanguage));
-                    adapter.updateMainView(textViewContainer);
+            // Use Hudgram custom translator instead of Telegram API
+            final String targetLang = lang;
+            com.hudgram.translator.Translator.translate(textWithEntities, null, fromLanguage, targetLang, new com.hudgram.translator.Translator.TranslateCallBack() {
+                @Override
+                public void onSuccess(TLRPC.TL_textWithEntities translation, String sourceLanguage, String targetLanguage) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        firstTranslation = false;
+                        TLRPC.TL_textWithEntities text = preprocess(textWithEntities, translation);
+                        CharSequence translated = SpannableStringBuilder.valueOf(text.text);
+                        MessageObject.addEntitiesToText(translated, text.entities, false, true, false, false);
+                        translated = preprocessText(translated);
+                        textView.setText(translated);
+                        adapter.updateMainView(textViewContainer);
+                    });
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        if (firstTranslation) {
+                            dismiss();
+                            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.showBulletin, Bulletin.TYPE_ERROR, LocaleController.getString(R.string.TranslationFailedAlert2));
+                        } else {
+                            BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createErrorBulletin(LocaleController.getString(R.string.TranslationFailedAlert2)).show();
+                            headerView.toLanguageTextView.setText(languageName(toLanguage = prevToLanguage));
+                            adapter.updateMainView(textViewContainer);
+                        }
+                    });
                 }
             });
-        });
+        }
     }
 
     public static final String[] userAgents = new String[] {
@@ -868,6 +893,29 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                     received.entities.add(newEntity);
                 }
             }
+        }
+        if (com.hudgram.ui.HudConfig.showOriginal && source != null && source.text != null && received != null && received.text != null) {
+            TLRPC.TL_textWithEntities merged = new TLRPC.TL_textWithEntities();
+            merged.text = received.text + "\n\n--------------------\n\n" + source.text;
+            merged.entities = new ArrayList<>(received.entities);
+            int shift = received.text.length() + 22; // length of "\n\n--------------------\n\n"
+            if (source.entities != null) {
+                for (TLRPC.MessageEntity entity : source.entities) {
+                    try {
+                        TLRPC.MessageEntity cloned = entity.getClass().getDeclaredConstructor().newInstance();
+                        cloned.offset = entity.offset + shift;
+                        cloned.length = entity.length;
+                        cloned.url = entity.url;
+                        cloned.language = entity.language;
+                        if (entity instanceof TLRPC.TL_messageEntityCustomEmoji) {
+                            ((TLRPC.TL_messageEntityCustomEmoji) cloned).document_id = ((TLRPC.TL_messageEntityCustomEmoji) entity).document_id;
+                            ((TLRPC.TL_messageEntityCustomEmoji) cloned).document = ((TLRPC.TL_messageEntityCustomEmoji) entity).document;
+                        }
+                        merged.entities.add(cloned);
+                    } catch (Exception ignore) {}
+                }
+            }
+            return merged;
         }
         return received;
     }
@@ -1736,14 +1784,18 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     }
 
     public static String getToLanguage() {
-        return MessagesController.getGlobalMainSettings().getString("translate_to_language", LocaleController.getInstance().getCurrentLocale().getLanguage());
+        String target = com.hudgram.ui.HudConfig.translationTarget;
+        if ("app".equals(target) || android.text.TextUtils.isEmpty(target)) {
+            return org.telegram.messenger.LocaleController.getInstance().getCurrentLocale().getLanguage();
+        }
+        return target;
     }
 
     public static void setToLanguage(String toLang) {
-        MessagesController.getGlobalMainSettings().edit().putString("translate_to_language", toLang).apply();
+        com.hudgram.ui.HudConfig.setTranslationTarget(toLang);
     }
 
     public static void resetToLanguage() {
-        MessagesController.getGlobalMainSettings().edit().remove("translate_to_language").apply();
+        com.hudgram.ui.HudConfig.setTranslationTarget("app");
     }
 }

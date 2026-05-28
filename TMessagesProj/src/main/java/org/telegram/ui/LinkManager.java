@@ -10,6 +10,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 
+import com.hudgram.ui.HudLanguagesSelectActivity;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BirthdayController;
@@ -121,6 +123,10 @@ public class LinkManager {
         final String first = segments.get(0);
         final String second = segments.size() > 1 ? segments.get(1) : null;
 
+        if ("hudsettings".equalsIgnoreCase(first)) {
+            return handleHudSettings(second, uri.getQueryParameter("r"));
+        }
+
         if ("$".equalsIgnoreCase(first))
             return handleInvoiceSlug(path.substring(1));
         if ("invoice".equalsIgnoreCase(first))
@@ -137,6 +143,33 @@ public class LinkManager {
         }
 
         return false;
+    }
+
+    private boolean handleHudSettings(String key, String slug) {
+        BaseFragment fragment = null;
+        if ("m".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudMainScreenSettingsActivity();
+        } else if ("ts".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudTranslationSettingsActivity();
+        } else if ("c".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudCommonSettingsActivity();
+        } else if ("g".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudGeneralSettingsActivity();
+        }
+
+        if (fragment != null) {
+            final com.hudgram.ui.BaseHudSettingsActivity f = (com.hudgram.ui.BaseHudSettingsActivity) fragment;
+            presentFragment(f);
+            if (!TextUtils.isEmpty(slug)) {
+                AndroidUtilities.runOnUIThread(() -> f.scrollToRow(slug, () -> {
+                    Browser.openUrl(activity, "https://t.me/hudgram");
+                }), 350);
+            }
+            return true;
+        }
+
+        Browser.openUrl(activity, "https://t.me/hudgram");
+        return true;
     }
 
     private Uri normalizeTgUri(Uri uri) {
@@ -169,6 +202,10 @@ public class LinkManager {
 
         if ("newbot".equalsIgnoreCase(first))
             return handleNewBot(uri.getQueryParameter("manager"), uri.getQueryParameter("username"), uri.getQueryParameter("name"));
+
+        if ("hudsettings".equalsIgnoreCase(first)) {
+            return handleHudSettings(second, uri.getQueryParameter("r"));
+        }
 
         if ("resolve".equalsIgnoreCase(first))
             return handleTgResolve(uri);
@@ -332,16 +369,14 @@ public class LinkManager {
         }
         if ("language".equalsIgnoreCase(first)) { // open_settings = 10;
             if ("do-not-translate".equalsIgnoreCase(second)) {
-                presentFragment(new RestrictedLanguagesSelectActivity());
+                presentFragment(new HudLanguagesSelectActivity(HudLanguagesSelectActivity.TYPE_RESTRICTED));
+                return true;
+            }
+            if ("show-button".equalsIgnoreCase(second) || "translate-chats".equalsIgnoreCase(second)) {
+                presentFragment(new com.hudgram.ui.HudGeneralSettingsActivity());
                 return true;
             }
             presentFragment(new LanguageSelectActivity());
-            if ("show-button".equalsIgnoreCase(second)) {
-                scrollTo("manualTranslationPosition");
-            }
-            if ("translate-chats".equalsIgnoreCase(second)) {
-                scrollTo("autoTranslationPosition");
-            }
             return true;
         }
         if ("auto_delete".equalsIgnoreCase(first)) { // open_settings = 11;

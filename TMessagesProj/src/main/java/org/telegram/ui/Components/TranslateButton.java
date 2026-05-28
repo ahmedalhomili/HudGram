@@ -31,6 +31,8 @@ import android.widget.TextView;
 
 //import com.google.mlkit.nl.translate.TranslateLanguage;
 
+import com.hudgram.ui.HudLanguagesSelectActivity;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatObject;
@@ -308,8 +310,7 @@ public class TranslateButton extends FrameLayout implements Theme.Colorable {
             dontTranslateButton.setMultiline(false);
             dontTranslateButton.setTextAndIcon(HintView2.cutInFancyHalfText(text, dontTranslateButton.getTextView().getPaint()), R.drawable.msg_block2);
             dontTranslateButton.setOnClickListener(e -> {
-                RestrictedLanguagesSelectActivity.toggleLanguage(detectedLanguage, true);
-                translateController.checkRestrictedLanguagesUpdate();
+                HudLanguagesSelectActivity.toggleLanguage(detectedLanguage, true);                translateController.checkRestrictedLanguagesUpdate();
                 translateController.setHideTranslateDialog(dialogId, true);
                 String bulletinTextString;
                 if (accusative[0]) {
@@ -323,8 +324,7 @@ public class TranslateButton extends FrameLayout implements Theme.Colorable {
                     R.raw.msg_translate,
                     bulletinText,
                     getString(R.string.Settings),
-                    () -> fragment.presentFragment(new RestrictedLanguagesSelectActivity())
-                ).show();
+                        () -> fragment.presentFragment(new HudLanguagesSelectActivity(HudLanguagesSelectActivity.TYPE_RESTRICTED))).show();
                 popupWindow.dismiss();
             });
             popupLayout.addView(dontTranslateButton);

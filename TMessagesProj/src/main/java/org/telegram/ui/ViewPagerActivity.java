@@ -173,6 +173,12 @@ public abstract class ViewPagerActivity extends BaseFragment {
         return state != null ? state.fragment : null;
     }
 
+    public void scrollToPosition(int position) {
+        if (viewPager != null) {
+            viewPager.scrollToPosition(position);
+        }
+    }
+
     @Override
     public void clearViews() {
         if (viewPager != null) {

@@ -276,6 +276,7 @@ import me.vkryl.android.animator.FactorAnimator;
 
 public class DialogsActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate, FloatingDebugProvider, FactorAnimator.Target, MainTabsActivity.TabFragmentDelegate {
     private final int ADDITIONAL_LIST_HEIGHT_DP = Build.VERSION.SDK_INT >= 31 ? 48 : 0;
+    private BackupImageView headerAvatarView;
 
     private static final boolean TMP_DISABLE_TOPICS_TWO_COLUMNS = false;
 
@@ -848,7 +849,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 h += storiesHeight * (1f - searchAnimationProgress) * (1f - rightSlidingProgress) * (1f - progressToActionMode);
             }
             h += storiesOverscroll;
-            h += dp(SEARCH_FIELD_HEIGHT) * (1f - progressToActionMode) * (1f - searchAnimationProgress) * (1f - rightSlidingProgress);
+            if (!com.hudgram.ui.HudConfig.hideSearchBar) {
+                h += dp(SEARCH_FIELD_HEIGHT) * (1f - progressToActionMode) * (1f - searchAnimationProgress) * (1f - rightSlidingProgress);
+            }
 
             return (int) h;
         }
@@ -1288,7 +1291,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     childTop = 0;
                 } else if (child == topPanelLayout || child == topBubblesFadeView || child == filterTabsView) {
                     childTop += actionBar.getMeasuredHeight();
-                    childTop += dp(SEARCH_FIELD_HEIGHT);
+                    if (!com.hudgram.ui.HudConfig.hideSearchBar) {
+                        childTop += dp(SEARCH_FIELD_HEIGHT);
+                    }
                 } else if (dialogStoriesCell != null && dialogStoriesCell.getPremiumHint() == child) {
                     continue;
                 }
@@ -2026,7 +2031,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (hasStories && !actionModeFullyShowed) {
                 t += dp(DialogStoriesCell.HEIGHT_IN_DP);
             }
-            if (!actionModeFullyShowed) {
+            if (!actionModeFullyShowed && !com.hudgram.ui.HudConfig.hideSearchBar) {
                 t += dp(SEARCH_FIELD_HEIGHT);
             }
             additionalPadding = 0;
@@ -2880,6 +2885,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             .add(NotificationCenter.onDatabaseReset)
             .add(NotificationCenter.storiesUpdated)
             .add(NotificationCenter.storiesEnabledUpdate)
+            .add(NotificationCenter.mainUserInfoChanged)
+            .add(NotificationCenter.userInfoDidLoad)
             .add(NotificationCenter.unconfirmedAuthUpdate)
             .add(NotificationCenter.premiumPromoUpdated)
             .add(NotificationCenter.starBalanceUpdated)
@@ -3096,18 +3103,21 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     }
                 }
                 super.onSearchFieldVisibilityChanged(visible);
+                updateHeaderAvatar();
             }
 
             @Override
             public void showActionMode(boolean animated, View extraView, View showingView, View[] hidingViews, boolean[] hideView, View translationView, int translation) {
                 super.showActionMode(animated, extraView, showingView, hidingViews, hideView, translationView, translation);
                 animatorActionModeVisible.setValue(true, animated);
+                updateHeaderAvatar();
             }
 
             @Override
             public void hideActionMode() {
                 super.hideActionMode();
                 animatorActionModeVisible.setValue(false, true);
+                updateHeaderAvatar();
             }
         };
         actionBar.setAllowOverlayTitle(true);
@@ -3123,6 +3133,13 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (inPreviewMode || AndroidUtilities.isTablet() && folderId != 0 && !isArchive()) {
             actionBar.setOccupyStatusBar(false);
         }
+
+        if (initialDialogsType == DIALOGS_TYPE_DEFAULT) {
+            headerAvatarView = com.hudgram.ui.HudUiHelper.createHeaderAvatarView(context, parentLayout);
+            actionBar.addView(headerAvatarView, LayoutHelper.createFrame(36, 36, Gravity.LEFT | Gravity.CENTER_VERTICAL, 14, 0, 0, 0));
+            updateHeaderAvatar();
+        }
+
         return actionBar;
     }
 
@@ -3443,12 +3460,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             } else {
                 statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
                 statusDrawable.center = true;
-                logoDrawable = context.getResources().getDrawable(R.drawable.hudgram_logo_2).mutate();
-                logoDrawable.setBounds(0, dp(2), logoDrawable.getIntrinsicWidth(), dp(2) + logoDrawable.getIntrinsicHeight());
-                logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);
-                SpannableStringBuilder ssb = new SpannableStringBuilder(getString(R.string.AppName));
-                ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                actionBar.setTitle(ssb, statusDrawable);
+                actionBar.setTitle("Hudgram", statusDrawable);
+                updateHeaderAvatar();
                 updateStatus(UserConfig.getInstance(currentAccount).getCurrentUser(), false);
             }
             if (folderId == 0) {
@@ -5640,10 +5653,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private int getMaxScrollYOffset() {
+        final int searchH = com.hudgram.ui.HudConfig.hideSearchBar ? 0 : dp(SEARCH_FIELD_HEIGHT);
         if (hasStories) {
-            return dp(DialogStoriesCell.HEIGHT_IN_DP) + dp(SEARCH_FIELD_HEIGHT);
+            return dp(DialogStoriesCell.HEIGHT_IN_DP) + searchH;
         } else {
-            return dp(SEARCH_FIELD_HEIGHT);
+            return searchH;
         }
     }
 
@@ -6887,6 +6901,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onResume() {
         super.onResume();
+        updateHeaderAvatar();
         if (dialogStoriesCell != null) {
             dialogStoriesCell.onResume();
         }
@@ -10582,6 +10597,29 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             updateVisibleRows(0);
         } else if (id == NotificationCenter.storiesEnabledUpdate) {
             updateStoriesPosting();
+            updateHeaderAvatar();
+        } else if (id == NotificationCenter.mainUserInfoChanged) {
+            updateHeaderAvatar();
+            checkUi_searchFieldVisibility();
+            updateFilterTabsVisibility(true);
+            checkUi_filterTabsVisible();
+            // Reset scroll position so no dead space is shown after toggling hideSearchBar
+            final float maxScroll = getMaxScrollYOffset();
+            if (scrollYOffset < -maxScroll) {
+                setScrollY(-maxScroll);
+            }
+            if (viewPages != null) {
+                for (int i = 0; i < viewPages.length; i++) {
+                    if (viewPages[i] != null && viewPages[i].listView != null) {
+                        viewPages[i].listView.requestLayout();
+                    }
+                }
+            }
+        } else if (id == NotificationCenter.userInfoDidLoad) {
+            long uid = (Long) args[0];
+            if (uid == getUserConfig().getClientUserId()) {
+                updateHeaderAvatar();
+            }
         } else if (id == NotificationCenter.unconfirmedAuthUpdate) {
             updateDialogsHint();
         } else if (id == NotificationCenter.premiumPromoUpdated) {
@@ -10593,6 +10631,46 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         } else if (id == NotificationCenter.activeAuctionsUpdated) {
             updateDialogsHint();
         }
+    }
+
+    private void updateHeaderAvatar() {
+        if (headerAvatarView == null || actionBar == null) {
+            return;
+        }
+        boolean show = com.hudgram.ui.HudConfig.showAvatarInHeader && folderId == 0 && !actionBar.isSearchFieldVisible() && !actionBar.isActionModeShowed() && !onlySelect;
+
+        if (folderId == 0) {
+            if (com.hudgram.ui.HudConfig.showMyNameInHeader) {
+                TLRPC.User currentUser = getUserConfig().getCurrentUser();
+                if (currentUser != null) {
+                    actionBar.setTitle(org.telegram.messenger.UserObject.getUserName(currentUser), statusDrawable);
+                    if (com.hudgram.ui.HudConfig.showBioAsSubtitle) {
+                        TLRPC.UserFull userFull = getMessagesController().getUserFull(getUserConfig().getClientUserId());
+                        if (userFull != null) {
+                            if (!android.text.TextUtils.isEmpty(userFull.about)) {
+                                actionBar.setSubtitle(userFull.about);
+                            } else {
+                                actionBar.setSubtitle(null);
+                            }
+                        } else {
+                            actionBar.setSubtitle(null);
+                            getMessagesController().loadUserInfo(getUserConfig().getCurrentUser(), true, classGuid);
+                        }
+                    } else {
+                        actionBar.setSubtitle(null);
+                    }
+                } else {
+                    actionBar.setTitle("Hudgram", statusDrawable);
+                    actionBar.setSubtitle(null);
+                }
+            } else {
+                actionBar.setTitle("Hudgram", statusDrawable);
+                actionBar.setSubtitle(null);
+            }
+        }
+
+        com.hudgram.ui.HudUiHelper.updateHeaderAvatar(headerAvatarView, actionBar, show, getUserConfig().getCurrentUser());
+        actionBar.requestLayout();
     }
 
     private void checkSuggestClearDatabase() {
@@ -12471,6 +12549,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             onlySelfStories = getStoriesController().hasOnlySelfStories();
         }
 
+        if (com.hudgram.ui.HudConfig.hideStoriesBar) {
+            onlySelfStories = false;
+            newVisibility = false;
+        }
+
         hasOnlySlefStories = onlySelfStories;
 
         boolean oldStoriesCellVisibility = dialogStoriesCellVisible;
@@ -12529,10 +12612,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             dialogStoriesCell.setProgressToCollapse(1f, false);
         }
         if (animated && !isInPreviewMode()) {
+            final boolean finalNewVisibility = newVisibility;
             dialogStoriesCell.setVisibility(View.VISIBLE);
             float fromScrollY = -scrollYOffset;
             float toScrollY;
-            if (!newVisibility) {
+            if (!finalNewVisibility) {
                 toScrollY = getMaxScrollYOffset();
             } else {
                 toScrollY = 0;
@@ -12545,7 +12629,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 @Override
                 public void onAnimationUpdate(@NonNull ValueAnimator animation) {
                     progressToShowStories = (float) animation.getAnimatedValue();
-                    if (!newVisibility) {
+                    if (!finalNewVisibility) {
                         progressToShowStories = 1f - progressToShowStories;
                     }
                     int newValue = (int) AndroidUtilities.lerp(fromScrollY, toScrollY, (float) animation.getAnimatedValue());
@@ -12561,11 +12645,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     storiesVisibilityAnimator = null;
-                    hasStories = newVisibility;
+                    hasStories = finalNewVisibility;
                     if (!hasStories && !hasOnlySlefStories) {
                         dialogStoriesCell.setVisibility(View.GONE);
                     }
-                    if (!newVisibility) {
+                    if (!finalNewVisibility) {
                         setScrollY(0);
                         scrollAdditionalOffset = dp(DialogStoriesCell.HEIGHT_IN_DP);
                     } else {
@@ -13399,6 +13483,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 args.putLong("user_id", UserConfig.getInstance(currentAccount).getClientUserId());
                 presentFragment(new ChatActivity(args));
             });
+            io.add(R.drawable.msg_customize, org.telegram.messenger.LocaleController.isRTL ? "إعدادات هدهد جرام" : "Hudgram Settings", () -> {
+                presentFragment(new com.hudgram.ui.HudGeneralSettingsActivity());
+            });
+            if (com.hudgram.ui.HudConfig.hideSettingsTab) {
+                io.add(R.drawable.msg_settings, org.telegram.messenger.LocaleController.getString(R.string.Settings), () -> {
+                    presentFragment(new org.telegram.ui.SettingsActivity());
+                });
+            }
             if (ApplicationLoader.applicationLoaderInstance != null) {
                 ApplicationLoader.applicationLoaderInstance.addItemOptions(io);
             }
@@ -13648,6 +13740,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private float getFilterTabsVisibilityFactor(boolean includeSearch) {
+        if (com.hudgram.ui.HudConfig.hideFolderTabs) {
+            return 0f;
+        }
         final float factor1 = includeSearch ? (1f - animatorSearchVisible.getFloatValue()) : 1f;
         final float factor2 = 1f - getRightSlidingProgress();
         final float factor3 = animatorFilterTabsVisible.getFloatValue();
@@ -13692,7 +13787,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         final float factor0 = isSupportSearch() ? 1 : 0;
         final float factor1 = (1f - actionModeVisible) * (1f - animatorDoneButtonVisible.getFloatValue());
-        final float factor2 = Math.max(searchFieldVisible, alphaByScrollOffset * (1f - getRightSlidingProgress()));
+        final float factor2 = Math.max(searchFieldVisible, com.hudgram.ui.HudConfig.hideSearchBar ? 0 : (alphaByScrollOffset * (1f - getRightSlidingProgress())));
 
         final float alpha = factor0 * factor1 * factor2;
 
