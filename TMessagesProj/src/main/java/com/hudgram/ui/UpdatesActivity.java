@@ -103,6 +103,8 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     private org.telegram.ui.ActionBar.ActionBarMenuItem deleteItem;
     private org.telegram.ui.ActionBar.ActionBarMenuSubItem pinItem;
     private org.telegram.ui.ActionBar.ActionBarMenuSubItem readItem;
+    private org.telegram.ui.ActionBar.ActionBarMenuSubItem copyLinkItem;
+    private org.telegram.ui.ActionBar.ActionBarMenuSubItem viewChannelItem;
     private boolean showArchivedChannels = false;
     private TextView channelsArchiveButton;
     private TextView channelsHeaderTextView;
@@ -1358,6 +1360,14 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 readItem.setTextAndIcon(LocaleController.getString(R.string.MarkAsUnread), R.drawable.msg_markunread);
             }
         }
+
+        boolean singleSelected = selectedDialogIds.size() == 1;
+        if (copyLinkItem != null) {
+            copyLinkItem.setVisibility(singleSelected ? View.VISIBLE : View.GONE);
+        }
+        if (viewChannelItem != null) {
+            viewChannelItem.setVisibility(singleSelected ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void createActionMode() {
@@ -1392,10 +1402,10 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         // 4. Options item
         org.telegram.ui.ActionBar.ActionBarMenuItem otherItem = actionMode.addItemWithWidth(104, R.drawable.ic_ab_other, dp(54));
         pinItem = otherItem.addSubItem(201, R.drawable.msg_pin, LocaleController.getString(R.string.PinToTop)); // Pin / Unpin
-        otherItem.addSubItem(105, R.drawable.msg_link, LocaleController.getString(R.string.CopyLink)); // Copy link
+        copyLinkItem = otherItem.addSubItem(105, R.drawable.msg_link, LocaleController.getString(R.string.CopyLink)); // Copy link
         readItem = otherItem.addSubItem(203, R.drawable.msg_markread, LocaleController.getString(R.string.MarkAsRead)); // Mark as read / unread
         otherItem.addSubItem(205, R.drawable.msg_contacts, LocaleController.getString(R.string.SelectAll)); // Select all
-        otherItem.addSubItem(206, R.drawable.msg_info, LocaleController.getString(R.string.ViewChannel)); // Channel Info
+        viewChannelItem = otherItem.addSubItem(206, R.drawable.msg_info, LocaleController.getString(R.string.ViewChannel)); // Channel Info
         otherItem.addSubItem(207, R.drawable.msg_leave, LocaleController.getString(R.string.LeaveChannel)); // Unfollow / Leave
         otherItem.addSubItem(202, R.drawable.msg_addfolder, LocaleController.getString(R.string.FilterAddTo)); // Add to folder
         otherItem.addSubItem(204, R.drawable.msg_clear, LocaleController.getString(R.string.ClearCache)); // Delete from cache
