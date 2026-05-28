@@ -37,7 +37,6 @@ import org.telegram.ui.Stories.recorder.*;
 
 // Custom cells under the com.hudgram.ui.cells package
 import com.hudgram.ui.cells.UpdatesStoryCell;
-import com.hudgram.ui.cells.UpdatesChannelCell;
 
 import android.os.Bundle;
 import android.widget.ImageView;
@@ -659,8 +658,8 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 if (noChannelsView != null) noChannelsView.setVisibility(View.GONE);
 
                 for (TLRPC.Dialog dialog : channelDialogs) {
-                    UpdatesChannelCell cell = new UpdatesChannelCell(channelsContainer.getContext());
-                    cell.setChannel(currentAccount, dialog);
+                    DialogCell cell = new DialogCell((DialogsActivity) null, channelsContainer.getContext(), true, false);
+                    cell.setDialog(dialog, DialogsActivity.DIALOGS_TYPE_CHANNELS_ONLY, 0);
                     cell.setChecked(inSelectionMode && selectedDialogIds.contains(dialog.id), false);
 
                     final float[] lastTouchX = new float[1];
@@ -741,7 +740,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         return super.onBackPressed(invoked);
     }
 
-    public boolean showChatPreview(UpdatesChannelCell cell) {
+    public boolean showChatPreview(DialogCell cell) {
         long dialogId = cell.getDialogId();
         Bundle args = new Bundle();
         if (DialogObject.isEncryptedDialog(dialogId)) {
