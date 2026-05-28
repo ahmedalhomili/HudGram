@@ -17,7 +17,10 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.ItemTouchHelper;
 
+import org.telegram.messenger.SharedConfig;
+import org.telegram.ui.Components.SwipeGestureSettingsView;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
@@ -69,20 +72,29 @@ import androidx.core.graphics.ColorUtils;
 
 public class UpdatesActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
-    private LinearLayout contentLayout;
+    private RecyclerListView listView;
+    private UpdatesAdapter adapter;
+    private LinearLayout storiesContainer;
     private RecyclerListView storiesRecyclerView;
-    private LinearLayout channelsContainer;
     private StoriesAdapter storiesAdapter;
+    private ItemTouchHelper itemTouchHelper;
     private boolean hasMainTabs;
     private boolean searching;
     private String searchQuery;
     private View blurredView;
     private UndoView undoView;
+    private StickerEmptyView noChannelsView;
+    private BackupImageView headerAvatarView;
+    private AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable statusDrawable;
 
     public UpdatesActivity(android.os.Bundle args) {
         super(args);
     }
-    private StickerEmptyView noChannelsView;
+
+    private static final int TYPE_STORIES_PLACEHOLDER = 0;
+    private static final int TYPE_HEADER = 1;
+    private static final int TYPE_CHANNEL = 2;
+    private static final int TYPE_EMPTY = 3;
     private final java.util.HashSet<Long> selectedDialogIds = new java.util.HashSet<>();
     private boolean inSelectionMode = false;
     private org.telegram.ui.Components.NumberTextView selectedDialogsCountTextView;
@@ -108,6 +120,8 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.storiesUpdated);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.dialogsNeedReload);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.updateInterfaces);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.mainUserInfoChanged);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.userInfoDidLoad);
 
         loadData();
         return true;
@@ -119,6 +133,8 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.storiesUpdated);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.dialogsNeedReload);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.updateInterfaces);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.mainUserInfoChanged);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.userInfoDidLoad);
     }
 
     private void loadData() {
@@ -195,6 +211,9 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             actionBar.getBackButton().setVisibility(View.GONE);
         }
 
+        headerAvatarView = com.hudgram.ui.HudUiHelper.createHeaderAvatarView(context, parentLayout);
+        actionBar.addView(headerAvatarView, LayoutHelper.createFrame(36, 36, Gravity.LEFT | Gravity.CENTER_VERTICAL, 14, 0, 0, 0));
+
         actionBar.setActionBarMenuOnItemClick(new org.telegram.ui.ActionBar.ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -268,6 +287,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                         actionBar.closeSearchField();
                     });
                 }
+                updateHeaderAvatar();
             }
 
             @Override
@@ -299,19 +319,92 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         otherItem.addSubItem(1, R.drawable.msg_secret, LocaleController.getString(R.string.StoryPrivacyAlertEditTitle));
         otherItem.addSubItem(2, R.drawable.msg_channel, LocaleController.getString(R.string.NewChannel));
 
+        statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
+        statusDrawable.center = true;
+
         // Main container
-        FrameLayout rootLayout = new FrameLayout(context);
+        FrameLayout rootLayout = new FrameLayout(context) {
+            @Override
+            protected void onAttachedToWindow() {
+                super.onAttachedToWindow();
+                if (statusDrawable != null) {
+                    statusDrawable.attach();
+                }
+            }
+
+            @Override
+            protected void onDetachedFromWindow() {
+                super.onDetachedFromWindow();
+                if (statusDrawable != null) {
+                    statusDrawable.detach();
+                }
+            }
+        };
         rootLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
 
-        ScrollView scrollView = new ScrollView(context);
-        scrollView.setFillViewport(true);
+        // RecyclerListView initialization
+        listView = new RecyclerListView(context);
+        listView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
+        listView.setClipToPadding(false);
+        adapter = new UpdatesAdapter(context);
+        listView.setAdapter(adapter);
+        rootLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
-        contentLayout = new LinearLayout(context);
-        contentLayout.setOrientation(LinearLayout.VERTICAL);
+        listView.setOnItemClickListener((view, position, x, y) -> {
+            if (position < 2) {
+                return;
+            }
+            int dialogIndex = position - 2;
+            if (dialogIndex >= 0 && dialogIndex < channelDialogs.size()) {
+                TLRPC.Dialog dialog = channelDialogs.get(dialogIndex);
+                if (inSelectionMode) {
+                    toggleSelection(dialog.id);
+                } else {
+                    presentFragment(ChatActivity.of(dialog.id));
+                }
+            }
+        });
 
-        // === Status/Stories section ===
+        listView.setOnItemLongClickListener(new RecyclerListView.OnItemLongClickListenerExtended() {
+            @Override
+            public boolean onItemClick(View view, int position, float x, float y) {
+                if (position < 2) {
+                    return false;
+                }
+                int dialogIndex = position - 2;
+                if (dialogIndex >= 0 && dialogIndex < channelDialogs.size()) {
+                    TLRPC.Dialog dialog = channelDialogs.get(dialogIndex);
+                    if (view instanceof DialogCell) {
+                        DialogCell cell = (DialogCell) view;
+                        if (cell.isPointInsideAvatar(x, y)) {
+                            if (!inSelectionMode) {
+                                return showChatPreview(cell);
+                            }
+                        } else {
+                            toggleSelection(dialog.id);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            @Override
+            public void onMove(float dx, float dy) {
+            }
+
+            @Override
+            public void onLongClickRelease() {
+            }
+        });
+
+        // Floating storiesContainer
+        storiesContainer = new LinearLayout(context);
+        storiesContainer.setOrientation(LinearLayout.VERTICAL);
+        storiesContainer.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        
         TextView statusHeader = createSectionHeader(context, getString(R.string.UpdatesStatusHeader));
-        contentLayout.addView(statusHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 16, 0, 8));
+        storiesContainer.addView(statusHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 16, 0, 8));
 
         // Horizontal stories RecyclerView
         storiesRecyclerView = new RecyclerListView(context);
@@ -365,55 +458,18 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             return true;
         });
 
-        contentLayout.addView(storiesRecyclerView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 140, 0, 0, 0, 8));
-
-        // === Channels section ===
-        FrameLayout channelsHeaderLayout = new FrameLayout(context);
-        channelsHeaderLayout.setPadding(0, dp(16), 0, dp(8));
-
-        int headerGravity = LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT;
-        int iconGravity = LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT;
-
-        channelsHeaderTextView = new TextView(context);
-        channelsHeaderTextView.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات المؤرشفة" : "Archived Channels") : getString(R.string.UpdatesChannelsHeader));
-        channelsHeaderTextView.setTextSize(17);
-        channelsHeaderTextView.setTypeface(AndroidUtilities.bold());
-        channelsHeaderTextView.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
-        channelsHeaderTextView.setPadding(dp(16), dp(8), dp(16), dp(4));
-        channelsHeaderLayout.addView(channelsHeaderTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, headerGravity | Gravity.CENTER_VERTICAL));
-
-        // Horizontal container for Archive action
-        LinearLayout headerActionsLayout = new LinearLayout(context);
-        headerActionsLayout.setOrientation(LinearLayout.HORIZONTAL);
-        headerActionsLayout.setGravity(Gravity.CENTER_VERTICAL);
-
-        // 1. Archive Capsule Button
-        channelsArchiveButton = new TextView(context);
-        channelsArchiveButton.setText(LocaleController.isRTL ? "المؤرشفة" : "Archive");
-        channelsArchiveButton.setTextSize(13);
-        channelsArchiveButton.setGravity(Gravity.CENTER);
-        channelsArchiveButton.setTypeface(AndroidUtilities.bold());
-        channelsArchiveButton.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
-
-        android.graphics.drawable.GradientDrawable archiveBg = new android.graphics.drawable.GradientDrawable();
-        archiveBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        archiveBg.setCornerRadius(dp(16));
-        archiveBg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton));
-        channelsArchiveButton.setBackground(archiveBg);
-        channelsArchiveButton.setOnClickListener(v -> {
-            showArchivedChannels = !showArchivedChannels;
-            channelsHeaderTextView.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات المؤرشفة" : "Archived Channels") : getString(R.string.UpdatesChannelsHeader));
-            updateUI();
+        storiesContainer.addView(storiesRecyclerView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 140, 0, 0, 0, 8));
+        rootLayout.addView(storiesContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
+        storiesContainer.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            int oldHeight = oldBottom - oldTop;
+            int newHeight = bottom - top;
+            if (oldHeight != newHeight && adapter != null) {
+                adapter.notifyItemChanged(0);
+            }
         });
-        headerActionsLayout.addView(channelsArchiveButton, LayoutHelper.createLinear(84, 32, 0, 0, 8, 0));
 
-        channelsHeaderLayout.addView(headerActionsLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, iconGravity | Gravity.CENTER_VERTICAL, LocaleController.isRTL ? 16 : 0, 0, LocaleController.isRTL ? 0 : 16, 0));
-
-        contentLayout.addView(channelsHeaderLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-
-        channelsContainer = new LinearLayout(context);
-        channelsContainer.setOrientation(LinearLayout.VERTICAL);
-        contentLayout.addView(channelsContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        // Add action bar after list and stories container to draw it on top
+        rootLayout.addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         // No channels placeholder
         noChannelsView = new StickerEmptyView(context, null, StickerEmptyView.STICKER_TYPE_NO_CONTACTS, getResourceProvider());
@@ -423,25 +479,18 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             Bundle args = new Bundle();
             presentFragment(new ChannelCreateActivity(args));
         });
-        contentLayout.addView(noChannelsView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 16, 0, 16));
-
-        // Bottom padding for tabs
-        View bottomPadding = new View(context);
-        contentLayout.addView(bottomPadding, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS));
-
-        scrollView.addView(contentLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-        rootLayout.addView(scrollView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 0, 0, 0));
-        rootLayout.addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         // Blurred view for premium chat previews
         blurredView = new View(context);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            blurredView.setForeground(new android.graphics.drawable.ColorDrawable(ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhite), 100)));
+        }
         blurredView.setVisibility(View.GONE);
         blurredView.setFocusable(false);
         blurredView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         blurredView.setOnClickListener(e -> {
             finishPreviewFragment();
         });
-        rootLayout.addView(blurredView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
         // === Telegram-style floating action buttons ===
         int bottomTabsHeight = DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS;
@@ -470,20 +519,18 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         rootLayout.addView(liveFab, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 70 + 48 + 16));
 
-        // Auto-hide buttons on scroll
-        scrollView.getViewTreeObserver().addOnScrollChangedListener(new android.view.ViewTreeObserver.OnScrollChangedListener() {
-            private int lastScrollY;
+        // Auto-hide buttons and animate stories container on scroll
+        listView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
-            public void onScrollChanged() {
-                int scrollY = scrollView.getScrollY();
-                if (scrollY > lastScrollY + dp(8)) {
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                updateStoriesScroll();
+                if (dy > dp(4)) {
                     cameraFab.setButtonVisible(false, true);
                     liveFab.setButtonVisible(false, true);
-                } else if (scrollY < lastScrollY - dp(8) || scrollY <= 0) {
+                } else if (dy < -dp(4) || getStoriesScrollY() <= 0) {
                     cameraFab.setButtonVisible(true, true);
                     liveFab.setButtonVisible(true, true);
                 }
-                lastScrollY = scrollY;
             }
         });
 
@@ -494,9 +541,17 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         fragmentView = rootLayout;
 
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, (v, insets) -> {
-            scrollView.setPadding(0, AndroidUtilities.getStatusBarHeight(context) + ActionBar.getCurrentActionBarHeight(), 0, 0);
+            int top = AndroidUtilities.getStatusBarHeight(context) + ActionBar.getCurrentActionBarHeight();
+            listView.setPadding(0, top, 0, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS);
+            storiesContainer.setTranslationY(top);
+            updateStoriesScroll();
             return insets;
         });
+
+        // Attach Swipe Gestures
+        SwipeController swipeController = new SwipeController();
+        itemTouchHelper = new ItemTouchHelper(swipeController);
+        itemTouchHelper.attachToRecyclerView(listView);
 
         updateUI();
 
@@ -797,61 +852,86 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             storiesAdapter.notifyDataSetChanged();
         }
 
-        if (channelsContainer != null) {
-            channelsContainer.removeAllViews();
-
-            if (channelDialogs.isEmpty()) {
-                if (noChannelsView != null) noChannelsView.setVisibility(View.VISIBLE);
-            } else {
-                if (noChannelsView != null) noChannelsView.setVisibility(View.GONE);
-
-                for (TLRPC.Dialog dialog : channelDialogs) {
-                    DialogCell cell = new DialogCell((DialogsActivity) null, channelsContainer.getContext(), true, false);
-                    cell.setDialog(dialog, DialogsActivity.DIALOGS_TYPE_CHANNELS_ONLY, 0);
-                    cell.setChecked(inSelectionMode && selectedDialogIds.contains(dialog.id), false);
-
-                    final float[] lastTouchX = new float[1];
-                    final float[] lastTouchY = new float[1];
-                    cell.setOnTouchListener((v, event) -> {
-                        if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
-                            lastTouchX[0] = event.getX();
-                            lastTouchY[0] = event.getY();
-                        }
-                        return false;
-                    });
-
-                    cell.setOnClickListener(v -> {
-                        if (inSelectionMode) {
-                            toggleSelection(dialog.id);
-                        } else {
-                            long id = cell.getDialogId();
-                            if (id != 0) {
-                                presentFragment(ChatActivity.of(id));
-                            }
-                        }
-                    });
-                    cell.setOnLongClickListener(v -> {
-                        if (cell.isPointInsideAvatar(lastTouchX[0], lastTouchY[0])) {
-                            if (!inSelectionMode) {
-                                return showChatPreview(cell);
-                            }
-                        } else {
-                            toggleSelection(dialog.id);
-                            return true;
-                        }
-                        return false;
-                    });
-                    channelsContainer.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-                }
-            }
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
         }
+        updateStoriesScroll();
+        updateHeaderAvatar();
+    }
+
+    private void updateHeaderAvatar() {
+        if (headerAvatarView == null || actionBar == null) {
+            return;
+        }
+        boolean show = com.hudgram.ui.HudConfig.showAvatarInHeader && !searching && !inSelectionMode;
+
+        if (com.hudgram.ui.HudConfig.showMyNameInHeader) {
+            TLRPC.User currentUser = getUserConfig().getCurrentUser();
+            if (currentUser != null) {
+                updateEmojiStatus(currentUser, false);
+                actionBar.setTitle(org.telegram.messenger.UserObject.getUserName(currentUser), statusDrawable);
+                if (com.hudgram.ui.HudConfig.showBioAsSubtitle) {
+                    TLRPC.UserFull userFull = getMessagesController().getUserFull(getUserConfig().getClientUserId());
+                    if (userFull != null) {
+                        if (!android.text.TextUtils.isEmpty(userFull.about)) {
+                            actionBar.setSubtitle(userFull.about);
+                        } else {
+                            actionBar.setSubtitle(null);
+                        }
+                    } else {
+                        actionBar.setSubtitle(null);
+                        getMessagesController().loadUserInfo(getUserConfig().getCurrentUser(), true, classGuid);
+                    }
+                } else {
+                    actionBar.setSubtitle(null);
+                }
+            } else {
+                updateEmojiStatus(null, false);
+                actionBar.setTitle(getString(R.string.MainTabsUpdates), statusDrawable);
+                actionBar.setSubtitle(null);
+            }
+        } else {
+            updateEmojiStatus(null, false);
+            actionBar.setTitle(getString(R.string.MainTabsUpdates), statusDrawable);
+            actionBar.setSubtitle(null);
+        }
+
+        com.hudgram.ui.HudUiHelper.updateHeaderAvatar(headerAvatarView, actionBar, show, getUserConfig().getCurrentUser());
+        actionBar.requestLayout();
+    }
+
+    private void updateEmojiStatus(TLRPC.User user, boolean animated) {
+        if (statusDrawable == null || actionBar == null) {
+            return;
+        }
+        if (user != null && user.emoji_status != null) {
+            long emojiStatusId = DialogObject.getEmojiStatusDocumentId(user.emoji_status);
+            boolean isCollectible = user.emoji_status instanceof TLRPC.TL_emojiStatusCollectible;
+            statusDrawable.set(emojiStatusId, animated);
+            statusDrawable.setParticles(isCollectible, animated);
+        } else if (UserConfig.getInstance(currentAccount).isPremium()) {
+            Drawable premiumStar = getParentActivity().getResources().getDrawable(R.drawable.msg_premium_liststar).mutate();
+            premiumStar.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_profile_verifiedBackground), PorterDuff.Mode.MULTIPLY));
+            statusDrawable.set(premiumStar, animated);
+            statusDrawable.setParticles(false, animated);
+        } else {
+            statusDrawable.set((Drawable) null, animated);
+            statusDrawable.setParticles(false, animated);
+        }
+        statusDrawable.setColor(Theme.getColor(Theme.key_profile_verifiedBackground));
     }
 
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
-        if (id == NotificationCenter.storiesUpdated ||
+        if (id == NotificationCenter.userInfoDidLoad) {
+            long uid = (Long) args[0];
+            if (uid == getUserConfig().getClientUserId()) {
+                AndroidUtilities.runOnUIThread(this::updateUI);
+            }
+        } else if (id == NotificationCenter.storiesUpdated ||
                 id == NotificationCenter.dialogsNeedReload ||
-                id == NotificationCenter.updateInterfaces) {
+                id == NotificationCenter.updateInterfaces ||
+                id == NotificationCenter.mainUserInfoChanged) {
             AndroidUtilities.runOnUIThread(this::updateUI);
         }
     }
@@ -1136,21 +1216,24 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void prepareBlurBitmap() {
-        if (blurredView == null || fragmentView == null) {
+        if (blurredView == null || parentLayout == null) {
             return;
         }
-        int w = (int) (fragmentView.getMeasuredWidth() / 9.0f);
-        int h = (int) (fragmentView.getMeasuredHeight() / 9.0f);
+        int w = (int) (fragmentView.getMeasuredWidth() / 6.0f);
+        int h = (int) (fragmentView.getMeasuredHeight() / 6.0f);
         if (w <= 0 || h <= 0) return;
         Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        bitmap.eraseColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         Canvas canvas = new Canvas(bitmap);
-        canvas.scale(1.0f / 9.0f, 1.0f / 9.0f);
-        fragmentView.draw(canvas);
-        Utilities.stackBlurBitmap(bitmap, Math.max(9, Math.max(w, h) / 180));
+        canvas.scale(1.0f / 6.0f, 1.0f / 6.0f);
+        parentLayout.getView().draw(canvas);
+        Utilities.stackBlurBitmap(bitmap, Math.max(7, Math.max(w, h) / 180));
         blurredView.setBackground(new BitmapDrawable(getParentActivity().getResources(), bitmap));
         blurredView.setAlpha(0.0f);
         blurredView.setVisibility(View.VISIBLE);
+        if (blurredView.getParent() != null) {
+            ((ViewGroup) blurredView.getParent()).removeView(blurredView);
+        }
+        parentLayout.getOverlayContainerView().addView(blurredView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
     }
 
     private void markAsRead(long did) {
@@ -1589,8 +1672,10 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
     @Override
     public void onTransitionAnimationEnd(boolean isOpen, boolean backward) {
-        if (isOpen && blurredView != null && blurredView.getVisibility() == View.VISIBLE) {
-            blurredView.setVisibility(View.GONE);
+        if (isOpen && blurredView != null) {
+            if (blurredView.getParent() != null) {
+                ((ViewGroup) blurredView.getParent()).removeView(blurredView);
+            }
             blurredView.setBackground(null);
         }
     }
@@ -1646,6 +1731,292 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         @Override
         public int getItemCount() {
             return 1 + storyItems.size(); // +1 for self
+        }
+    }
+
+    private int getStoriesScrollY() {
+        if (listView == null || listView.getChildCount() == 0) {
+            return 0;
+        }
+        View firstChild = listView.getChildAt(0);
+        RecyclerView.ViewHolder holder = listView.getChildViewHolder(firstChild);
+        if (holder != null && holder.getItemViewType() == TYPE_STORIES_PLACEHOLDER) {
+            return listView.getPaddingTop() - firstChild.getTop();
+        }
+        return storiesContainer != null ? storiesContainer.getHeight() : 0;
+    }
+
+    private void updateStoriesScroll() {
+        if (storiesContainer == null) {
+            return;
+        }
+        int scrollY = getStoriesScrollY();
+        int height = storiesContainer.getHeight();
+        if (height == 0) {
+            height = storiesContainer.getMeasuredHeight();
+        }
+        if (height == 0) {
+            return;
+        }
+        int translationY = -Math.min(scrollY, height);
+        int topPadding = AndroidUtilities.getStatusBarHeight(getContext()) + ActionBar.getCurrentActionBarHeight();
+        storiesContainer.setTranslationY(topPadding + translationY);
+
+        float alpha = 1.0f - Math.min(1.0f, (float) scrollY / height);
+        storiesContainer.setAlpha(alpha);
+        storiesContainer.setVisibility(alpha == 0f ? View.GONE : View.VISIBLE);
+    }
+
+    private void executeSwipeAction(long dialogId, int action, int position) {
+        if (action == SwipeGestureSettingsView.SWIPE_GESTURE_PIN) {
+            TLRPC.Dialog dialog = findDialogById(dialogId);
+            boolean isPinned = dialog != null && dialog.pinned;
+            getMessagesController().pinDialog(dialogId, !isPinned, null, -1);
+            if (getUndoView() != null) {
+                getUndoView().showWithAction(0, !isPinned ? UndoView.ACTION_PIN_DIALOGS : UndoView.ACTION_UNPIN_DIALOGS, 1, 1600, null, null);
+            }
+            updateUI();
+        } else if (action == SwipeGestureSettingsView.SWIPE_GESTURE_READ) {
+            TLRPC.Dialog dialog = findDialogById(dialogId);
+            if (dialog != null) {
+                boolean hasUnread = dialog.unread_count != 0 || dialog.unread_mark;
+                if (hasUnread) {
+                    markAsRead(dialogId);
+                } else {
+                    markAsUnread(dialogId);
+                }
+                updateUI();
+            }
+        } else if (action == SwipeGestureSettingsView.SWIPE_GESTURE_ARCHIVE || action == SwipeGestureSettingsView.SWIPE_GESTURE_FOLDERS) {
+            boolean unarchive = false;
+            TLRPC.Dialog d = findDialogById(dialogId);
+            if (d != null && d.folder_id == 1) {
+                unarchive = true;
+            }
+            ArrayList<Long> copy = new ArrayList<>();
+            copy.add(dialogId);
+            getMessagesController().addDialogToFolder(copy, unarchive ? 0 : 1, -1, null, 0);
+            if (getUndoView() != null) {
+                getUndoView().showWithAction(0, unarchive ? UndoView.ACTION_CHAT_UNARCHIVED : UndoView.ACTION_ARCHIVE, 1, 1600, null, null);
+            }
+            updateUI();
+        } else if (action == SwipeGestureSettingsView.SWIPE_GESTURE_MUTE) {
+            boolean isMuted = getMessagesController().isDialogMuted(dialogId, 0);
+            if (!isMuted) {
+                getNotificationsController().setDialogNotificationsSettings(dialogId, 0, NotificationsController.SETTING_MUTE_FOREVER);
+            } else {
+                getNotificationsController().setDialogNotificationsSettings(dialogId, 0, NotificationsController.SETTING_MUTE_UNMUTE);
+            }
+            BulletinFactory.createMuteBulletin(UpdatesActivity.this, !isMuted, null).show();
+            updateUI();
+        } else if (action == SwipeGestureSettingsView.SWIPE_GESTURE_DELETE) {
+            TLRPC.Chat chat = getMessagesController().getChat(-dialogId);
+            org.telegram.ui.Components.AlertsCreator.createClearOrDeleteDialogAlert(UpdatesActivity.this, false, chat, null, false, false, (revoke) -> {
+                getMessagesController().deleteDialog(dialogId, 0, revoke);
+                updateUI();
+            });
+        }
+    }
+
+    private class StoriesPlaceholderView extends View {
+        public StoriesPlaceholderView(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            int height = storiesContainer != null ? storiesContainer.getMeasuredHeight() : 0;
+            setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), height);
+        }
+    }
+
+    private class UpdatesAdapter extends RecyclerListView.SelectionAdapter {
+        private final Context context;
+
+        public UpdatesAdapter(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        public boolean isEnabled(RecyclerView.ViewHolder holder) {
+            return holder.getItemViewType() == TYPE_CHANNEL;
+        }
+
+        @Override
+        public int getItemCount() {
+            if (channelDialogs.isEmpty()) {
+                return 3; // Placeholder, Header, EmptyView
+            }
+            return 2 + channelDialogs.size(); // Placeholder, Header, Channels
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            if (position == 0) {
+                return TYPE_STORIES_PLACEHOLDER;
+            } else if (position == 1) {
+                return TYPE_HEADER;
+            } else {
+                if (channelDialogs.isEmpty()) {
+                    return TYPE_EMPTY;
+                } else {
+                    return TYPE_CHANNEL;
+                }
+            }
+        }
+
+        @NonNull
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view;
+            if (viewType == TYPE_STORIES_PLACEHOLDER) {
+                view = new StoriesPlaceholderView(context);
+            } else if (viewType == TYPE_HEADER) {
+                FrameLayout headerLayout = new FrameLayout(context);
+                
+                channelsHeaderTextView = new TextView(context);
+                channelsHeaderTextView.setTextSize(17);
+                channelsHeaderTextView.setTypeface(AndroidUtilities.bold());
+                channelsHeaderTextView.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+                channelsHeaderTextView.setGravity(Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT));
+                headerLayout.addView(channelsHeaderTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 
+                    (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, 16, 8, 16, 8));
+
+                channelsArchiveButton = new TextView(context);
+                channelsArchiveButton.setTextSize(15);
+                channelsArchiveButton.setTypeface(AndroidUtilities.bold());
+                channelsArchiveButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText));
+                channelsArchiveButton.setGravity(Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT));
+                channelsArchiveButton.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2));
+                channelsArchiveButton.setPadding(dp(8), dp(4), dp(8), dp(4));
+                channelsArchiveButton.setOnClickListener(v -> {
+                    showArchivedChannels = !showArchivedChannels;
+                    updateUI();
+                });
+                headerLayout.addView(channelsArchiveButton, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 
+                    (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 16, 8, 16, 8));
+                
+                headerLayout.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                view = headerLayout;
+            } else if (viewType == TYPE_EMPTY) {
+                FrameLayout container = new FrameLayout(context) {
+                    @Override
+                    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                        int totalHeight = MeasureSpec.getSize(heightMeasureSpec);
+                        int storiesHeight = storiesContainer != null ? storiesContainer.getMeasuredHeight() : 0;
+                        int headerHeight = dp(40);
+                        int minHeight = totalHeight - storiesHeight - headerHeight;
+                        if (minHeight < dp(300)) {
+                            minHeight = dp(300);
+                        }
+                        super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(minHeight, MeasureSpec.EXACTLY));
+                    }
+                };
+                if (noChannelsView.getParent() != null) {
+                    ((ViewGroup) noChannelsView.getParent()).removeView(noChannelsView);
+                }
+                noChannelsView.setVisibility(View.VISIBLE);
+                container.addView(noChannelsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+                view = container;
+            } else {
+                DialogCell cell = new DialogCell((DialogsActivity) null, context, true, false);
+                cell.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                view = cell;
+            }
+            return new RecyclerListView.Holder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            int type = holder.getItemViewType();
+            if (type == TYPE_HEADER) {
+                boolean hasArchived = false;
+                ArrayList<TLRPC.Dialog> allChannels = MessagesController.getInstance(currentAccount).dialogsChannelsOnly;
+                if (allChannels != null) {
+                    for (TLRPC.Dialog dialog : allChannels) {
+                        if (dialog.folder_id == 1) {
+                            hasArchived = true;
+                            break;
+                        }
+                    }
+                }
+                channelsHeaderTextView.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات المؤرشفة" : "Archived Channels") : getString(R.string.UpdatesChannelsHeader));
+                channelsArchiveButton.setVisibility(hasArchived ? View.VISIBLE : View.GONE);
+                channelsArchiveButton.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات" : "Channels") : (LocaleController.isRTL ? "المؤرشفة" : "Archive"));
+            } else if (type == TYPE_CHANNEL) {
+                DialogCell cell = (DialogCell) holder.itemView;
+                int dialogIndex = position - 2;
+                if (dialogIndex >= 0 && dialogIndex < channelDialogs.size()) {
+                    TLRPC.Dialog dialog = channelDialogs.get(dialogIndex);
+                    cell.setDialog(dialog, DialogsActivity.DIALOGS_TYPE_CHANNELS_ONLY, 0);
+                    cell.setChecked(inSelectionMode && selectedDialogIds.contains(dialog.id), false);
+
+
+                }
+            }
+        }
+    }
+
+    private class SwipeController extends ItemTouchHelper.Callback {
+        @Override
+        public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+            if (inSelectionMode) {
+                return 0;
+            }
+            if (viewHolder.getItemViewType() == TYPE_CHANNEL && viewHolder.itemView instanceof DialogCell) {
+                DialogCell dialogCell = (DialogCell) viewHolder.itemView;
+                dialogCell.setSliding(true);
+                dialogCell.swipeCanceled = false;
+                return makeMovementFlags(0, ItemTouchHelper.LEFT);
+            }
+            return 0;
+        }
+
+        @Override
+        public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder source, @NonNull RecyclerView.ViewHolder target) {
+            return false;
+        }
+
+        @Override
+        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+            if (viewHolder.itemView instanceof DialogCell) {
+                DialogCell cell = (DialogCell) viewHolder.itemView;
+                long dialogId = cell.getDialogId();
+                int position = viewHolder.getAdapterPosition();
+                int action = SharedConfig.getChatSwipeAction(currentAccount);
+                
+                cell.setTranslationX(0);
+                if (adapter != null) {
+                    adapter.notifyItemChanged(position);
+                }
+                executeSwipeAction(dialogId, action, position);
+            }
+        }
+
+        @Override
+        public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
+            if (viewHolder != null) {
+                listView.hideSelector(false);
+            }
+            if (viewHolder != null && viewHolder.itemView instanceof DialogCell) {
+                ((DialogCell) viewHolder.itemView).swipeCanceled = false;
+            }
+            super.onSelectedChanged(viewHolder, actionState);
+        }
+
+        @Override
+        public float getSwipeThreshold(@NonNull RecyclerView.ViewHolder viewHolder) {
+            return 0.45f;
+        }
+
+        @Override
+        public float getSwipeEscapeVelocity(float defaultValue) {
+            return 3500f;
+        }
+
+        @Override
+        public float getSwipeVelocityThreshold(float defaultValue) {
+            return Float.MAX_VALUE;
         }
     }
 }
