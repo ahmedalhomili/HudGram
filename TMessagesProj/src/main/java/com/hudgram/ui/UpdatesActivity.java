@@ -34,6 +34,9 @@ import org.telegram.ui.Cells.DialogCell;
 import org.telegram.ui.Components.*;
 import org.telegram.ui.Stories.*;
 import org.telegram.ui.Stories.recorder.*;
+import org.telegram.ui.Components.Premium.LimitReachedBottomSheet;
+import org.telegram.messenger.MediaDataController;
+import org.telegram.messenger.ChatObject;
 
 // Custom cells under the com.hudgram.ui.cells package
 import com.hudgram.ui.cells.UpdatesStoryCell;
@@ -56,6 +59,13 @@ import org.telegram.tgnet.TLObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
+
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.Drawable;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.ColorUtils;
 
 public class UpdatesActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
@@ -314,147 +324,43 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         storiesRecyclerView.setAdapter(storiesAdapter);
         storiesRecyclerView.setOnItemClickListener((view, position) -> {
             if (position >= 0 && position < storyItems.size() + 1) {
+                long dialogId;
                 if (position == 0) {
-                    // Self story - open story recorder or viewer
-                    StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
-                    if (storiesController.hasSelfStories()) {
-                        openStoryViewer(UserConfig.getInstance(currentAccount).getClientUserId());
+                    dialogId = UserConfig.getInstance(currentAccount).getClientUserId();
+                } else {
+                    dialogId = getDialogIdFromPeerStories(storyItems.get(position - 1));
+                }
+
+                StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
+                if (position == 0) {
+                    if (storiesController.hasSelfStories() || !Utilities.isNullOrEmpty(storiesController.getUploadingStories(dialogId))) {
+                        openStoryViewer(dialogId);
                     } else {
-                        // Open StoryRecorder to create a new story
                         if (getParentActivity() != null) {
-                            StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
+                            final StoriesController.StoryLimit storyLimit = storiesController.checkStoryLimit();
+                            if (storyLimit != null && storyLimit.active(currentAccount)) {
+                                showDialog(new LimitReachedBottomSheet(this, getContext(), storyLimit.getLimitReachedType(), currentAccount, null));
+                            } else {
+                                StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
+                            }
                         }
                     }
                 } else {
-                    TL_stories.PeerStories peerStories = storyItems.get(position - 1);
-                    long dialogId = getDialogIdFromPeerStories(peerStories);
-                    openStoryViewer(dialogId);
+                    if (storiesController.hasStories(dialogId) || !Utilities.isNullOrEmpty(storiesController.getUploadingStories(dialogId))) {
+                        openStoryViewer(dialogId);
+                    }
                 }
             }
         });
         storiesRecyclerView.setOnItemLongClickListener((view, position) -> {
             if (position >= 0 && position < storyItems.size() + 1) {
+                long dialogId;
                 if (position == 0) {
-                    // Personal "My status" card long-press menu
-                    ItemOptions.makeOptions(UpdatesActivity.this, view)
-                        .add(R.drawable.msg_stories_add, LocaleController.getString(R.string.AddStory), Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
-                            if (getParentActivity() != null) {
-                                StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
-                            }
-                        })
-                        .add(R.drawable.msg_stories_archive, LocaleController.getString(R.string.ArchivedStories), Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
-                            Bundle args = new Bundle();
-                            args.putLong("dialog_id", UserConfig.getInstance(currentAccount).getClientUserId());
-                            args.putInt("type", MediaActivity.TYPE_STORIES);
-                            args.putInt("start_from", SharedMediaLayout.TAB_ARCHIVED_STORIES);
-                            presentFragment(new MediaActivity(args, null));
-                        })
-                        .add(R.drawable.msg_stories_saved, LocaleController.getString(R.string.SavedStories), Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
-                            Bundle args = new Bundle();
-                            args.putLong("dialog_id", UserConfig.getInstance(currentAccount).getClientUserId());
-                            args.putInt("type", MediaActivity.TYPE_STORIES);
-                            presentFragment(new MediaActivity(args, null));
-                        })
-                        .show();
+                    dialogId = UserConfig.getInstance(currentAccount).getClientUserId();
                 } else {
-                    // Other user's card long-press menu
-                    TL_stories.PeerStories peerStories = storyItems.get(position - 1);
-                    long dialogId = getDialogIdFromPeerStories(peerStories);
-                    if (dialogId == 0) return true;
-
-                    boolean muted = !NotificationsCustomSettingsActivity.areStoriesNotMuted(currentAccount, dialogId);
-                    
-                    boolean hidden = false;
-                    if (dialogId > 0) {
-                        TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogId);
-                        if (user != null) {
-                            hidden = user.stories_hidden;
-                        }
-                    } else {
-                        TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
-                        if (chat != null) {
-                            hidden = chat.stories_hidden;
-                        }
-                    }
-                    
-                    final boolean isHiddenFinal = hidden;
-
-                    ItemOptions.makeOptions(UpdatesActivity.this, view)
-                        .addIf(dialogId > 0, R.drawable.msg_discussion, LocaleController.getString(R.string.SendMessage), () -> {
-                            presentFragment(ChatActivity.of(dialogId));
-                        })
-                        .addIf(dialogId > 0, R.drawable.msg_openprofile, LocaleController.getString(R.string.OpenProfile), () -> {
-                            presentFragment(ProfileActivity.of(dialogId));
-                        })
-                        .add(muted ? R.drawable.msg_unmute : R.drawable.msg_mute,
-                             muted ? LocaleController.getString(R.string.NotificationsStoryUnmute2) : LocaleController.getString(R.string.NotificationsStoryMute2),
-                             Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
-                                 final String key = NotificationsController.getSharedPrefKey(dialogId, 0);
-                                 boolean nextMute = !muted;
-                                 MessagesController.getNotificationsSettings(currentAccount).edit().putBoolean("stories_" + key, !nextMute).apply();
-                                 getNotificationsController().updateServerNotificationsSettings(dialogId, 0);
-                                 
-                                 TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogId);
-                                 if (user != null) {
-                                     String name = user.first_name != null ? user.first_name.trim() : "";
-                                     int index = name.indexOf(" ");
-                                     if (index > 0) {
-                                         name = name.substring(0, index);
-                                     }
-                                     if (nextMute) {
-                                         BulletinFactory.global().createUsersBulletin(
-                                             Collections.singletonList(user),
-                                             AndroidUtilities.replaceTags(LocaleController.formatString("NotificationsStoryMutedHint", R.string.NotificationsStoryMutedHint, name))
-                                         ).show();
-                                     } else {
-                                         BulletinFactory.global().createUsersBulletin(
-                                             Collections.singletonList(user),
-                                             AndroidUtilities.replaceTags(LocaleController.formatString("NotificationsStoryUnmutedHint", R.string.NotificationsStoryUnmutedHint, name))
-                                         ).show();
-                                     }
-                                 }
-                             })
-                        .add(isHiddenFinal ? R.drawable.msg_unarchive : R.drawable.msg_archive,
-                             isHiddenFinal ? LocaleController.getString(R.string.UnarchiveStories) : LocaleController.getString(R.string.ArchivePeerStories),
-                             Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
-                                 boolean nextHide = !isHiddenFinal;
-                                 getMessagesController().getStoriesController().toggleHidden(dialogId, nextHide, true, true);
-                                 
-                                 BulletinFactory.UndoObject undoObject = new BulletinFactory.UndoObject();
-                                 undoObject.onUndo = () -> {
-                                     getMessagesController().getStoriesController().toggleHidden(dialogId, !nextHide, false, true);
-                                 };
-                                 undoObject.onAction = () -> {
-                                     getMessagesController().getStoriesController().toggleHidden(dialogId, nextHide, true, true);
-                                 };
-                                 
-                                 CharSequence str;
-                                 String name;
-                                 TLObject object;
-                                 if (dialogId >= 0) {
-                                     TLRPC.User user = getMessagesController().getUser(dialogId);
-                                     name = ContactsController.formatName(user.first_name, null, 15);
-                                     object = user;
-                                 } else {
-                                     TLRPC.Chat chat = getMessagesController().getChat(-dialogId);
-                                     name = chat.title;
-                                     object = chat;
-                                 }
-                                 if (nextHide) {
-                                     str = AndroidUtilities.replaceTags(LocaleController.formatString("StoriesMovedToContacts", R.string.StoriesMovedToContacts, ContactsController.formatName(name, null, 15)));
-                                 } else {
-                                     str = AndroidUtilities.replaceTags(LocaleController.formatString("StoriesMovedToDialogs", R.string.StoriesMovedToDialogs, name));
-                                 }
-                                 
-                                 BulletinFactory.global().createUsersBulletin(
-                                     Collections.singletonList(object),
-                                     str,
-                                     null,
-                                     undoObject
-                                 ).show();
-                             })
-                        .show();
+                    dialogId = getDialogIdFromPeerStories(storyItems.get(position - 1));
                 }
+                showStoryItemMenu(view, dialogId);
             }
             return true;
         });
@@ -597,10 +503,252 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         return fragmentView;
     }
 
-    private void openStoryViewer(long dialogId) {
+    private void openStoryViewer(long startFromDialogId) {
         if (getParentActivity() == null) return;
+
+        StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
+        
+        ArrayList<Long> ids = new ArrayList<>();
+        if (storiesController.hasSelfStories() || !Utilities.isNullOrEmpty(storiesController.getUploadingStories(UserConfig.getInstance(currentAccount).getClientUserId()))) {
+            ids.add(UserConfig.getInstance(currentAccount).getClientUserId());
+        }
+        for (TL_stories.PeerStories ps : storyItems) {
+            long id = getDialogIdFromPeerStories(ps);
+            if (id != UserConfig.getInstance(currentAccount).getClientUserId()) {
+                ids.add(id);
+            }
+        }
+        
+        int position = ids.indexOf(startFromDialogId);
+        if (position < 0) {
+            return;
+        }
+
+        ArrayList<Long> peerIds = new ArrayList<>();
+        boolean allStoriesIsRead = true;
+
+        for (int i = 0; i < ids.size(); i++) {
+            long dialogId = ids.get(i);
+            if (dialogId != UserConfig.getInstance(currentAccount).getClientUserId() && storiesController.hasUnreadStories(dialogId)) {
+                allStoriesIsRead = false;
+                break;
+            }
+        }
+
+        boolean onlySelfStories = false;
+        boolean onlyUnreadStories = false;
+        boolean isSelf = startFromDialogId == UserConfig.getInstance(currentAccount).getClientUserId();
+        
+        if (isSelf && (!allStoriesIsRead || ids.size() == 1)) {
+            peerIds.add(startFromDialogId);
+            onlySelfStories = true;
+            position = 0;
+        } else {
+            boolean isUnreadStory = !isSelf && storiesController.hasUnreadStories(startFromDialogId);
+            if (isUnreadStory) {
+                onlyUnreadStories = true;
+                for (int i = 0; i < ids.size(); i++) {
+                    long dialogId = ids.get(i);
+                    if (dialogId != UserConfig.getInstance(currentAccount).getClientUserId() && storiesController.hasUnreadStories(dialogId)) {
+                        peerIds.add(dialogId);
+                    }
+                    if (dialogId == startFromDialogId) {
+                        position = peerIds.size() - 1;
+                    }
+                }
+            } else {
+                for (int i = 0; i < ids.size(); i++) {
+                    long dialogId = ids.get(i);
+                    if (storiesController.hasStories(dialogId) || !Utilities.isNullOrEmpty(storiesController.getUploadingStories(dialogId))) {
+                        peerIds.add(dialogId);
+                    } else if (i <= position) {
+                        position--;
+                    }
+                }
+            }
+        }
+        
+        if (peerIds.isEmpty()) {
+            return;
+        }
+        
         StoryViewer storyViewer = getOrCreateStoryViewer();
-        storyViewer.open(getParentActivity(), dialogId, StoriesListPlaceProvider.of(storiesRecyclerView));
+        storyViewer.doOnAnimationReady(() -> storiesController.setLoading(startFromDialogId, false));
+        boolean finalOnlySelfStories = onlySelfStories;
+        
+        storyViewer.open(getContext(), null, peerIds, position, null, null, StoriesListPlaceProvider.of(storiesRecyclerView).with(forward -> {
+            if (finalOnlySelfStories) {
+                return;
+            }
+            if (forward) {
+                storiesController.loadNextStories(false);
+            }
+        }), false);
+    }
+
+    private void showStoryItemMenu(View view, long dialogId) {
+        if (getParentActivity() == null) return;
+        
+        org.telegram.ui.Components.ItemOptions options = org.telegram.ui.Components.ItemOptions.makeOptions(this, view)
+            .setScrimViewBackground(Theme.createRoundRectDrawable(
+                dp(14),
+                dp(14),
+                Theme.getColor(Theme.key_windowBackgroundWhite)
+            ));
+            
+        StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
+        boolean storiesEnabled = MessagesController.getInstance(currentAccount).storiesEnabled();
+        
+        if (dialogId == UserConfig.getInstance(currentAccount).getClientUserId()) {
+            if (!storiesEnabled) {
+                return;
+            }
+            options.add(R.drawable.msg_stories_add, LocaleController.getString(R.string.AddStory), Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
+                if (getParentActivity() != null) {
+                    StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
+                }
+            });
+            options.add(R.drawable.msg_stories_archive, LocaleController.getString(R.string.ArchivedStories), Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
+                Bundle args = new Bundle();
+                args.putLong("dialog_id", UserConfig.getInstance(currentAccount).getClientUserId());
+                args.putInt("type", MediaActivity.TYPE_STORIES);
+                args.putInt("start_from", SharedMediaLayout.TAB_ARCHIVED_STORIES);
+                presentFragment(new MediaActivity(args, null));
+            });
+            options.add(R.drawable.msg_stories_saved, LocaleController.getString(R.string.SavedStories), Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
+                Bundle args = new Bundle();
+                args.putLong("dialog_id", UserConfig.getInstance(currentAccount).getClientUserId());
+                args.putInt("type", MediaActivity.TYPE_STORIES);
+                presentFragment(new MediaActivity(args, null));
+            });
+        } else {
+            TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogId);
+            TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
+            final String key = NotificationsController.getSharedPrefKey(dialogId, 0);
+            boolean muted = !NotificationsCustomSettingsActivity.areStoriesNotMuted(currentAccount, dialogId);
+            boolean isPremiumBlocked = MessagesController.getInstance(currentAccount).premiumFeaturesBlocked();
+            boolean isPremium = UserConfig.getInstance(currentAccount).isPremium();
+            boolean isUnread = storiesController.hasUnreadStories(dialogId);
+            boolean isLive = storiesController.hasLiveStory(dialogId);
+            
+            CombinedDrawable stealthModeLockedDrawable = null;
+            if (!isPremiumBlocked && dialogId > 0 && !isPremium) {
+                Drawable lockIcon = ContextCompat.getDrawable(getParentActivity(), R.drawable.msg_gallery_locked2);
+                if (lockIcon != null) {
+                    Drawable stealthDrawable = ContextCompat.getDrawable(getParentActivity(), R.drawable.msg_stealth_locked);
+                    if (stealthDrawable != null) {
+                        stealthDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_actionBarDefaultSubmenuItemIcon), PorterDuff.Mode.MULTIPLY));
+                    }
+                    lockIcon.setColorFilter(new PorterDuffColorFilter(ColorUtils.blendARGB(Color.WHITE, Color.BLACK, 0.5f), PorterDuff.Mode.MULTIPLY));
+                    stealthModeLockedDrawable = new CombinedDrawable(stealthDrawable, lockIcon);
+                }
+            }
+            if (dialogId < 0 && storiesController.canPostStories(dialogId)) {
+                options.add(R.drawable.msg_stories_add, LocaleController.getString(R.string.AddStory), Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, () -> {
+                    StoryRecorder.getInstance(getParentActivity(), currentAccount)
+                        .selectedPeerId(dialogId)
+                        .canChangePeer(false)
+                        .open(null);
+                });
+            }
+            final boolean fromTopPeer = user != null && !user.contact && MediaDataController.getInstance(currentAccount).containsTopPeer(dialogId);
+            
+            options.addIf(dialogId > 0, R.drawable.msg_discussion, LocaleController.getString(R.string.SendMessage), () -> {
+                presentFragment(ChatActivity.of(dialogId));
+            });
+            options.addIf(dialogId > 0, R.drawable.msg_openprofile, LocaleController.getString(R.string.OpenProfile), () -> {
+                presentFragment(ProfileActivity.of(dialogId));
+            });
+            options.addIf(dialogId < 0, R.drawable.msg_channel, LocaleController.getString(ChatObject.isChannelAndNotMegaGroup(chat) ? R.string.OpenChannel2 : R.string.OpenGroup2), () -> {
+                presentFragment(ChatActivity.of(dialogId));
+            });
+            options.addIf(!muted && dialogId > 0, R.drawable.msg_mute, LocaleController.getString(R.string.NotificationsStoryMute2), () -> {
+                MessagesController.getNotificationsSettings(currentAccount).edit().putBoolean("stories_" + key, false).apply();
+                NotificationsController.getInstance(currentAccount).updateServerNotificationsSettings(dialogId, 0);
+                String name = user == null ? "" : user.first_name.trim();
+                int index = name.indexOf(" ");
+                if (index > 0) {
+                    name = name.substring(0, index);
+                }
+                BulletinFactory.of(this).createUsersBulletin(java.util.Arrays.asList(user), AndroidUtilities.replaceTags(LocaleController.formatString("NotificationsStoryMutedHint", R.string.NotificationsStoryMutedHint, name))).show();
+            });
+            options.addIf(muted && dialogId > 0, R.drawable.msg_unmute, LocaleController.getString(R.string.NotificationsStoryUnmute2), () -> {
+                MessagesController.getNotificationsSettings(currentAccount).edit().putBoolean("stories_" + key, true).apply();
+                NotificationsController.getInstance(currentAccount).updateServerNotificationsSettings(dialogId, 0);
+                String name = user == null ? "" : user.first_name.trim();
+                int index = name.indexOf(" ");
+                if (index > 0) {
+                    name = name.substring(0, index);
+                }
+                BulletinFactory.of(this).createUsersBulletin(java.util.Arrays.asList(user), AndroidUtilities.replaceTags(LocaleController.formatString("NotificationsStoryUnmutedHint", R.string.NotificationsStoryUnmutedHint, name))).show();
+            });
+            options.addIf(!isPremiumBlocked && dialogId > 0 && isPremium && isUnread && !isLive, R.drawable.msg_stories_stealth2, LocaleController.getString(R.string.ViewAnonymously), () -> {
+                TL_stories.TL_storiesStealthMode stealthMode = storiesController.getStealthMode();
+                if (stealthMode != null && org.telegram.tgnet.ConnectionsManager.getInstance(currentAccount).getCurrentTime() < stealthMode.active_until_date) {
+                    openStoryViewer(dialogId);
+                } else {
+                    StealthModeAlert stealthModeAlert = new StealthModeAlert(getContext(), 0, StealthModeAlert.TYPE_FROM_DIALOGS, getResourceProvider());
+                    stealthModeAlert.setListener(isStealthModeEnabled -> {
+                        openStoryViewer(dialogId);
+                        if (isStealthModeEnabled) {
+                            AndroidUtilities.runOnUIThread(StealthModeAlert::showStealthModeEnabledBulletin, 500);
+                        }
+                    });
+                    showDialog(stealthModeAlert);
+                }
+            });
+            options.addIf(!isPremiumBlocked && dialogId > 0 && !isPremium && isUnread && !isLive, R.drawable.msg_stories_stealth2, stealthModeLockedDrawable, LocaleController.getString(R.string.ViewAnonymously), () -> {
+                StealthModeAlert stealthModeAlert = new StealthModeAlert(getContext(), 0, StealthModeAlert.TYPE_FROM_DIALOGS, getResourceProvider());
+                stealthModeAlert.setListener(isStealthModeEnabled -> {
+                    openStoryViewer(dialogId);
+                    if (isStealthModeEnabled) {
+                        AndroidUtilities.runOnUIThread(StealthModeAlert::showStealthModeEnabledBulletin, 500);
+                    }
+                });
+                showDialog(stealthModeAlert);
+            });
+            options.addIf(!fromTopPeer, R.drawable.msg_archive, LocaleController.getString(R.string.ArchivePeerStories), () -> {
+                toggleArciveForStory(dialogId);
+            });
+        }
+        options.setGravity(Gravity.LEFT)
+                .translate(dp(-8), dp(-10))
+                .show();
+    }
+
+    private void toggleArciveForStory(long dialogId) {
+        boolean hide = true;
+        AndroidUtilities.runOnUIThread(() -> {
+            getMessagesController().getStoriesController().toggleHidden(dialogId, hide, false, true);
+            BulletinFactory.UndoObject undoObject = new BulletinFactory.UndoObject();
+            undoObject.onUndo = () -> {
+                getMessagesController().getStoriesController().toggleHidden(dialogId, !hide, false, true);
+            };
+            undoObject.onAction = () -> {
+                getMessagesController().getStoriesController().toggleHidden(dialogId, hide, true, true);
+            };
+            CharSequence str;
+            String name;
+            TLObject object;
+            if (dialogId >= 0) {
+                TLRPC.User user = getMessagesController().getUser(dialogId);
+                name = ContactsController.formatName(user.first_name, null, 15);
+                object = user;
+            } else {
+                TLRPC.Chat chat = getMessagesController().getChat(-dialogId);
+                name = chat.title;
+                object = chat;
+            }
+
+            str = AndroidUtilities.replaceTags(LocaleController.formatString("StoriesMovedToContacts", R.string.StoriesMovedToContacts, ContactsController.formatName(name, null, 15)));
+            
+            BulletinFactory.of(this).createUsersBulletin(
+                Collections.singletonList(object),
+                str,
+                null,
+                undoObject
+            ).show();
+        }, 200);
     }
 
     private long getDialogIdFromPeerStories(TL_stories.PeerStories peerStories) {

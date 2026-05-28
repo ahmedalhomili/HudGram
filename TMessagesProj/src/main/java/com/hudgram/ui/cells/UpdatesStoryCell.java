@@ -8,28 +8,44 @@ import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.text.Layout;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.style.ImageSpan;
 import android.widget.FrameLayout;
 
+import androidx.core.content.ContextCompat;
+
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.ImageReceiver;
+import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
+import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_stories;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AvatarDrawable;
+import org.telegram.ui.Components.ButtonBounce;
+import org.telegram.ui.Components.CombinedDrawable;
+import org.telegram.ui.Components.RadialProgress;
 import org.telegram.ui.Stories.StoriesController;
 import org.telegram.ui.Stories.StoriesUtilities;
+
+import java.util.ArrayList;
 
 public class UpdatesStoryCell extends FrameLayout {
 
@@ -59,8 +75,15 @@ public class UpdatesStoryCell extends FrameLayout {
     private int lastWidth, lastHeight;
     private StaticLayout nameLayout;
 
+    // Interactive & Visual helpers
+    private ButtonBounce cellBounce;
+    private RadialProgress radialProgress;
+    private boolean progressWasDrawn;
+    private boolean isVerified;
+    private Drawable verifiedDrawable;
+
     // Stories parameter
-    private final StoriesUtilities.AvatarStoryParams storyParams = new StoriesUtilities.AvatarStoryParams(false);
+    private final StoriesUtilities.AvatarStoryParams storyParams = new StoriesUtilities.AvatarStoryParams(true);
 
     // Dimensions
     private static final int CARD_WIDTH = 76;
@@ -105,6 +128,15 @@ public class UpdatesStoryCell extends FrameLayout {
         namePaint.setTextSize(dp(11));
         namePaint.setTypeface(AndroidUtilities.bold());
 
+        // Button Bounce animation for card press feedback
+        cellBounce = new ButtonBounce(this, 1.0f, 3.0f);
+
+        // Radial progress for uploading story state
+        radialProgress = new RadialProgress(this);
+        radialProgress.setBackground(null, true, false);
+
+        storyParams.isDialogStoriesCell = true;
+
         updateColors();
     }
 
@@ -122,11 +154,10 @@ public class UpdatesStoryCell extends FrameLayout {
             this.dialogId = UserConfig.getInstance(currentAccount).getClientUserId();
         }
 
+        StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
         this.isUnread = peerStories != null &&
-                MessagesController.getInstance(currentAccount).getStoriesController().getUnreadState(dialogId) != StoriesController.STATE_READ;
+                storiesController.getUnreadState(dialogId) != StoriesController.STATE_READ;
         this.hasStories = peerStories != null && peerStories.stories != null && !peerStories.stories.isEmpty();
-
-        updateColors();
 
         // Load user/chat info
         TLRPC.User user = null;
@@ -134,16 +165,41 @@ public class UpdatesStoryCell extends FrameLayout {
         if (dialogId > 0) {
             user = MessagesController.getInstance(currentAccount).getUser(dialogId);
             if (user != null) {
-                name = isSelf ? org.telegram.messenger.LocaleController.getString("UpdatesMyStatus", org.telegram.messenger.R.string.UpdatesMyStatus) : UserObject.getFirstName(user);
                 avatarDrawable.setInfo(currentAccount, user);
             }
         } else if (dialogId < 0) {
             chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
             if (chat != null) {
-                name = chat.title;
                 avatarDrawable.setInfo(currentAccount, chat);
             }
         }
+
+        this.isVerified = user != null ? user.verified : (chat != null && chat.verified);
+
+        boolean isFail = storiesController.isLastUploadingFailed(dialogId);
+        boolean isUploading = !Utilities.isNullOrEmpty(storiesController.getUploadingStories(dialogId)) || storiesController.getEditingStory(dialogId) != null;
+
+        if (isSelf) {
+            name = LocaleController.getString("UpdatesMyStatus", org.telegram.messenger.R.string.UpdatesMyStatus);
+        } else if (user != null) {
+            name = user.first_name == null ? "" : user.first_name.trim();
+            int index = name.indexOf(" ");
+            if (index > 0) {
+                name = name.substring(0, index);
+            }
+        } else if (chat != null) {
+            name = chat.title;
+        }
+
+        if (isFail) {
+            name = LocaleController.getString("FailedStory", org.telegram.messenger.R.string.FailedStory);
+            this.isVerified = false; // Don't show checkmark if failed
+        } else if (isUploading) {
+            name = LocaleController.getString("UploadingStory", org.telegram.messenger.R.string.UploadingStory);
+            this.isVerified = false; // Don't show checkmark if uploading
+        }
+
+        updateColors();
 
         // Build name layout
         buildNameLayout();
@@ -191,14 +247,43 @@ public class UpdatesStoryCell extends FrameLayout {
         invalidate();
     }
 
+    private void initVerifiedDrawable(Context context) {
+        Drawable verifyDrawable = ContextCompat.getDrawable(context, org.telegram.messenger.R.drawable.verified_area).mutate();
+        Drawable checkDrawable = ContextCompat.getDrawable(context, org.telegram.messenger.R.drawable.verified_check).mutate();
+        CombinedDrawable combinedDrawable = new CombinedDrawable(verifyDrawable, checkDrawable) {
+            @Override
+            public void draw(Canvas canvas) {
+                verifyDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlueIcon), PorterDuff.Mode.SRC_IN));
+                checkDrawable.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
+                super.draw(canvas);
+            }
+        };
+        combinedDrawable.setFullsize(true);
+        verifiedDrawable = combinedDrawable;
+    }
+
     private void buildNameLayout() {
         if (name == null || name.isEmpty()) {
             nameLayout = null;
             return;
         }
         int maxWidth = dp(CARD_WIDTH) - dp(8);
+
+        CharSequence textToDraw = name;
+        if (isVerified) {
+            SpannableStringBuilder builder = new SpannableStringBuilder(name);
+            builder.append("  ");
+            if (verifiedDrawable == null) {
+                initVerifiedDrawable(getContext());
+            }
+            verifiedDrawable.setBounds(0, 0, dp(12), dp(12));
+            ImageSpan span = new ImageSpan(verifiedDrawable, ImageSpan.ALIGN_CENTER);
+            builder.setSpan(span, builder.length() - 1, builder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            textToDraw = builder;
+        }
+
         nameLayout = new StaticLayout(
-                TextUtils.ellipsize(name, namePaint, maxWidth * 2, TextUtils.TruncateAt.END),
+                TextUtils.ellipsize(textToDraw, namePaint, maxWidth * 2, TextUtils.TruncateAt.END),
                 namePaint, maxWidth,
                 Layout.Alignment.ALIGN_CENTER,
                 1f, 0f, false
@@ -207,6 +292,14 @@ public class UpdatesStoryCell extends FrameLayout {
 
     public long getDialogId() {
         return dialogId;
+    }
+
+    @Override
+    public void setPressed(boolean pressed) {
+        super.setPressed(pressed);
+        if (cellBounce != null) {
+            cellBounce.setPressed(pressed);
+        }
     }
 
     @Override
@@ -281,29 +374,94 @@ public class UpdatesStoryCell extends FrameLayout {
         }
         float avatarCy = avatarTopY + avatarR;
 
-        if (hasStories) {
-            // Draw unread/read ring and avatar dynamically with segmented borders!
-            StoriesUtilities.drawAvatarWithStory(dialogId, canvas, avatarImageReceiver, hasStories, storyParams);
-        } else {
-            // No stories (like self user initially): draw avatar directly
+        // Apply bounce scale only to the avatar drawing section (avatar, progress, plus, fail)
+        float avatarScale = cellBounce != null ? cellBounce.getScale(0.08f) : 1f;
+        canvas.save();
+        canvas.scale(avatarScale, avatarScale, avatarCx, avatarCy);
+
+        // Check uploading state
+        StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
+        ArrayList<StoriesController.UploadingStory> uploadingOrEditingStories = storiesController.getUploadingAndEditingStories(dialogId);
+        boolean hasUploadingStories = (uploadingOrEditingStories != null && !uploadingOrEditingStories.isEmpty());
+        boolean isFail = storiesController.isLastUploadingFailed(dialogId);
+        boolean isUploading = !Utilities.isNullOrEmpty(storiesController.getUploadingStories(dialogId)) || storiesController.getEditingStory(dialogId) != null;
+        boolean drawProgress = hasUploadingStories || (progressWasDrawn && radialProgress != null && radialProgress.getAnimatedProgress() < 0.98f);
+
+        if (drawProgress) {
+            float uploadingProgress = 0;
+            boolean closeFriends = false;
+            if (!hasUploadingStories) {
+                uploadingProgress = 1f;
+            } else {
+                for (int i = 0; i < uploadingOrEditingStories.size(); i++) {
+                    uploadingProgress += uploadingOrEditingStories.get(i).progress;
+                }
+                uploadingProgress = (storiesController.uploadedStories + uploadingProgress) / (storiesController.uploadedStories + uploadingOrEditingStories.size());
+                closeFriends = uploadingOrEditingStories.get(uploadingOrEditingStories.size() - 1).isCloseFriends();
+            }
+            invalidate();
+
+            // Draw avatar directly (without segment rings)
             avatarImageReceiver.draw(canvas);
+
+            radialProgress.setDiff(0);
+            Paint paint = closeFriends ?
+                    StoriesUtilities.getCloseFriendsPaint(avatarImageReceiver) :
+                    StoriesUtilities.getUnreadCirclePaint(avatarImageReceiver, true);
+            paint.setAlpha(255);
+            radialProgress.setPaint(paint);
+
+            float avatarX = avatarCx - avatarR;
+            float avatarY = avatarCy - avatarR;
+            float avatarX2 = avatarCx + avatarR;
+            float avatarY2 = avatarCy + avatarR;
+
+            radialProgress.setProgressRect(
+                    (int) (avatarX - dp(3)), (int) (avatarY - dp(3)),
+                    (int) (avatarX2 + dp(3)), (int) (avatarY2 + dp(3))
+            );
+            radialProgress.setProgress(Utilities.clamp(uploadingProgress, 1f, 0), progressWasDrawn);
+            radialProgress.draw(canvas);
+            progressWasDrawn = true;
+        } else {
+            progressWasDrawn = false;
+            if (hasStories) {
+                // Draw unread/read ring and avatar dynamically with segmented borders!
+                StoriesUtilities.drawAvatarWithStory(dialogId, canvas, avatarImageReceiver, hasStories, storyParams);
+            } else {
+                // No stories: draw avatar directly
+                avatarImageReceiver.draw(canvas);
+            }
         }
 
-        // 4. "+" button for self (Yellow matching screenshot exactly!)
-        if (isSelf) {
+        // 4. "+" button for self (only if no stories and not uploading)
+        boolean drawPlus = isSelf && !hasStories && !isUploading && !isFail;
+        int cardBgColor = hasStories ? 0xFF1B2024 : Theme.getColor(Theme.key_windowBackgroundGray);
+        if (drawPlus) {
             float plusR = dp(PLUS_SIZE / 2f);
             float plusCx = avatarCx + avatarR * 0.7f;
             float plusCy = avatarCy + avatarR * 0.7f;
 
             // Dark outline matching card background color to blend perfectly
+            avatarBgPaint.setColor(cardBgColor);
             canvas.drawCircle(plusCx, plusCy, plusR + dp(1.5f), avatarBgPaint);
             // Yellow plus circle
+            plusBgPaint.setColor(Theme.getColor(Theme.key_telegram_color));
             canvas.drawCircle(plusCx, plusCy, plusR, plusBgPaint);
             // White/Black "+" symbol
+            plusPaint.setColor(Theme.getColor(Theme.key_actionBarDefault));
             float l = dp(4f);
             canvas.drawLine(plusCx - l, plusCy, plusCx + l, plusCy, plusPaint);
             canvas.drawLine(plusCx, plusCy - l, plusCx, plusCy + l, plusPaint);
         }
+
+        // 4.1. Red exclamation warning badge for failed upload
+        if (isFail) {
+            drawFail(canvas, avatarCx, avatarCy, cardBgColor);
+        }
+
+        // Restore avatarScale canvas
+        canvas.restore();
 
         // 5. Name text inside card at bottom, center-aligned
         if (nameLayout != null) {
@@ -316,6 +474,28 @@ public class UpdatesStoryCell extends FrameLayout {
 
         // Restore clip
         canvas.restore();
+    }
+
+    private void drawFail(Canvas canvas, float cx, float cy, int cardBgColor) {
+        float cx2 = cx + dp(AVATAR_SIZE / 2f) * 0.7f;
+        float cy2 = cy + dp(AVATAR_SIZE / 2f) * 0.7f;
+
+        // Draw dark outline
+        plusBgPaint.setColor(cardBgColor);
+        canvas.drawCircle(cx2, cy2, dp(9) + dp(1.5f), plusBgPaint);
+
+        // Draw red circle
+        plusBgPaint.setColor(Theme.getColor(Theme.key_text_RedBold));
+        canvas.drawCircle(cx2, cy2, dp(9), plusBgPaint);
+
+        // Draw white exclamation mark
+        plusPaint.setColor(Color.WHITE);
+        plusPaint.setStrokeWidth(dp(1.8f));
+
+        // Exclamation mark line
+        canvas.drawLine(cx2, cy2 - dp(3.5f), cx2, cy2 + dp(1f), plusPaint);
+        // Exclamation mark dot
+        canvas.drawPoint(cx2, cy2 + dp(3.5f), plusPaint);
     }
 
     @Override
@@ -334,7 +514,12 @@ public class UpdatesStoryCell extends FrameLayout {
 
     private void updateColors() {
         int cardBgColor;
-        if (hasStories) {
+        boolean isFail = MessagesController.getInstance(currentAccount).getStoriesController().isLastUploadingFailed(dialogId);
+
+        if (isFail) {
+            namePaint.setColor(Theme.getColor(Theme.key_text_RedBold));
+            cardBgColor = Theme.getColor(Theme.key_windowBackgroundGray);
+        } else if (hasStories) {
             cardBgColor = 0xFF1B2024; // Keep dark background under story thumbnail edges
             namePaint.setColor(Color.WHITE);
         } else {
