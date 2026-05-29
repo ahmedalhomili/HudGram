@@ -3699,7 +3699,9 @@ public class MessageObject {
         if (isFromUser()) {
             fromUser = MessagesController.getInstance(currentAccount).getUser(messageOwner.from_id.user_id);
         }
-        messageText = text;
+        
+        int baseColorKey = isOut() ? Theme.key_chat_messageTextOut : Theme.key_chat_messageTextIn;
+        messageText = com.hudgram.translator.TranslatorHelper.formatBilingualText(text, baseColorKey);
         final ArrayList<TLRPC.MessageEntity> entities = getEntities();
         final TextPaint paint;
         if (getMedia(messageOwner) instanceof TLRPC.TL_messageMediaGame) {

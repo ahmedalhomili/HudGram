@@ -313,6 +313,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                     CharSequence translated = SpannableStringBuilder.valueOf(text.text);
                     MessageObject.addEntitiesToText(translated, text.entities, false, true, false, false);
                     translated = preprocessText(translated);
+                    translated = com.hudgram.translator.TranslatorHelper.formatBilingualText(translated, Theme.key_dialogTextBlack);
                     textView.setText(translated);
                     adapter.updateMainView(textViewContainer);
                 } else if (firstTranslation) {
@@ -357,6 +358,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                         CharSequence translated = SpannableStringBuilder.valueOf(text.text);
                         MessageObject.addEntitiesToText(translated, text.entities, false, true, false, false);
                         translated = preprocessText(translated);
+                        translated = com.hudgram.translator.TranslatorHelper.formatBilingualText(translated, Theme.key_dialogTextBlack);
                         textView.setText(translated);
                         adapter.updateMainView(textViewContainer);
                     } else if (firstTranslation) {
@@ -381,6 +383,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                         CharSequence translated = SpannableStringBuilder.valueOf(text.text);
                         MessageObject.addEntitiesToText(translated, text.entities, false, true, false, false);
                         translated = preprocessText(translated);
+                        translated = com.hudgram.translator.TranslatorHelper.formatBilingualText(translated, Theme.key_dialogTextBlack);
                         textView.setText(translated);
                         adapter.updateMainView(textViewContainer);
                     });
@@ -433,7 +436,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         alternativeTranslate(text, fromLng, toLng, (res, rateLimit) -> {
             if (res != null) {
                 firstTranslation = false;
-                textView.setText(preprocessText(res));
+                textView.setText(com.hudgram.translator.TranslatorHelper.formatBilingualText(preprocessText(res), Theme.key_dialogTextBlack));
                 adapter.updateMainView(textViewContainer);
             } else {
                 if (isDismissed()) return;
@@ -894,30 +897,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                 }
             }
         }
-        if (com.hudgram.ui.HudConfig.showOriginal && source != null && source.text != null && received != null && received.text != null) {
-            TLRPC.TL_textWithEntities merged = new TLRPC.TL_textWithEntities();
-            merged.text = received.text + "\n\n--------------------\n\n" + source.text;
-            merged.entities = new ArrayList<>(received.entities);
-            int shift = received.text.length() + 22; // length of "\n\n--------------------\n\n"
-            if (source.entities != null) {
-                for (TLRPC.MessageEntity entity : source.entities) {
-                    try {
-                        TLRPC.MessageEntity cloned = entity.getClass().getDeclaredConstructor().newInstance();
-                        cloned.offset = entity.offset + shift;
-                        cloned.length = entity.length;
-                        cloned.url = entity.url;
-                        cloned.language = entity.language;
-                        if (entity instanceof TLRPC.TL_messageEntityCustomEmoji) {
-                            ((TLRPC.TL_messageEntityCustomEmoji) cloned).document_id = ((TLRPC.TL_messageEntityCustomEmoji) entity).document_id;
-                            ((TLRPC.TL_messageEntityCustomEmoji) cloned).document = ((TLRPC.TL_messageEntityCustomEmoji) entity).document;
-                        }
-                        merged.entities.add(cloned);
-                    } catch (Exception ignore) {}
-                }
-            }
-            return merged;
-        }
-        return received;
+        return com.hudgram.translator.TranslatorHelper.preprocessShowOriginal(source, received);
     }
 
     private static HashMap<String, ArrayList<Emoji.EmojiSpanRange>> groupEmojiRanges(CharSequence text) {
