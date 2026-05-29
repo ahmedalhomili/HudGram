@@ -86,6 +86,9 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     private StickerEmptyView noChannelsView;
     private BackupImageView headerAvatarView;
     private AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable statusDrawable;
+    private FragmentFloatingButton cameraFab;
+    private FragmentFloatingButton liveFab;
+    private TextView statusHeader;
 
     public UpdatesActivity(android.os.Bundle args) {
         super(args);
@@ -105,6 +108,8 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     private org.telegram.ui.ActionBar.ActionBarMenuSubItem readItem;
     private org.telegram.ui.ActionBar.ActionBarMenuSubItem copyLinkItem;
     private org.telegram.ui.ActionBar.ActionBarMenuSubItem viewChannelItem;
+    private org.telegram.ui.ActionBar.ActionBarMenuItem themeToggleItem;
+    private org.telegram.ui.ActionBar.ActionBarMenuItem otherItem;
     private boolean showArchivedChannels = false;
     private TextView channelsArchiveButton;
     private TextView channelsHeaderTextView;
@@ -204,8 +209,9 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         // Action bar
         actionBar.setTitle(getString(R.string.MainTabsUpdates));
-        actionBar.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefault));
-        actionBar.setTitleColor(Theme.getColor(Theme.key_actionBarDefaultTitle));
+        actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        actionBar.setTitleColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        actionBar.setSubtitleColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         actionBar.setItemsColor(Theme.getColor(Theme.key_actionBarDefaultIcon), false);
         actionBar.setItemsBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSelector), false);
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
@@ -266,15 +272,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         org.telegram.ui.ActionBar.ActionBarMenu menu = actionBar.createMenu();
         
-        // 1. Camera icon
-        org.telegram.ui.ActionBar.ActionBarMenuItem cameraItem = menu.addItem(10, R.drawable.msg_camera);
-        cameraItem.setOnClickListener(v -> {
-            if (getParentActivity() != null) {
-                StoryRecorder.getInstance(getParentActivity(), currentAccount).open(null);
-            }
-        });
-        
-        // 2. Search icon
+        // 1. Search icon
         org.telegram.ui.ActionBar.ActionBarMenuItem searchItem = menu.addItem(20, R.drawable.outline_header_search).setIsSearchField(true);
         searchItem.setSearchFieldHint(LocaleController.getString(R.string.Search));
         searchItem.setActionBarMenuItemSearchListener(new org.telegram.ui.ActionBar.ActionBarMenuItem.ActionBarMenuItemSearchListener() {
@@ -316,8 +314,16 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             }
         });
 
+        // 2. Theme toggle switcher (replacing camera icon)
+        boolean isDark = getResourceProvider() != null ? getResourceProvider().isDark() : Theme.isCurrentThemeDark();
+        themeToggleItem = menu.addItem(10, isDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24);
+        themeToggleItem.setContentDescription(getString(isDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight));
+        themeToggleItem.setOnClickListener(v -> {
+            com.hudgram.ui.HudUiHelper.toggleTheme(this, this::switchTheme);
+        });
+
         // 3. Three-dots icon
-        org.telegram.ui.ActionBar.ActionBarMenuItem otherItem = menu.addItem(30, R.drawable.ic_ab_other);
+        otherItem = menu.addItem(30, R.drawable.ic_ab_other);
         otherItem.addSubItem(1, R.drawable.msg_secret, LocaleController.getString(R.string.StoryPrivacyAlertEditTitle));
         otherItem.addSubItem(2, R.drawable.msg_channel, LocaleController.getString(R.string.NewChannel));
 
@@ -405,7 +411,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         storiesContainer.setOrientation(LinearLayout.VERTICAL);
         storiesContainer.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         
-        TextView statusHeader = createSectionHeader(context, getString(R.string.UpdatesStatusHeader));
+        statusHeader = createSectionHeader(context, getString(R.string.UpdatesStatusHeader));
         storiesContainer.addView(statusHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 16, 0, 8));
 
         // Horizontal stories RecyclerView
@@ -498,7 +504,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         int bottomTabsHeight = DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS;
 
         // 1. Camera Floating Button (Bottom - Main)
-        FragmentFloatingButton cameraFab = new FragmentFloatingButton(context, getResourceProvider());
+        cameraFab = new FragmentFloatingButton(context, getResourceProvider());
         cameraFab.setImageResource(R.drawable.msg_camera);
         cameraFab.setOnClickListener(v -> {
             if (getParentActivity() != null) {
@@ -509,7 +515,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         rootLayout.addView(cameraFab, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 80));
 
         // 2. Live Stream Floating Button (Above Camera - Sub)
-        FragmentFloatingButton liveFab = new FragmentFloatingButton(context, getResourceProvider(), true);
+        liveFab = new FragmentFloatingButton(context, getResourceProvider(), true);
         liveFab.setImageResource(R.drawable.media_live_on);
         liveFab.setOnClickListener(v -> {
             if (getParentActivity() != null) {
@@ -858,7 +864,22 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             adapter.notifyDataSetChanged();
         }
         updateStoriesScroll();
+        if (themeToggleItem != null) {
+            boolean isDark = getResourceProvider() != null ? getResourceProvider().isDark() : Theme.isCurrentThemeDark();
+            themeToggleItem.setIcon(isDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24);
+            themeToggleItem.setContentDescription(getString(isDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight));
+        }
         updateHeaderAvatar();
+    }
+
+    private void switchTheme(Theme.ThemeInfo themeInfo, boolean toDark) {
+        ActionBarMenuItem originItem = themeToggleItem != null ? themeToggleItem : otherItem;
+        if (originItem == null) return;
+        int[] pos = new int[2];
+        originItem.getLocationInWindow(pos);
+        pos[0] += originItem.getIconView().getMeasuredWidth() / 2;
+        pos[1] += originItem.getIconView().getMeasuredHeight() / 2;
+        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, themeInfo, false, pos, -1, toDark, null, null, null, true);
     }
 
     private void updateHeaderAvatar() {
@@ -2028,5 +2049,124 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         public float getSwipeVelocityThreshold(float defaultValue) {
             return Float.MAX_VALUE;
         }
+    }
+
+    @Override
+    public java.util.ArrayList<org.telegram.ui.ActionBar.ThemeDescription> getThemeDescriptions() {
+        java.util.ArrayList<org.telegram.ui.ActionBar.ThemeDescription> themeDescriptions = new java.util.ArrayList<>();
+
+        org.telegram.ui.ActionBar.ThemeDescription.ThemeDescriptionDelegate cellDelegate = () -> {
+            if (actionBar != null) {
+                actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                actionBar.setSubtitleColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+                
+                // Normal mode popup colors
+                actionBar.setPopupBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground), false);
+                actionBar.setPopupItemsColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem), false, false);
+                actionBar.setPopupItemsColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItemIcon), true, false);
+                actionBar.setPopupItemsSelectorColor(Theme.getColor(Theme.key_dialogButtonSelector), false);
+
+                // Action mode popup colors
+                actionBar.setPopupBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground), true);
+                actionBar.setPopupItemsColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem), false, true);
+                actionBar.setPopupItemsColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItemIcon), true, true);
+                actionBar.setPopupItemsSelectorColor(Theme.getColor(Theme.key_dialogButtonSelector), true);
+
+                actionBar.updateColors();
+            }
+            if (fragmentView != null) {
+                fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+            }
+            if (listView != null) {
+                listView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                int count = listView.getChildCount();
+                for (int a = 0; a < count; a++) {
+                    android.view.View child = listView.getChildAt(a);
+                    if (child instanceof org.telegram.ui.Cells.DialogCell) {
+                        ((org.telegram.ui.Cells.DialogCell) child).update(0);
+                    }
+                }
+            }
+            if (storiesContainer != null) {
+                storiesContainer.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+            }
+            if (storiesRecyclerView != null) {
+                int count = storiesRecyclerView.getChildCount();
+                for (int a = 0; a < count; a++) {
+                    android.view.View child = storiesRecyclerView.getChildAt(a);
+                    child.invalidate();
+                }
+            }
+            if (cameraFab != null) {
+                cameraFab.updateColors();
+            }
+            if (liveFab != null) {
+                liveFab.updateColors();
+            }
+            if (storiesAdapter != null) {
+                storiesAdapter.notifyDataSetChanged();
+            }
+            if (adapter != null) {
+                adapter.notifyDataSetChanged();
+            }
+            if (statusHeader != null) {
+                statusHeader.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+            }
+            if (channelsHeaderTextView != null) {
+                channelsHeaderTextView.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+            }
+            if (channelsArchiveButton != null) {
+                channelsArchiveButton.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+            }
+            if (statusDrawable != null) {
+                statusDrawable.setColor(Theme.getColor(Theme.key_profile_verifiedBackground));
+            }
+            if (noChannelsView != null) {
+                noChannelsView.title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                noChannelsView.subtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+            }
+        };
+
+        // Root layouts, list, container, and ActionBar
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(fragmentView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(listView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(storiesContainer, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(listView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_LISTGLOWCOLOR, null, null, null, null, Theme.key_actionBarDefault));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_actionBarDefaultIcon));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_TITLECOLOR, null, null, null, null, Theme.key_windowBackgroundWhiteBlackText));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_SUBTITLECOLOR, null, null, null, null, Theme.key_windowBackgroundWhiteGrayText2));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_SELECTORCOLOR, null, null, null, null, Theme.key_actionBarDefaultSelector));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_SEARCH, null, null, null, null, Theme.key_actionBarDefaultSearch));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_SEARCHPLACEHOLDER, null, null, null, null, Theme.key_actionBarDefaultSearchPlaceholder));
+
+        // Submenu popup colors animations
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(null, 0, null, null, null, cellDelegate, Theme.key_actionBarDefaultSubmenuBackground));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(null, 0, null, null, null, cellDelegate, Theme.key_actionBarDefaultSubmenuItem));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(null, 0, null, null, null, cellDelegate, Theme.key_actionBarDefaultSubmenuItemIcon));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(null, 0, null, null, null, cellDelegate, Theme.key_dialogButtonSelector));
+
+        // Floating action buttons
+        if (cameraFab != null && cameraFab.imageView != null) {
+            themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(cameraFab.imageView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_IMAGECOLOR, null, null, null, null, Theme.key_chats_actionIcon));
+            themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(cameraFab.imageView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUNDFILTER, null, null, null, null, Theme.key_chats_actionBackground));
+            themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(cameraFab.imageView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUNDFILTER | org.telegram.ui.ActionBar.ThemeDescription.FLAG_DRAWABLESELECTEDSTATE, null, null, null, null, Theme.key_chats_actionPressedBackground));
+        }
+        if (liveFab != null && liveFab.imageView != null) {
+            themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(liveFab.imageView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_IMAGECOLOR, null, null, null, null, Theme.key_chats_actionIcon));
+            themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(liveFab.imageView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUNDFILTER, null, null, null, null, Theme.key_chats_actionBackground));
+            themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(liveFab.imageView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUNDFILTER | org.telegram.ui.ActionBar.ThemeDescription.FLAG_DRAWABLESELECTEDSTATE, null, null, null, null, Theme.key_chats_actionPressedBackground));
+        }
+
+        // ListView selector & properties
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(listView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_SELECTOR, null, null, null, null, Theme.key_listSelector));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(listView, 0, new Class[]{org.telegram.ui.Cells.DialogCell.class}, new String[]{"namePaint"}, null, null, cellDelegate, Theme.key_chats_name));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(listView, 0, new Class[]{org.telegram.ui.Cells.DialogCell.class}, new String[]{"messagePaint"}, null, null, cellDelegate, Theme.key_chats_message));
+
+        // empty placeholder
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(noChannelsView, 0, new Class[]{org.telegram.ui.Components.StickerEmptyView.class}, new String[]{"title"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(noChannelsView, 0, new Class[]{org.telegram.ui.Components.StickerEmptyView.class}, new String[]{"subtitle"}, null, null, null, Theme.key_windowBackgroundWhiteGrayText));
+
+        return themeDescriptions;
     }
 }

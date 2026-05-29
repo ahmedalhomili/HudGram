@@ -497,6 +497,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private boolean downloadsItemVisible;
     public ActionBarMenuItem searchItem;
     private ActionBarMenuItem optionsItem;
+    private ActionBarMenuItem themeToggleItem;
     private ActionBarMenuItem speedItem;
     public static boolean switchingTheme;
     private ActionBarMenuItem doneItem;
@@ -3392,8 +3393,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         });
         fragmentSearchFieldWatcher.setDoNotCloseAfterFieldEmpty();
-
         if (initialDialogsType == DIALOGS_TYPE_DEFAULT) {
+            boolean isDark = resourceProvider != null ? resourceProvider.isDark() : Theme.isCurrentThemeDark();
+            themeToggleItem = menu.addItem(5, isDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24);
+            themeToggleItem.setContentDescription(getString(isDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight));
+            themeToggleItem.setOnClickListener(v -> {
+                com.hudgram.ui.HudUiHelper.toggleTheme(this, this::switchTheme);
+            });
+
             optionsItem = menu.addItem(4, R.drawable.ic_ab_other);
             optionsItem.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
             optionsItem.setOnClickListener(v -> {
@@ -3406,7 +3413,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 return true;
             });
         }
-
         searchItem.setSearchFieldHint(getString(R.string.Search));
         searchItem.setContentDescription(getString(R.string.Search));
         if (onlySelect) {
@@ -11827,6 +11833,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 actionBar.setPopupItemsSelectorColor(getThemedColor(Theme.key_dialogButtonSelector), true);
                 actionBar.updateColors();
             }
+            if (themeToggleItem != null) {
+                boolean isDark = resourceProvider != null ? resourceProvider.isDark() : Theme.isCurrentThemeDark();
+                themeToggleItem.setIcon(isDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24);
+                themeToggleItem.setContentDescription(getString(isDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight));
+            }
             if (statusDrawable != null) {
                 updateStatus(UserConfig.getInstance(currentAccount).getCurrentUser(), false);
             }
@@ -13432,48 +13443,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
 
         if (!isArchive()) {
-            final boolean isCurrentThemeDark;
-            if (resourceProvider != null) {
-                isCurrentThemeDark = resourceProvider.isDark();
-            } else {
-                isCurrentThemeDark = Theme.isCurrentThemeDark();
-            }
-            io.add(isCurrentThemeDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24,
-                    getString(isCurrentThemeDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight), () -> {
-                if (switchingTheme) {
-                    return;
-                }
-                switchingTheme = true;
-                SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-                String dayThemeName = preferences.getString("lastDayTheme", "Blue");
-                if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                    dayThemeName = "Blue";
-                }
-                String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
-                if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                    nightThemeName = "Dark Blue";
-                }
-                Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
-                if (dayThemeName.equals(nightThemeName)) {
-                    if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
-                        dayThemeName = "Blue";
-                    } else {
-                        nightThemeName = "Dark Blue";
-                    }
-                }
-
-                boolean toDark;
-                if (toDark = dayThemeName.equals(themeInfo.getKey())) {
-                    themeInfo = Theme.getTheme(nightThemeName);
-                } else {
-                    themeInfo = Theme.getTheme(dayThemeName);
-                }
-                switchTheme(themeInfo, toDark);
-                Theme.turnOffAutoNight(BulletinFactory.of(this), () -> {
-                    presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_NIGHT));
-                });
-            });
-            io.addGap();
             io.add(R.drawable.outline_groups_24, getString(R.string.NewGroup), () -> {
                 Bundle args = new Bundle();
                 presentFragment(new GroupCreateActivity(args));
@@ -13974,11 +13943,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void switchTheme(Theme.ThemeInfo themeInfo, boolean toDark) {
-        if (optionsItem == null) return;
+        ActionBarMenuItem originItem = themeToggleItem != null ? themeToggleItem : optionsItem;
+        if (originItem == null) return;
         int[] pos = new int[2];
-        optionsItem.getLocationInWindow(pos);
-        pos[0] += optionsItem.getIconView().getMeasuredWidth() / 2;
-        pos[1] += optionsItem.getIconView().getMeasuredHeight() / 2;
+        originItem.getLocationInWindow(pos);
+        pos[0] += originItem.getIconView().getMeasuredWidth() / 2;
+        pos[1] += originItem.getIconView().getMeasuredHeight() / 2;
         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, themeInfo, false, pos, -1, toDark, null, null, null, true);
     }
 
