@@ -148,7 +148,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         // Load stories
         storyItems.clear();
         StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
-        ArrayList<TL_stories.PeerStories> allStories = storiesController.getDialogListStories();
+        ArrayList<TL_stories.PeerStories> allStories = showArchivedChannels ? storiesController.getHiddenList() : storiesController.getDialogListStories();
         if (allStories != null) {
             long selfId = UserConfig.getInstance(currentAccount).getClientUserId();
             for (TL_stories.PeerStories ps : allStories) {
@@ -244,6 +244,19 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 } else if (id == 2) { // New Channel
                     Bundle args = new Bundle();
                     presentFragment(new ChannelCreateActivity(args));
+                } else if (id == 3) { // Archived Stories
+                    Bundle args = new Bundle();
+                    args.putLong("dialog_id", getUserConfig().getClientUserId());
+                    args.putInt("type", MediaActivity.TYPE_STORIES);
+                    args.putInt("start_from", SharedMediaLayout.TAB_ARCHIVED_STORIES);
+                    presentFragment(new MediaActivity(args, null));
+                } else if (id == 4) { // Saved Stories
+                    Bundle args = new Bundle();
+                    args.putLong("dialog_id", getUserConfig().getClientUserId());
+                    args.putInt("type", MediaActivity.TYPE_STORIES);
+                    presentFragment(new MediaActivity(args, null));
+                } else if (id == 5) { // Hudgram Settings
+                    presentFragment(new com.hudgram.ui.HudGeneralSettingsActivity());
                 } else if (id == 101) { // Mute
                     toggleMuteSelectedChannels();
                 } else if (id == 102) { // Archive
@@ -326,6 +339,9 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         otherItem = menu.addItem(30, R.drawable.ic_ab_other);
         otherItem.addSubItem(1, R.drawable.msg_secret, LocaleController.getString(R.string.StoryPrivacyAlertEditTitle));
         otherItem.addSubItem(2, R.drawable.msg_channel, LocaleController.getString(R.string.NewChannel));
+        otherItem.addSubItem(3, R.drawable.msg_stories_archive, LocaleController.getString(R.string.ArchivedStories));
+        otherItem.addSubItem(4, R.drawable.msg_stories_saved, LocaleController.getString(R.string.SavedStories));
+        otherItem.addSubItem(5, R.drawable.msg_customize, LocaleController.isRTL ? "إعدادات هدهد جرام" : "Hudgram Settings");
 
         statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
         statusDrawable.center = true;
@@ -424,16 +440,16 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         storiesAdapter = new StoriesAdapter(context);
         storiesRecyclerView.setAdapter(storiesAdapter);
         storiesRecyclerView.setOnItemClickListener((view, position) -> {
-            if (position >= 0 && position < storyItems.size() + 1) {
+            if (position >= 0 && position < (showArchivedChannels ? storyItems.size() : storyItems.size() + 1)) {
                 long dialogId;
-                if (position == 0) {
+                if (!showArchivedChannels && position == 0) {
                     dialogId = UserConfig.getInstance(currentAccount).getClientUserId();
                 } else {
-                    dialogId = getDialogIdFromPeerStories(storyItems.get(position - 1));
+                    dialogId = getDialogIdFromPeerStories(storyItems.get(showArchivedChannels ? position : position - 1));
                 }
 
                 StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
-                if (position == 0) {
+                if (!showArchivedChannels && position == 0) {
                     if (storiesController.hasSelfStories() || !Utilities.isNullOrEmpty(storiesController.getUploadingStories(dialogId))) {
                         openStoryViewer(dialogId);
                     } else {
@@ -447,19 +463,19 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                         }
                     }
                 } else {
-                    if (storiesController.hasStories(dialogId) || !Utilities.isNullOrEmpty(storiesController.getUploadingStories(dialogId))) {
+                    if (storiesController.hasStories(dialogId) || !Utilities.isNullOrEmpty(storiesController.getUploadingStories(dialogId)) || showArchivedChannels) {
                         openStoryViewer(dialogId);
                     }
                 }
             }
         });
         storiesRecyclerView.setOnItemLongClickListener((view, position) -> {
-            if (position >= 0 && position < storyItems.size() + 1) {
+            if (position >= 0 && position < (showArchivedChannels ? storyItems.size() : storyItems.size() + 1)) {
                 long dialogId;
-                if (position == 0) {
+                if (!showArchivedChannels && position == 0) {
                     dialogId = UserConfig.getInstance(currentAccount).getClientUserId();
                 } else {
-                    dialogId = getDialogIdFromPeerStories(storyItems.get(position - 1));
+                    dialogId = getDialogIdFromPeerStories(storyItems.get(showArchivedChannels ? position : position - 1));
                 }
                 showStoryItemMenu(view, dialogId);
             }
@@ -572,12 +588,12 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
         
         ArrayList<Long> ids = new ArrayList<>();
-        if (storiesController.hasSelfStories() || !Utilities.isNullOrEmpty(storiesController.getUploadingStories(UserConfig.getInstance(currentAccount).getClientUserId()))) {
+        if (!showArchivedChannels && (storiesController.hasSelfStories() || !Utilities.isNullOrEmpty(storiesController.getUploadingStories(UserConfig.getInstance(currentAccount).getClientUserId())))) {
             ids.add(UserConfig.getInstance(currentAccount).getClientUserId());
         }
         for (TL_stories.PeerStories ps : storyItems) {
             long id = getDialogIdFromPeerStories(ps);
-            if (id != UserConfig.getInstance(currentAccount).getClientUserId()) {
+            if (showArchivedChannels || id != UserConfig.getInstance(currentAccount).getClientUserId()) {
                 ids.add(id);
             }
         }
@@ -644,7 +660,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 return;
             }
             if (forward) {
-                storiesController.loadNextStories(false);
+                storiesController.loadNextStories(showArchivedChannels);
             }
         }), false);
     }
@@ -770,7 +786,10 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 });
                 showDialog(stealthModeAlert);
             });
-            options.addIf(!fromTopPeer, R.drawable.msg_archive, LocaleController.getString(R.string.ArchivePeerStories), () -> {
+            options.addIf(!fromTopPeer && !showArchivedChannels, R.drawable.msg_archive, LocaleController.getString(R.string.ArchivePeerStories), () -> {
+                toggleArciveForStory(dialogId);
+            });
+            options.addIf(!fromTopPeer && showArchivedChannels, R.drawable.msg_unarchive, LocaleController.getString(R.string.UnarchiveStories), () -> {
                 toggleArciveForStory(dialogId);
             });
         }
@@ -780,7 +799,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void toggleArciveForStory(long dialogId) {
-        boolean hide = true;
+        boolean hide = !showArchivedChannels;
         AndroidUtilities.runOnUIThread(() -> {
             getMessagesController().getStoriesController().toggleHidden(dialogId, hide, false, true);
             BulletinFactory.UndoObject undoObject = new BulletinFactory.UndoObject();
@@ -803,7 +822,11 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 object = chat;
             }
 
-            str = AndroidUtilities.replaceTags(LocaleController.formatString("StoriesMovedToContacts", R.string.StoriesMovedToContacts, ContactsController.formatName(name, null, 15)));
+            if (showArchivedChannels) {
+                str = AndroidUtilities.replaceTags(LocaleController.formatString("StoriesMovedToDialogs", R.string.StoriesMovedToDialogs, name));
+            } else {
+                str = AndroidUtilities.replaceTags(LocaleController.formatString("StoriesMovedToContacts", R.string.StoriesMovedToContacts, ContactsController.formatName(name, null, 15)));
+            }
             
             BulletinFactory.of(this).createUsersBulletin(
                 Collections.singletonList(object),
@@ -852,6 +875,9 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         if (channelsArchiveButton != null) {
             channelsArchiveButton.setVisibility(hasArchived ? View.VISIBLE : View.GONE);
             channelsArchiveButton.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات" : "Channels") : (LocaleController.isRTL ? "المؤرشفة" : "Archive"));
+        }
+        if (statusHeader != null) {
+            statusHeader.setText(showArchivedChannels ? (LocaleController.isRTL ? "القصص المخفية" : "Hidden Stories") : getString(R.string.UpdatesStatusHeader));
         }
 
         loadData();
@@ -1736,14 +1762,14 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             UpdatesStoryCell cell = (UpdatesStoryCell) holder.itemView;
 
-            if (position == 0) {
+            if (!showArchivedChannels && position == 0) {
                 // Self story
                 StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
                 long selfId = UserConfig.getInstance(currentAccount).getClientUserId();
                 TL_stories.PeerStories selfStories = storiesController.getStories(selfId);
                 cell.setStory(currentAccount, selfStories, true);
             } else {
-                int storyIndex = position - 1;
+                int storyIndex = showArchivedChannels ? position : position - 1;
                 if (storyIndex < storyItems.size()) {
                     TL_stories.PeerStories peerStories = storyItems.get(storyIndex);
                     long id = getDialogIdFromPeerStories(peerStories);
@@ -1755,12 +1781,15 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             // Add spacing between cards
             RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) cell.getLayoutParams();
             params.rightMargin = dp(6);
-            params.leftMargin = position == 0 ? 0 : 0;
+            params.leftMargin = 0;
             cell.setLayoutParams(params);
         }
 
         @Override
         public int getItemCount() {
+            if (showArchivedChannels) {
+                return storyItems.size();
+            }
             return 1 + storyItems.size(); // +1 for self
         }
     }
@@ -1777,6 +1806,13 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         return storiesContainer != null ? storiesContainer.getHeight() : 0;
     }
 
+    private boolean isStoriesBarVisible() {
+        if (showArchivedChannels) {
+            return storyItems != null && !storyItems.isEmpty();
+        }
+        return true;
+    }
+
     private void updateStoriesScroll() {
         if (storiesContainer == null) {
             return;
@@ -1786,14 +1822,14 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         if (height == 0) {
             height = storiesContainer.getMeasuredHeight();
         }
-        if (height == 0) {
+        if (height == 0 && isStoriesBarVisible()) {
             return;
         }
         int translationY = -Math.min(scrollY, height);
         int topPadding = AndroidUtilities.getStatusBarHeight(getContext()) + ActionBar.getCurrentActionBarHeight();
         storiesContainer.setTranslationY(topPadding + translationY);
 
-        float alpha = 1.0f - Math.min(1.0f, (float) scrollY / height);
+        float alpha = isStoriesBarVisible() ? (1.0f - Math.min(1.0f, (float) scrollY / height)) : 0f;
         storiesContainer.setAlpha(alpha);
         storiesContainer.setVisibility(alpha == 0f ? View.GONE : View.VISIBLE);
     }
@@ -1856,7 +1892,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            int height = storiesContainer != null ? storiesContainer.getMeasuredHeight() : 0;
+            int height = isStoriesBarVisible() && storiesContainer != null ? storiesContainer.getMeasuredHeight() : 0;
             setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), height);
         }
     }
