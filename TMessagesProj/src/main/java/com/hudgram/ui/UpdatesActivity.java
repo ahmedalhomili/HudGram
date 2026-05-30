@@ -581,7 +581,8 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, (v, insets) -> {
             int top = AndroidUtilities.getStatusBarHeight(context) + ActionBar.getCurrentActionBarHeight();
-            listView.setPadding(0, top, 0, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS);
+            int bottomPadding = insets.getSystemWindowInsetBottom() + dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS);
+            listView.setPadding(0, top, 0, bottomPadding);
             storiesContainer.setTranslationY(top);
             updateStoriesScroll();
             return insets;
