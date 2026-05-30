@@ -218,6 +218,11 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         if (actionBar.getBackButton() != null) {
             actionBar.getBackButton().setVisibility(View.GONE);
         }
+        if (LocaleController.isRTL) {
+            actionBar.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        } else {
+            actionBar.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        }
 
         headerAvatarView = com.hudgram.ui.HudUiHelper.createHeaderAvatarView(context, parentLayout);
         actionBar.addView(headerAvatarView, LayoutHelper.createFrame(36, 36, Gravity.LEFT | Gravity.CENTER_VERTICAL, 14, 0, 0, 0));
@@ -365,6 +370,11 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             }
         };
         rootLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        if (LocaleController.isRTL) {
+            rootLayout.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        } else {
+            rootLayout.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        }
 
         // RecyclerListView initialization
         listView = new RecyclerListView(context);
@@ -433,6 +443,11 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         // Horizontal stories RecyclerView
         storiesRecyclerView = new RecyclerListView(context);
         storiesRecyclerView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false));
+        if (LocaleController.isRTL) {
+            storiesRecyclerView.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        } else {
+            storiesRecyclerView.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        }
         storiesRecyclerView.setClipToPadding(false);
         storiesRecyclerView.setPadding(dp(12), 0, dp(12), 0);
         storiesRecyclerView.setSelectorRadius(dp(14)); // match card radius
@@ -852,6 +867,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         header.setTypeface(AndroidUtilities.bold());
         header.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
         header.setPadding(dp(16), dp(8), dp(16), dp(4));
+        header.setGravity(Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT));
         return header;
     }
 
@@ -1814,7 +1830,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void updateStoriesScroll() {
-        if (storiesContainer == null) {
+        if (storiesContainer == null || getContext() == null) {
             return;
         }
         int scrollY = getStoriesScrollY();

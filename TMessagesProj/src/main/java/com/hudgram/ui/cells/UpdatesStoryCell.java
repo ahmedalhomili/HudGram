@@ -439,7 +439,7 @@ public class UpdatesStoryCell extends FrameLayout {
         int cardBgColor = hasStories ? 0xFF1B2024 : Theme.getColor(Theme.key_windowBackgroundGray);
         if (drawPlus) {
             float plusR = dp(PLUS_SIZE / 2f);
-            float plusCx = avatarCx + avatarR * 0.7f;
+            float plusCx = avatarCx + (LocaleController.isRTL ? -avatarR * 0.7f : avatarR * 0.7f);
             float plusCy = avatarCy + avatarR * 0.7f;
 
             // Dark outline matching card background color to blend perfectly
@@ -477,7 +477,7 @@ public class UpdatesStoryCell extends FrameLayout {
     }
 
     private void drawFail(Canvas canvas, float cx, float cy, int cardBgColor) {
-        float cx2 = cx + dp(AVATAR_SIZE / 2f) * 0.7f;
+        float cx2 = cx + (LocaleController.isRTL ? -dp(AVATAR_SIZE / 2f) * 0.7f : dp(AVATAR_SIZE / 2f) * 0.7f);
         float cy2 = cy + dp(AVATAR_SIZE / 2f) * 0.7f;
 
         // Draw dark outline
