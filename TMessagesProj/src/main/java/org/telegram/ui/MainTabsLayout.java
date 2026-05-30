@@ -91,8 +91,8 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             for (int a = 0, N = getChildCount(); a < N; a++) {
                 tabsTextWidthWithMargin[a] *= m;
             }
-        } else if (totalWidth < minTotalWidthForTabs) {
-            final float growW = minTotalWidthForTabs - totalWidth;
+        } else if (totalWidth < maxTotalWidthForTabs) {
+            final float growW = maxTotalWidthForTabs - totalWidth;
             final float growP = growW / totalWeight;
 
             //boolean needStage2 = false;
@@ -130,7 +130,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             l += tabsWidth[a];
         }
 
-        setMeasuredDimension(l + getPaddingLeft() + getPaddingRight(), height);
+        setMeasuredDimension(width, height);
         for (int a = 0, N = getChildCount(); a < N; a++) {
             final View child = getChildAt(a);
             child.measure(
