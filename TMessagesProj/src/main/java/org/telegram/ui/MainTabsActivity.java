@@ -83,14 +83,14 @@ import me.vkryl.android.animator.FactorAnimator;
 public class MainTabsActivity extends ViewPagerActivity implements NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target {
     public static final int TABS_COUNT = 5;
     private static final int POSITION_CHATS = 0;
-    private static final int POSITION_CONTACTS = 1;
-    private static final int POSITION_UPDATES = 2;
+    private static final int POSITION_UPDATES = 1;
+    private static final int POSITION_CONTACTS = 2;
     private static final int POSITION_CALLS_OR_SETTINGS = 3;
     private static final int POSITION_PROFILE = 4;
 
     private static final int INDEX_CHATS = 0;
-    private static final int INDEX_CONTACTS = 1;
-    private static final int INDEX_UPDATES = 2;
+    private static final int INDEX_UPDATES = 1;
+    private static final int INDEX_CONTACTS = 2;
     private static final int INDEX_SETTINGS = 3;
     private static final int INDEX_CALLS = 4;
     private static final int INDEX_PROFILE = 5;
