@@ -135,8 +135,8 @@ public class HudUiHelper {
     public static void onHeaderAvatarClick(INavigationLayout parentLayout) {
         MainTabsActivity mainTabsActivity = findMainTabsActivity(parentLayout);
         if (mainTabsActivity != null) {
-            mainTabsActivity.selectTab(4, true); // POSITION_PROFILE is 4 (INDEX_PROFILE is 5, but position is 4)
-            mainTabsActivity.scrollToPosition(4);
+            mainTabsActivity.selectTab(5, true); // POSITION_PROFILE is 5
+            mainTabsActivity.scrollToPosition(5);
         }
     }
 
