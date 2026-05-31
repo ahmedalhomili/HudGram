@@ -201,6 +201,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     public boolean isSavedDialogCell;
     public DialogCellTags tags;
 
+
     public final StoriesUtilities.AvatarStoryParams storyParams = new StoriesUtilities.AvatarStoryParams(false) {
         @Override
         public void openStory(long dialogId, Runnable onDone) {
@@ -417,6 +418,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     private final Paint openButtonBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF openButtonRect = new RectF();
     private Text openButtonText;
+
+    // Hudgram promo channel cell flag
+    private boolean isHudPromoCell;
     public void setOpenBotButton(boolean show) {
         if (openBot == show) return;
         if (openButtonText == null) {
@@ -3116,6 +3120,11 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             readOutboxMaxId = -1;
             if (isDialogCell) {
                 TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(currentDialogId);
+                long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+                isHudPromoCell = (promoChannelId != 0 && currentDialogId == -promoChannelId);
+                if (dialog == null && isHudPromoCell) {
+                    dialog = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoDialog();
+                }
                 if (dialog != null) {
                     readOutboxMaxId = dialog.read_outbox_max_id;
                     ttlPeriod = dialog.ttl_period;
@@ -3125,6 +3134,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         message = groupMessages != null && groupMessages.size() > 0 ? groupMessages.get(0) : null;
                         lastUnreadState = message != null && message.isUnread();
                         TLRPC.Chat localChat = MessagesController.getInstance(currentAccount).getChat(-dialog.id);
+                        if (localChat == null && promoChannelId != 0 && -dialog.id == promoChannelId) {
+                            localChat = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
+                        }
                         boolean isForumCell = localChat != null && localChat.forum && !isTopic;
                         if (localChat != null && (localChat.forum || localChat.monoforum && ChatObject.canManageMonoForum(currentAccount, localChat))) {
                             int[] counts = MessagesController.getInstance(currentAccount).getTopicsController().getForumUnreadCount(localChat.id);
@@ -3293,12 +3305,19 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     }
                     if (isDialogCell) {
                         TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(currentDialogId);
+                        long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+                        if (dialog == null && promoChannelId != 0 && currentDialogId == -promoChannelId) {
+                            dialog = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoDialog();
+                        }
                         int newCount;
                         int newMentionCount;
                         int newReactionCout = 0;
                         int newPollVotesCount = 0;
 
                         TLRPC.Chat localChat = dialog == null ? null : MessagesController.getInstance(currentAccount).getChat(-dialog.id);
+                        if (localChat == null && dialog != null && promoChannelId != 0 && -dialog.id == promoChannelId) {
+                            localChat = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
+                        }
                         if (localChat != null && (localChat.forum || localChat.monoforum && ChatObject.canManageMonoForum(currentAccount, localChat))) {
                             int[] counts = MessagesController.getInstance(currentAccount).getTopicsController().getForumUnreadCount(localChat.id);
                             newCount = counts[0];
@@ -3389,6 +3408,10 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     user = MessagesController.getInstance(currentAccount).getUser(dialogId);
                 } else {
                     chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
+                    long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+                    if (chat == null && promoChannelId != 0 && -dialogId == promoChannelId) {
+                        chat = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
+                    }
                     if (!isDialogCell && chat != null && chat.migrated_to != null) {
                         TLRPC.Chat chat2 = MessagesController.getInstance(currentAccount).getChat(chat.migrated_to.channel_id);
                         if (chat2 != null) {
@@ -4009,6 +4032,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 }
                 canvas.restore();
             }
+
 
             if (drawLock2()) {
                 Theme.dialogs_lock2Drawable.setBounds(
@@ -4719,6 +4743,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
         emojiStatusView.setVisibility(emojiStatusVisible ? View.VISIBLE : View.INVISIBLE);
 
+
         if (needInvalidate) {
             invalidate();
         }
@@ -5188,6 +5213,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 Theme.dialogs_countTextPaint2.setColor(Theme.getColor(Theme.key_chats_unreadCounterText));
             }
         }
+
+
     }
 
     private void createStatusDrawableAnimator(int lastStatusDrawableParams, int currentStatus) {
@@ -5883,6 +5910,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         if (rightFragmentOpenedProgress == 0 && !isTopic && !isShareToStoryCell && storyParams.checkOnTouchEvent(event, this)) {
             return true;
         }
+
         if (delegate == null || delegate.canClickButtonInside()) {
             if (openBot) {
                 final boolean hit = openButtonRect.contains(event.getX(), event.getY());

@@ -2403,6 +2403,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         currentDialogsType = parentPage.dialogsAdapter.getDialogsType();
                     } catch (Exception ignore) {
                     }
+                    long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+                    if (promoChannelId != 0 && dialogId == -promoChannelId) {
+                        return 0;
+                    }
                     if ((filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE && SharedConfig.getChatSwipeAction(currentAccount) == SwipeGestureSettingsView.SWIPE_GESTURE_FOLDERS) || !allowSwipeDuringCurrentTouch || ((dialogId == getUserConfig().clientUserId || dialogId == 777000 || currentDialogsType == 7 || currentDialogsType == 8) && SharedConfig.getChatSwipeAction(currentAccount) == SwipeGestureSettingsView.SWIPE_GESTURE_ARCHIVE) || getMessagesController().isPromoDialog(dialogId, false) && getMessagesController().promoDialogType != MessagesController.PROMO_TYPE_PSA) {
                         return 0;
                     }
@@ -7906,6 +7910,31 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
             }
         } else {
+            long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+            if (dialogId == -promoChannelId) {
+                TLRPC.Chat chat = getMessagesController().getChat(promoChannelId);
+                long accessHash = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getStoredAccessHash();
+                if (accessHash == 0 || chat == null || chat.access_hash == 0) {
+                    org.telegram.ui.ActionBar.AlertDialog progressDialog = new org.telegram.ui.ActionBar.AlertDialog(getParentActivity(), 3);
+                    progressDialog.setCanCancel(false);
+                    progressDialog.show();
+                    getMessagesController().getUserNameResolver().resolve("hudgramchannel", peerId -> {
+                        progressDialog.dismiss();
+                        if (peerId != null && peerId < 0) {
+                            long resolvedId = -peerId;
+                            com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).resolveChannel();
+                            Bundle args = new Bundle();
+                            args.putLong("chat_id", resolvedId);
+                            presentFragment(new ChatActivity(args));
+                        } else {
+                            Bundle args = new Bundle();
+                            args.putLong("chat_id", promoChannelId);
+                            presentFragment(new ChatActivity(args));
+                        }
+                    });
+                    return;
+                }
+            }
             Bundle args = new Bundle();
             if (DialogObject.isEncryptedDialog(dialogId)) {
                 args.putInt("enc_id", DialogObject.getEncryptedChatId(dialogId));
@@ -8252,6 +8281,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             updateSelectedCount();
             return true;
         } else {
+            long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+            if (promoChannelId != 0 && dialog.id == -promoChannelId) {
+                return true;
+            }
             if (dialog instanceof TLRPC.TL_dialogFolder) {
                 onArchiveLongPress(view);
                 return false;
@@ -10807,7 +10840,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         MessagesController messagesController = AccountInstance.getInstance(currentAccount).getMessagesController();
         if (dialogsType == DIALOGS_TYPE_DEFAULT) {
-            return messagesController.getDialogs(folderId);
+            ArrayList<TLRPC.Dialog> dialogs = messagesController.getDialogs(folderId);
+            if (folderId == 0) {
+                dialogs = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).injectPromoIfNeeded(dialogs);
+            }
+            return dialogs;
         } else if (dialogsType == DIALOGS_TYPE_WIDGET || dialogsType == DIALOGS_TYPE_IMPORT_HISTORY) {
             return messagesController.dialogsServerOnly;
         } else if (dialogsType == DIALOGS_TYPE_ADD_USERS_TO) {
@@ -10846,14 +10883,19 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return messagesController.dialogsGroupsOnly;
         } else if (dialogsType == 7 || dialogsType == 8) {
             MessagesController.DialogFilter dialogFilter = messagesController.selectedDialogFilter[dialogsType == 7 ? 0 : 1];
+            ArrayList<TLRPC.Dialog> dialogs;
             if (dialogFilter == null) {
-                return messagesController.getDialogs(folderId);
+                dialogs = messagesController.getDialogs(folderId);
             } else {
                 if (initialDialogsType == DIALOGS_TYPE_FORWARD) {
                     return dialogFilter.dialogsForward;
                 }
-                return dialogFilter.dialogs;
+                dialogs = dialogFilter.dialogs;
             }
+            if (folderId == 0) {
+                dialogs = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).injectPromoIfNeeded(dialogs);
+            }
+            return dialogs;
         } else if (dialogsType == DIALOGS_TYPE_BLOCK) {
             return messagesController.dialogsForBlock;
         } else if (dialogsType == DIALOGS_TYPE_BOT_SHARE || dialogsType == DIALOGS_TYPE_BOT_SELECT_VERIFY || dialogsType == DIALOGS_TYPE_START_ATTACH_BOT) {

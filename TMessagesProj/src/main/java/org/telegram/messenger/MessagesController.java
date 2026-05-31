@@ -6731,7 +6731,18 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public TLRPC.Chat getChat(Long id) {
-        return chats.get(id);
+        TLRPC.Chat chat = chats.get(id);
+        // Guard against circular dependency: only access HudPromoChannelManager if already initialized
+        if (com.hudgram.ui.HudPromoChannelManager.isInitialized(currentAccount)) {
+            long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+            if (chat != null && promoChannelId != 0 && id != null && id == promoChannelId && chat.access_hash == 0) {
+                long storedHash = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getStoredAccessHash();
+                if (storedHash != 0) {
+                    chat.access_hash = storedHash;
+                }
+            }
+        }
+        return chat;
     }
 
     public TLRPC.EncryptedChat getEncryptedChat(Integer id) {
@@ -6990,6 +7001,9 @@ public class MessagesController extends BaseController implements NotificationCe
             if (oldChat != null) {
                 if (!fromCache) {
                     getUserNameResolver().update(oldChat, chat);
+                    if (oldChat.access_hash == 0 && chat.access_hash != 0) {
+                        oldChat.access_hash = chat.access_hash;
+                    }
                     oldChat.title = chat.title;
                     oldChat.photo = chat.photo;
                     oldChat.broadcast = chat.broadcast;
