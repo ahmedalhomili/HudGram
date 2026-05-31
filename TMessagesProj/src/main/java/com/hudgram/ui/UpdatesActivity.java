@@ -100,6 +100,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     private static final int TYPE_EMPTY = 3;
     private final java.util.HashSet<Long> selectedDialogIds = new java.util.HashSet<>();
     private boolean inSelectionMode = false;
+    private android.widget.ImageView actionModeCloseView;
     private org.telegram.ui.Components.NumberTextView selectedDialogsCountTextView;
     private org.telegram.ui.ActionBar.ActionBarMenuItem muteItem;
     private org.telegram.ui.ActionBar.ActionBarMenuItem archiveItem;
@@ -108,7 +109,6 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     private org.telegram.ui.ActionBar.ActionBarMenuSubItem readItem;
     private org.telegram.ui.ActionBar.ActionBarMenuSubItem copyLinkItem;
     private org.telegram.ui.ActionBar.ActionBarMenuSubItem viewChannelItem;
-    private org.telegram.ui.ActionBar.ActionBarMenuItem themeToggleItem;
     private org.telegram.ui.ActionBar.ActionBarMenuItem otherItem;
     private boolean showArchivedChannels = false;
     private TextView channelsArchiveButton;
@@ -209,11 +209,11 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         // Action bar
         actionBar.setTitle(getString(R.string.MainTabsUpdates));
-        actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        actionBar.setTitleColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        actionBar.setSubtitleColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-        actionBar.setItemsColor(Theme.getColor(Theme.key_actionBarDefaultIcon), false);
-        actionBar.setItemsBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSelector), false);
+        actionBar.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        actionBar.setTitleColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        actionBar.setSubtitleColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText2));
+        actionBar.setItemsColor(getThemedColor(Theme.key_actionBarDefaultIcon), false);
+        actionBar.setItemsBackgroundColor(getThemedColor(Theme.key_actionBarDefaultSelector), false);
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         if (actionBar.getBackButton() != null) {
             actionBar.getBackButton().setVisibility(View.GONE);
@@ -332,14 +332,6 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             }
         });
 
-        // 2. Theme toggle switcher (replacing camera icon)
-        boolean isDark = getResourceProvider() != null ? getResourceProvider().isDark() : Theme.isCurrentThemeDark();
-        themeToggleItem = menu.addItem(10, isDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24);
-        themeToggleItem.setContentDescription(getString(isDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight));
-        themeToggleItem.setOnClickListener(v -> {
-            com.hudgram.ui.HudUiHelper.toggleTheme(this, this::switchTheme);
-        });
-
         // 3. Three-dots icon
         otherItem = menu.addItem(30, R.drawable.ic_ab_other);
         otherItem.addSubItem(1, R.drawable.msg_secret, LocaleController.getString(R.string.StoryPrivacyAlertEditTitle));
@@ -369,7 +361,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 }
             }
         };
-        rootLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        rootLayout.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         if (LocaleController.isRTL) {
             rootLayout.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         } else {
@@ -435,7 +427,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         // Floating storiesContainer
         storiesContainer = new LinearLayout(context);
         storiesContainer.setOrientation(LinearLayout.VERTICAL);
-        storiesContainer.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        storiesContainer.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         
         statusHeader = createSectionHeader(context, getString(R.string.UpdatesStatusHeader));
         storiesContainer.addView(statusHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 16, 0, 8));
@@ -451,7 +443,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         storiesRecyclerView.setClipToPadding(false);
         storiesRecyclerView.setPadding(dp(12), 0, dp(12), 0);
         storiesRecyclerView.setSelectorRadius(dp(14)); // match card radius
-        storiesRecyclerView.setSelectorDrawableColor(Theme.getColor(Theme.key_listSelector));
+        storiesRecyclerView.setSelectorDrawableColor(getThemedColor(Theme.key_listSelector));
         storiesAdapter = new StoriesAdapter(context);
         storiesRecyclerView.setAdapter(storiesAdapter);
         storiesRecyclerView.setOnItemClickListener((view, position) -> {
@@ -522,7 +514,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         // Blurred view for premium chat previews
         blurredView = new View(context);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            blurredView.setForeground(new android.graphics.drawable.ColorDrawable(ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhite), 100)));
+            blurredView.setForeground(new android.graphics.drawable.ColorDrawable(ColorUtils.setAlphaComponent(getThemedColor(Theme.key_windowBackgroundWhite), 100)));
         }
         blurredView.setVisibility(View.GONE);
         blurredView.setFocusable(false);
@@ -688,7 +680,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             .setScrimViewBackground(Theme.createRoundRectDrawable(
                 dp(14),
                 dp(14),
-                Theme.getColor(Theme.key_windowBackgroundWhite)
+                getThemedColor(Theme.key_windowBackgroundWhite)
             ));
             
         StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
@@ -732,7 +724,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 if (lockIcon != null) {
                     Drawable stealthDrawable = ContextCompat.getDrawable(getParentActivity(), R.drawable.msg_stealth_locked);
                     if (stealthDrawable != null) {
-                        stealthDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_actionBarDefaultSubmenuItemIcon), PorterDuff.Mode.MULTIPLY));
+                        stealthDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_actionBarDefaultSubmenuItemIcon), PorterDuff.Mode.MULTIPLY));
                     }
                     lockIcon.setColorFilter(new PorterDuffColorFilter(ColorUtils.blendARGB(Color.WHITE, Color.BLACK, 0.5f), PorterDuff.Mode.MULTIPLY));
                     stealthModeLockedDrawable = new CombinedDrawable(stealthDrawable, lockIcon);
@@ -866,7 +858,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         header.setText(text);
         header.setTextSize(17);
         header.setTypeface(AndroidUtilities.bold());
-        header.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+        header.setTextColor(getThemedColor(Theme.key_chats_menuItemText));
         header.setPadding(dp(16), dp(8), dp(16), dp(4));
         header.setGravity(Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT));
         return header;
@@ -907,16 +899,11 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             adapter.notifyDataSetChanged();
         }
         updateStoriesScroll();
-        if (themeToggleItem != null) {
-            boolean isDark = getResourceProvider() != null ? getResourceProvider().isDark() : Theme.isCurrentThemeDark();
-            themeToggleItem.setIcon(isDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24);
-            themeToggleItem.setContentDescription(getString(isDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight));
-        }
         updateHeaderAvatar();
     }
 
     private void switchTheme(Theme.ThemeInfo themeInfo, boolean toDark) {
-        ActionBarMenuItem originItem = themeToggleItem != null ? themeToggleItem : otherItem;
+        ActionBarMenuItem originItem = otherItem;
         if (originItem == null) return;
         int[] pos = new int[2];
         originItem.getLocationInWindow(pos);
@@ -977,14 +964,14 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             statusDrawable.setParticles(isCollectible, animated);
         } else if (UserConfig.getInstance(currentAccount).isPremium()) {
             Drawable premiumStar = getParentActivity().getResources().getDrawable(R.drawable.msg_premium_liststar).mutate();
-            premiumStar.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_profile_verifiedBackground), PorterDuff.Mode.MULTIPLY));
+            premiumStar.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_profile_verifiedBackground), PorterDuff.Mode.MULTIPLY));
             statusDrawable.set(premiumStar, animated);
             statusDrawable.setParticles(false, animated);
         } else {
             statusDrawable.set((Drawable) null, animated);
             statusDrawable.setParticles(false, animated);
         }
-        statusDrawable.setColor(Theme.getColor(Theme.key_profile_verifiedBackground));
+        statusDrawable.setColor(getThemedColor(Theme.key_profile_verifiedBackground));
     }
 
     @Override
@@ -1105,7 +1092,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 title = MessageObject.replaceAnimatedEmoji(title, folder.entities, folderItem.getTextView().getPaint().getFontMetricsInt());
                 folderItem.setEmojiCacheType(folder.title_noanimate ? AnimatedEmojiDrawable.CACHE_TYPE_NOANIMATE_FOLDER : AnimatedEmojiDrawable.CACHE_TYPE_MESSAGES);
                 folderItem.setTextAndIcon(title, 0, new FolderDrawable(getContext(), R.drawable.msg_folders, folder.color));
-                folderItem.getTextView().setEmojiColor(Theme.getColor(Theme.key_featuredStickers_addButton));
+                folderItem.getTextView().setEmojiColor(getThemedColor(Theme.key_featuredStickers_addButton));
                 folderItem.setMinimumWidth(160);
                 folderItem.setOnClickListener(e -> {
                     if (!contains) {
@@ -1240,9 +1227,9 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         previewMenu[0].addView(muteItem);
 
         ActionBarMenuSubItem deleteItem = new ActionBarMenuSubItem(getParentActivity(), false, true);
-        deleteItem.setIconColor(Theme.getColor(Theme.key_text_RedRegular));
-        deleteItem.setTextColor(Theme.getColor(Theme.key_text_RedBold));
-        deleteItem.setSelectorColor(Theme.multAlpha(Theme.getColor(Theme.key_text_RedBold), .12f));
+        deleteItem.setIconColor(getThemedColor(Theme.key_text_RedRegular));
+        deleteItem.setTextColor(getThemedColor(Theme.key_text_RedBold));
+        deleteItem.setSelectorColor(Theme.multAlpha(getThemedColor(Theme.key_text_RedBold), .12f));
         deleteItem.setTextAndIcon(LocaleController.getString(R.string.Delete), R.drawable.msg_delete);
         deleteItem.setMinimumWidth(160);
         deleteItem.setOnClickListener(e -> {
@@ -1327,6 +1314,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 inSelectionMode = true;
                 createActionMode();
                 if (actionBar != null) {
+                    actionBar.setActionModeOverrideColor(getThemedColor(Theme.key_windowBackgroundWhite));
                     actionBar.showActionMode();
                 }
             }
@@ -1439,8 +1427,10 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             return;
         }
         final org.telegram.ui.ActionBar.ActionBarMenu actionMode = actionBar.createActionMode(true, null);
+        actionBar.setItemsColor(getThemedColor(Theme.key_actionBarActionModeDefaultIcon), true);
+        actionBar.setItemsBackgroundColor(getThemedColor(Theme.key_actionBarActionModeDefaultSelector), true);
 
-        ImageView actionModeCloseView = new ImageView(getContext());
+        actionModeCloseView = new ImageView(getContext());
         actionModeCloseView.setScaleType(ImageView.ScaleType.CENTER);
         actionModeCloseView.setImageDrawable(new org.telegram.ui.ActionBar.BackDrawable(true));
         actionModeCloseView.setColorFilter(new android.graphics.PorterDuffColorFilter(getThemedColor(Theme.key_actionBarActionModeDefaultIcon), android.graphics.PorterDuff.Mode.MULTIPLY));
@@ -1451,7 +1441,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         selectedDialogsCountTextView = new org.telegram.ui.Components.NumberTextView(actionMode.getContext());
         selectedDialogsCountTextView.setTextSize(18);
         selectedDialogsCountTextView.setTypeface(AndroidUtilities.bold());
-        selectedDialogsCountTextView.setTextColor(Theme.getColor(Theme.key_actionBarActionModeDefaultIcon));
+        selectedDialogsCountTextView.setTextColor(getThemedColor(Theme.key_actionBarActionModeDefaultIcon));
         actionMode.addView(selectedDialogsCountTextView, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1.0f, 18, 0, 0, 0));
 
         // 1. Mute item
@@ -1477,6 +1467,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
     private void hideActionMode() {
         if (actionBar != null) {
+            actionBar.setActionModeOverrideColor(0);
             actionBar.hideActionMode();
         }
         inSelectionMode = false;
@@ -1961,7 +1952,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 channelsHeaderTextView = new TextView(context);
                 channelsHeaderTextView.setTextSize(17);
                 channelsHeaderTextView.setTypeface(AndroidUtilities.bold());
-                channelsHeaderTextView.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+                channelsHeaderTextView.setTextColor(getThemedColor(Theme.key_chats_menuItemText));
                 channelsHeaderTextView.setGravity(Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT));
                 headerLayout.addView(channelsHeaderTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 
                     (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, 16, 8, 16, 8));
@@ -1969,9 +1960,9 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 channelsArchiveButton = new TextView(context);
                 channelsArchiveButton.setTextSize(15);
                 channelsArchiveButton.setTypeface(AndroidUtilities.bold());
-                channelsArchiveButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText));
+                channelsArchiveButton.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
                 channelsArchiveButton.setGravity(Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT));
-                channelsArchiveButton.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2));
+                channelsArchiveButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 2));
                 channelsArchiveButton.setPadding(dp(8), dp(4), dp(8), dp(4));
                 channelsArchiveButton.setOnClickListener(v -> {
                     showArchivedChannels = !showArchivedChannels;
@@ -2110,28 +2101,40 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         org.telegram.ui.ActionBar.ThemeDescription.ThemeDescriptionDelegate cellDelegate = () -> {
             if (actionBar != null) {
-                actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-                actionBar.setSubtitleColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+                if (inSelectionMode) {
+                    actionBar.setActionModeOverrideColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                } else {
+                    actionBar.setActionModeOverrideColor(0);
+                }
+                actionBar.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                actionBar.setSubtitleColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText2));
                 
                 // Normal mode popup colors
-                actionBar.setPopupBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground), false);
-                actionBar.setPopupItemsColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem), false, false);
-                actionBar.setPopupItemsColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItemIcon), true, false);
-                actionBar.setPopupItemsSelectorColor(Theme.getColor(Theme.key_dialogButtonSelector), false);
+                actionBar.setPopupBackgroundColor(getThemedColor(Theme.key_actionBarDefaultSubmenuBackground), false);
+                actionBar.setPopupItemsColor(getThemedColor(Theme.key_actionBarDefaultSubmenuItem), false, false);
+                actionBar.setPopupItemsColor(getThemedColor(Theme.key_actionBarDefaultSubmenuItemIcon), true, false);
+                actionBar.setPopupItemsSelectorColor(getThemedColor(Theme.key_dialogButtonSelector), false);
 
                 // Action mode popup colors
-                actionBar.setPopupBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground), true);
-                actionBar.setPopupItemsColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem), false, true);
-                actionBar.setPopupItemsColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItemIcon), true, true);
-                actionBar.setPopupItemsSelectorColor(Theme.getColor(Theme.key_dialogButtonSelector), true);
+                actionBar.setPopupBackgroundColor(getThemedColor(Theme.key_actionBarDefaultSubmenuBackground), true);
+                actionBar.setPopupItemsColor(getThemedColor(Theme.key_actionBarDefaultSubmenuItem), false, true);
+                actionBar.setPopupItemsColor(getThemedColor(Theme.key_actionBarDefaultSubmenuItemIcon), true, true);
+                actionBar.setPopupItemsSelectorColor(getThemedColor(Theme.key_dialogButtonSelector), true);
 
                 actionBar.updateColors();
             }
+            if (actionModeCloseView != null) {
+                actionModeCloseView.setColorFilter(new android.graphics.PorterDuffColorFilter(getThemedColor(Theme.key_actionBarActionModeDefaultIcon), android.graphics.PorterDuff.Mode.MULTIPLY));
+                actionModeCloseView.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_actionBarActionModeDefaultSelector)));
+            }
+            if (selectedDialogsCountTextView != null) {
+                selectedDialogsCountTextView.setTextColor(getThemedColor(Theme.key_actionBarActionModeDefaultIcon));
+            }
             if (fragmentView != null) {
-                fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                fragmentView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
             }
             if (listView != null) {
-                listView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                listView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
                 int count = listView.getChildCount();
                 for (int a = 0; a < count; a++) {
                     android.view.View child = listView.getChildAt(a);
@@ -2141,7 +2144,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 }
             }
             if (storiesContainer != null) {
-                storiesContainer.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                storiesContainer.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
             }
             if (storiesRecyclerView != null) {
                 int count = storiesRecyclerView.getChildCount();
@@ -2163,20 +2166,20 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 adapter.notifyDataSetChanged();
             }
             if (statusHeader != null) {
-                statusHeader.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+                statusHeader.setTextColor(getThemedColor(Theme.key_chats_menuItemText));
             }
             if (channelsHeaderTextView != null) {
-                channelsHeaderTextView.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+                channelsHeaderTextView.setTextColor(getThemedColor(Theme.key_chats_menuItemText));
             }
             if (channelsArchiveButton != null) {
-                channelsArchiveButton.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
+                channelsArchiveButton.setTextColor(getThemedColor(Theme.key_chats_menuItemText));
             }
             if (statusDrawable != null) {
-                statusDrawable.setColor(Theme.getColor(Theme.key_profile_verifiedBackground));
+                statusDrawable.setColor(getThemedColor(Theme.key_profile_verifiedBackground));
             }
             if (noChannelsView != null) {
-                noChannelsView.title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-                noChannelsView.subtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+                noChannelsView.title.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+                noChannelsView.subtitle.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
             }
         };
 
@@ -2192,6 +2195,12 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_SELECTORCOLOR, null, null, null, null, Theme.key_actionBarDefaultSelector));
         themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_SEARCH, null, null, null, null, Theme.key_actionBarDefaultSearch));
         themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_SEARCHPLACEHOLDER, null, null, null, null, Theme.key_actionBarDefaultSearchPlaceholder));
+
+        // Action Mode theme descriptions
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_AM_ITEMSCOLOR, null, null, null, null, Theme.key_actionBarActionModeDefaultIcon));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_AM_TOPBACKGROUND, null, null, null, null, Theme.key_actionBarActionModeDefaultTop));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_AM_SELECTORCOLOR, null, null, null, null, Theme.key_actionBarActionModeDefaultSelector));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(selectedDialogsCountTextView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_TEXTCOLOR, null, null, null, null, Theme.key_actionBarActionModeDefaultIcon));
 
         // Submenu popup colors animations
         themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(null, 0, null, null, null, cellDelegate, Theme.key_actionBarDefaultSubmenuBackground));
