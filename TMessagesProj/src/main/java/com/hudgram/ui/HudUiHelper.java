@@ -133,10 +133,8 @@ public class HudUiHelper {
     }
 
     public static void onHeaderAvatarClick(INavigationLayout parentLayout) {
-        MainTabsActivity mainTabsActivity = findMainTabsActivity(parentLayout);
-        if (mainTabsActivity != null) {
-            mainTabsActivity.selectTab(5, true); // POSITION_PROFILE is 5
-            mainTabsActivity.scrollToPosition(5);
+        if (LaunchActivity.instance != null) {
+            LaunchActivity.instance.open3DDrawer();
         }
     }
 

@@ -300,6 +300,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     private FireworksOverlay fireworksOverlay;
     private BottomSheetTabsOverlay bottomSheetTabsOverlay;
     public DrawerLayoutContainer drawerLayoutContainer;
+    public com.hudgram.ui.Hud3DDrawerLayout hud3DDrawerLayout;
+    public com.hudgram.ui.HudSideMenuView hudSideMenuView;
     private PasscodeViewDialog passcodeDialog;
     private List<PasscodeView> overlayPasscodeViews = new ArrayList<>();
     private TermsOfServiceView termsOfServiceView;
@@ -320,6 +322,26 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
 
     public FrameLayout getFrameLayout() {
         return frameLayout;
+    }
+
+    public void open3DDrawer() {
+        if (hud3DDrawerLayout != null) {
+            if (hudSideMenuView != null) {
+                hudSideMenuView.updateUserProfile();
+                hudSideMenuView.populateAccounts();
+            }
+            hud3DDrawerLayout.openDrawer(true);
+        }
+    }
+
+    public void close3DDrawer() {
+        if (hud3DDrawerLayout != null) {
+            hud3DDrawerLayout.closeDrawer(true);
+        }
+    }
+
+    public boolean is3DDrawerOpen() {
+        return hud3DDrawerLayout != null && hud3DDrawerLayout.isDrawerOpen();
     }
 
     private Dialog localeDialog;
@@ -503,7 +525,11 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         drawerLayoutContainer.setClipToPadding(false);
         drawerLayoutContainer.setBehindKeyboardColor(Theme.getColor(Theme.key_windowBackgroundWhite));
 
-        frameLayout.addView(drawerLayoutContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        hud3DDrawerLayout = new com.hudgram.ui.Hud3DDrawerLayout(this);
+        hudSideMenuView = new com.hudgram.ui.HudSideMenuView(this);
+        hud3DDrawerLayout.setDrawerView(hudSideMenuView);
+        hud3DDrawerLayout.setContentView(drawerLayoutContainer);
+        frameLayout.addView(hud3DDrawerLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
         themeSwitchSunView = new ImageView(this) {
             @Override
@@ -8284,6 +8310,12 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     }
 
     public boolean onBackPressed(boolean invoked) {
+        if (hud3DDrawerLayout != null && hud3DDrawerLayout.isDrawerOpen()) {
+            if (invoked) {
+                close3DDrawer();
+            }
+            return false;
+        }
         if (FloatingDebugController.onBackPressed(invoked)) {
             return false;
         }
