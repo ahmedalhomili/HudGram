@@ -1,5 +1,7 @@
 package com.hudgram.ui;
 
+import static org.telegram.ui.Components.Premium.LimitReachedBottomSheet.TYPE_ACCOUNTS;
+
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Context;
@@ -701,9 +703,40 @@ public class HudSideMenuView extends FrameLayout
             addRow.setBackground(new RippleDrawable(
                     ColorStateList.valueOf(Theme.getColor(Theme.key_listSelector)),
                     addBg, addMask));
+
             addRow.setOnClickListener(v -> {
                 LaunchActivity.instance.close3DDrawer();
-                LaunchActivity.instance.presentFragment(new org.telegram.ui.LoginActivity());
+
+                int freeAccounts = 0;
+                Integer availableAccount = null;
+
+                for (int a = UserConfig.MAX_ACCOUNT_COUNT - 1; a >= 0; a--) {
+                    if (!UserConfig.getInstance(a).isClientActivated()) {
+                        freeAccounts++;
+                        if (availableAccount == null) {
+                            availableAccount = a;
+                        }
+                    }
+                }
+
+                if (!UserConfig.hasPremiumOnAccounts()) {
+                    freeAccounts -= (UserConfig.MAX_ACCOUNT_COUNT - UserConfig.MAX_ACCOUNT_DEFAULT_COUNT);
+                }
+
+                if (freeAccounts > 0 && availableAccount != null) {
+                    LaunchActivity.instance.presentFragment(new org.telegram.ui.LoginActivity(availableAccount));
+                } else {
+                   // Toast.makeText(ctx, "عذراً، لقد وصلت للحد الأقصى من الحسابات", Toast.LENGTH_SHORT).show();
+                    if (!UserConfig.hasPremiumOnAccounts()) {
+                        if (LaunchActivity.instance != null && LaunchActivity.instance.getActionBarLayout() != null) {
+                            org.telegram.ui.ActionBar.BaseFragment lastFragment = LaunchActivity.instance.getActionBarLayout().getLastFragment();
+                            if (lastFragment != null) {
+                                lastFragment.showDialog(new org.telegram.ui.Components.Premium.LimitReachedBottomSheet(lastFragment, ctx,TYPE_ACCOUNTS , UserConfig.selectedAccount, null));
+                            }
+                        }
+                    }
+
+                }
             });
 
             addRow.setPadding(
@@ -720,12 +753,10 @@ public class HudSideMenuView extends FrameLayout
                     AndroidUtilities.dp(26), AndroidUtilities.dp(26));
             addRow.addView(addIc, icLp);
 
-            // مسافة ثابتة بين الأيقونة والنص
             View space = new View(ctx);
             addRow.addView(space, new LinearLayout.LayoutParams(
                     AndroidUtilities.dp(16), AndroidUtilities.dp(1)));
 
-            // النص — يأخذ باقي المساحة
             TextView addLabel = new TextView(ctx);
             addLabel.setText(str("إضافة حساب", "Add Account"));
             addLabel.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
@@ -733,7 +764,6 @@ public class HudSideMenuView extends FrameLayout
             addLabel.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             addLabel.setSingleLine(true);
             addLabel.setEllipsize(TextUtils.TruncateAt.END);
-            // FIX: اتجاه النص حسب اللغة بدون إزاحة
             addLabel.setTextDirection(View.TEXT_DIRECTION_LOCALE);
             addLabel.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
             addLabel.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
@@ -750,6 +780,7 @@ public class HudSideMenuView extends FrameLayout
             addLp.bottomMargin = AndroidUtilities.dp(2);
             card.addView(addRow, addLp);
         }
+
         LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -770,7 +801,6 @@ public class HudSideMenuView extends FrameLayout
         sepLp.bottomMargin = AndroidUtilities.dp(4);
         accountsContainer.addView(sep, sepLp);
     }
-
     // ══════════════════════════════════════════════════════════
     //  OPEN ANIMATION
     // ══════════════════════════════════════════════════════════
