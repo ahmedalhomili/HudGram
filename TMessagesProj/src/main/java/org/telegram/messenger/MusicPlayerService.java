@@ -460,6 +460,7 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
                     .setCategory(Notification.CATEGORY_TRANSPORT)
                     .setPriority(Notification.PRIORITY_MAX)
                     .setStyle(mediaStyle);
+            bldr.setColor(NotificationsController.getInstance(UserConfig.selectedAccount).COLOR_MUSIC_PLAYER_NOTIFICATION);
             if (Build.VERSION.SDK_INT >= 26) {
                 NotificationsController.checkOtherNotificationsChannel();
                 bldr.setChannelId(NotificationsController.OTHER_NOTIFICATIONS_CHANNEL);
@@ -572,6 +573,7 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
 
             notification = new NotificationCompat.Builder(getApplicationContext())
                     .setSmallIcon(R.drawable.player)
+                    .setColor(NotificationsController.getInstance(UserConfig.selectedAccount).COLOR_MUSIC_PLAYER_NOTIFICATION)
                     .setContentIntent(contentIntent)
                     .setChannelId(NotificationsController.OTHER_NOTIFICATIONS_CHANNEL)
                     .setContentTitle(contentTitle).build();

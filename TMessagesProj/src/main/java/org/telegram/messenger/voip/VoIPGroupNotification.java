@@ -28,6 +28,7 @@ import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.NotificationsController;
 import org.telegram.messenger.R;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLObject;
@@ -242,7 +243,7 @@ public class VoIPGroupNotification {
         CharSequence endTitle = LocaleController.getString(R.string.VoipDeclineCall);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             endTitle = new SpannableString(endTitle);
-            ((SpannableString) endTitle).setSpan(new ForegroundColorSpan(0xFFF44336), 0, endTitle.length(), 0);
+            ((SpannableString) endTitle).setSpan(new ForegroundColorSpan(NotificationsController.getInstance(account).COLOR_VOIP_ACTION_DECLINE), 0, endTitle.length(), 0);
         }
         final PendingIntent endPendingIntent =
             PendingIntent.getBroadcast(
@@ -260,7 +261,7 @@ public class VoIPGroupNotification {
         CharSequence answerTitle = LocaleController.getString(R.string.VoipAnswerCall);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             answerTitle = new SpannableString(answerTitle);
-            ((SpannableString) answerTitle).setSpan(new ForegroundColorSpan(0xFF00AA00), 0, answerTitle.length(), 0);
+            ((SpannableString) answerTitle).setSpan(new ForegroundColorSpan(NotificationsController.getInstance(account).COLOR_VOIP_ACTION_ANSWER), 0, answerTitle.length(), 0);
         }
         final PendingIntent answerPendingIntent =
             PendingIntent.getActivity(
@@ -278,7 +279,7 @@ public class VoIPGroupNotification {
             builder.setShowWhen(false);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            builder.setColor(0xff2ca5e0);
+            builder.setColor(NotificationsController.getInstance(account).COLOR_VOIP_CALL_ACCENT);
             builder.setVibrate(new long[0]);
             builder.setCategory(Notification.CATEGORY_CALL);
             builder.setFullScreenIntent(PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_MUTABLE), true);

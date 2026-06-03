@@ -96,6 +96,7 @@ public class StoryUploadingService extends Service implements NotificationCenter
             NotificationsController.checkOtherNotificationsChannel();
             builder = new NotificationCompat.Builder(ApplicationLoader.applicationContext);
             builder.setSmallIcon(android.R.drawable.stat_sys_upload);
+            builder.setColor(NotificationsController.getInstance(currentAccount).COLOR_STORY_UPLOAD_NOTIFICATION);
             builder.setWhen(System.currentTimeMillis());
             builder.setChannelId(NotificationsController.OTHER_NOTIFICATIONS_CHANNEL);
             builder.setContentTitle(LocaleController.getString(R.string.AppName));

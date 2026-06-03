@@ -164,6 +164,18 @@ public class NotificationsController extends BaseController {
     public static final int SETTING_SOUND_ON = 0;
     public static final int SETTING_SOUND_OFF = 1;
 
+    public int color_notification = 0xff11acfa;
+    public final int COLOR_VOIP_CALL_BACKGROUND = 0xff282e31;
+    public final int COLOR_VOIP_CALL_ACCENT = 0xff2ca5e0;
+    public final int COLOR_VOIP_ACTION_DECLINE = 0xFFF44336;
+    public final int COLOR_VOIP_ACTION_ANSWER = 0xFF00AA00;
+    public final int COLOR_MUSIC_PLAYER_NOTIFICATION = 0xff11acfa;
+    public final int COLOR_LIVE_LOCATION_NOTIFICATION = 0xff11acfa;
+    public final int COLOR_STORY_UPLOAD_NOTIFICATION = 0xff11acfa;
+    public final int COLOR_IMPORTING_NOTIFICATION = 0xff11acfa;
+    public final int COLOR_FILES_MIGRATION_NOTIFICATION = 0xff11acfa;
+    public final int COLOR_VIDEO_ENCODING_NOTIFICATION = 0xff11acfa;
+
     NotificationsSettingsFacade dialogsNotificationsFacade;
 
     static {
@@ -4541,7 +4553,7 @@ public class NotificationsController extends BaseController {
                     .setGroupSummary(true)
                     .setShowWhen(true)
                     .setWhen(((long) lastMessageObject.messageOwner.date) * 1000)
-                    .setColor(0xff11acfa);
+                    .setColor(color_notification);
 
             long[] vibrationPattern = null;
             Uri sound = null;
@@ -5515,7 +5527,7 @@ public class NotificationsController extends BaseController {
                     .setContentText(text.toString())
                     .setAutoCancel(true)
                     .setNumber(dialogKey.story ? storyPushMessages.size() : messageObjects.size())
-                    .setColor(0xff11acfa)
+                    .setColor(color_notification)
                     .setGroupSummary(false)
                     .setWhen(date)
                     .setShowWhen(true)

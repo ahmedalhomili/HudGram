@@ -62,6 +62,7 @@ public class FilesMigrationService extends Service {
                 .setContentTitle(getText(R.string.MigratingFiles))
                 .setAutoCancel(false)
                 .setSmallIcon(R.drawable.notification)
+                .setColor(NotificationsController.getInstance(UserConfig.selectedAccount).COLOR_FILES_MIGRATION_NOTIFICATION)
                 .build();
 
         isRunning = true;
@@ -177,6 +178,7 @@ public class FilesMigrationService extends Service {
                         .setContentText(String.format("%s/%s", currentCount, totalFilesCount))
                         .setSmallIcon(R.drawable.notification)
                         .setAutoCancel(false)
+                        .setColor(NotificationsController.getInstance(UserConfig.selectedAccount).COLOR_FILES_MIGRATION_NOTIFICATION)
                         .setProgress(totalFilesCount, currentCount, false)
                         .build();
                 NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);

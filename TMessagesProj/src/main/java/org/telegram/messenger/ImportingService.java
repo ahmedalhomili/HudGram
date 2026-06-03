@@ -87,6 +87,7 @@ public class ImportingService extends Service implements NotificationCenter.Noti
             NotificationsController.checkOtherNotificationsChannel();
             builder = new NotificationCompat.Builder(ApplicationLoader.applicationContext);
             builder.setSmallIcon(android.R.drawable.stat_sys_upload);
+            builder.setColor(NotificationsController.getInstance(UserConfig.selectedAccount).COLOR_IMPORTING_NOTIFICATION);
             builder.setWhen(System.currentTimeMillis());
             builder.setChannelId(NotificationsController.OTHER_NOTIFICATIONS_CHANNEL);
             builder.setContentTitle(LocaleController.getString(R.string.AppName));
