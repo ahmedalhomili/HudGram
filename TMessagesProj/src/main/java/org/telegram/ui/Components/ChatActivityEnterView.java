@@ -11699,8 +11699,16 @@ public class ChatActivityEnterView extends FrameLayout implements
                                 delegate.onMessageSend(null, notify, scheduleDate, 0, 0);
                             }
                         };
-                        if (!showConfirmAlert(runnable)) {
-                            runnable.run();
+                        if (com.hudgram.ui.HudConfig.confirmStickers) {
+                            showStickerConfirmationDialog((TLRPC.Document) (gif instanceof TLRPC.Document ? gif : ((TLRPC.BotInlineResult) gif).document), true, () -> {
+                                if (!showConfirmAlert(runnable)) {
+                                    runnable.run();
+                                }
+                            });
+                        } else {
+                            if (!showConfirmAlert(runnable)) {
+                                runnable.run();
+                            }
                         }
                     });
                 }
@@ -11974,14 +11982,18 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
     }
 
-    private void showStickerConfirmationDialog(TLRPC.Document sticker, Runnable onConfirm) {
+    private void showStickerConfirmationDialog(TLRPC.Document sticker, boolean isGif, Runnable onConfirm) {
         if (parentActivity == null) {
             onConfirm.run();
             return;
         }
         org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(parentActivity, resourcesProvider);
         builder.setTitle(LocaleController.getString("ConfirmSend", R.string.ConfirmSend));
-        builder.setMessage(LocaleController.getString("ConfirmSendSticker", R.string.ConfirmSendSticker));
+        if (isGif) {
+            builder.setMessage(LocaleController.getString("ConfirmSendGif", R.string.ConfirmSendSticker));
+        } else {
+            builder.setMessage(LocaleController.getString("ConfirmSendSticker", R.string.ConfirmSendSticker));
+        }
         
         android.widget.LinearLayout layout = new android.widget.LinearLayout(parentActivity);
         layout.setOrientation(android.widget.LinearLayout.VERTICAL);
@@ -11989,7 +12001,11 @@ public class ChatActivityEnterView extends FrameLayout implements
         
         org.telegram.ui.Components.BackupImageView imageView = new org.telegram.ui.Components.BackupImageView(parentActivity);
         imageView.setAspectFit(true);
-        imageView.setImage(org.telegram.messenger.ImageLocation.getForDocument(sticker), "120_120", null, null, sticker);
+        if (isGif) {
+            imageView.setImage(org.telegram.messenger.ImageLocation.getForDocument(sticker), "120_120", null, null, sticker);
+        } else {
+            imageView.setImage(org.telegram.messenger.ImageLocation.getForDocument(sticker), "120_120", null, null, sticker);
+        }
         
         android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(AndroidUtilities.dp(120), AndroidUtilities.dp(120));
         lp.topMargin = AndroidUtilities.dp(8);
@@ -12010,7 +12026,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             return;
         }
         if (com.hudgram.ui.HudConfig.confirmStickers) {
-            showStickerConfirmationDialog(sticker, () -> sendStickerInternal(sticker, query, parent, sendAnimationData, clearsInputField, notify, scheduleDate, scheduleRepeatPeriod));
+            showStickerConfirmationDialog(sticker, false, () -> sendStickerInternal(sticker, query, parent, sendAnimationData, clearsInputField, notify, scheduleDate, scheduleRepeatPeriod));
         } else {
             sendStickerInternal(sticker, query, parent, sendAnimationData, clearsInputField, notify, scheduleDate, scheduleRepeatPeriod);
         }

@@ -3063,7 +3063,8 @@ public class ContactsController extends BaseController {
             lastName = lastName.trim();
         }
         StringBuilder result = new StringBuilder((firstName != null ? firstName.length() : 0) + (lastName != null ? lastName.length() : 0) + 1);
-        if (LocaleController.nameDisplayOrder == 1) {
+        int nameOrder = com.hudgram.ui.HudConfig.nameOrder != 0 ? com.hudgram.ui.HudConfig.nameOrder : LocaleController.nameDisplayOrder;
+        if (nameOrder == 1) {
             if (firstName != null && firstName.length() > 0) {
                 if (maxLength > 0 && firstName.length() > maxLength + 2) {
                     return firstName.substring(0, maxLength) + "…";

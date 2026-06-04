@@ -35,6 +35,12 @@ public class HudConfig {
         hideStoriesBar = !hideStoriesBar;
         getPrefs().edit().putBoolean("hideStoriesBar", hideStoriesBar).apply();
     }
+    
+    public static int customDoubleTapAction = getPrefs().getInt("customDoubleTapAction", 0);
+    public static void setCustomDoubleTapAction(int action) {
+        customDoubleTapAction = action;
+        getPrefs().edit().putInt("customDoubleTapAction", action).apply();
+    }
 
     // showAvatarInHeader
     public static boolean showAvatarInHeader = getPrefs().getBoolean("showAvatarInHeader", true);

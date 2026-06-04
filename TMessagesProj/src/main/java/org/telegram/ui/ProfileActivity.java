@@ -651,6 +651,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private int userInfoRow;
     private int channelInfoRow;
     private int usernameRow;
+    private int idRow;
     private int notificationsDividerRow;
     private int notificationsRow;
     private int bizHoursRow;
@@ -4458,6 +4459,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 openAddMember();
             } else if (position == usernameRow) {
                 processOnClickOrPress(position, view, x, y);
+            } else if (position == idRow) {
+                String idText = "";
+                if (com.hudgram.ui.HudConfig.idType == 1) { // API
+                    idText = String.valueOf(userId != 0 ? userId : chatId);
+                } else if (com.hudgram.ui.HudConfig.idType == 2) { // Bot API
+                    idText = String.valueOf(userId != 0 ? userId : (ChatObject.isChannel(currentChat) && !currentChat.megagroup ? "-100" + chatId : "-" + chatId));
+                }
+                AndroidUtilities.addToClipboard(idText);
+                BulletinFactory.of(this).createCopyBulletin(LocaleController.getString("TextCopied", R.string.TextCopied)).show();
             } else if (position == locationRow) {
                 if (chatInfo.location instanceof TLRPC.TL_channelLocation) {
                     LocationActivity fragment = new LocationActivity(LocationActivity.LOCATION_TYPE_GROUP_VIEW);
@@ -10437,6 +10447,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         locationRow = -1;
         channelInfoRow = -1;
         usernameRow = -1;
+        idRow = -1;
         settingsTimerRow = -1;
         settingsKeyRow = -1;
         notificationsDividerRow = -1;
@@ -10629,6 +10640,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (user != null && username != null) {
                     usernameRow = rowCount++;
                 }
+                if (com.hudgram.ui.HudConfig.idType != 0) {
+                    idRow = rowCount++;
+                }
                 if (userInfo != null) {
                     if (userInfo.birthday != null) {
                         birthdayRow = rowCount++;
@@ -10748,6 +10762,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             }
             usernameRow = rowCount++;
+            if (com.hudgram.ui.HudConfig.idType != 0) {
+                idRow = rowCount++;
+            }
             if (actionsView == null) {
                 notificationsSimpleRow = rowCount++;
             }
@@ -10781,6 +10798,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
                 if (ChatObject.isPublic(currentChat)) {
                     usernameRow = rowCount++;
+                }
+                if (com.hudgram.ui.HudConfig.idType != 0) {
+                    idRow = rowCount++;
                 }
             }
             if (emptyRow < 0 && emptyRow2 < 0) {
@@ -13450,6 +13470,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             usernames = new ArrayList<>();
                         }
                         detailCell.setTextAndValue(text, alsoUsernamesString(username, usernames, value), infoEndRowEmpty == -1 && (isTopic || bizHoursRow != -1 || bizLocationRow != -1) && birthdayRow < 0);
+                    } else if (position == idRow) {
+                        String idText = "";
+                        if (com.hudgram.ui.HudConfig.idType == 1) { // API
+                            idText = String.valueOf(userId != 0 ? userId : chatId);
+                        } else if (com.hudgram.ui.HudConfig.idType == 2) { // Bot API
+                            idText = String.valueOf(userId != 0 ? userId : (ChatObject.isChannel(currentChat) && !currentChat.megagroup ? "-100" + chatId : "-" + chatId));
+                        }
+                        detailCell.setTextAndValue(idText, "ID", false);
                     } else if (position == locationRow) {
                         if (chatInfo != null && chatInfo.location instanceof TLRPC.TL_channelLocation) {
                             TLRPC.TL_channelLocation location = (TLRPC.TL_channelLocation) chatInfo.location;
@@ -14179,7 +14207,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 return VIEW_TYPE_HEADER;
             } else if (position == phoneRow || position == locationRow || position == numberRow || position == birthdayRow) {
                 return VIEW_TYPE_TEXT_DETAIL;
-            } else if (position == usernameRow || position == setUsernameRow) {
+            } else if (position == usernameRow || position == setUsernameRow || position == idRow) {
                 return VIEW_TYPE_TEXT_DETAIL_MULTILINE;
             } else if (position == noteRow) {
                 return VIEW_TYPE_TEXT_DETAIL_MULTILINE_2;
@@ -16179,6 +16207,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             textToCopy = UserObject.getPublicUsername(user);
             if (textToCopy != null) textToCopy = "@" + textToCopy;
             copyButton = getString(R.string.ProfileCopyUsername);
+        } else if (position == idRow) {
+            if (com.hudgram.ui.HudConfig.idType == 1) { // API
+                textToCopy = String.valueOf(userId != 0 ? userId : chatId);
+            } else if (com.hudgram.ui.HudConfig.idType == 2) { // Bot API
+                textToCopy = String.valueOf(userId != 0 ? userId : (ChatObject.isChannel(currentChat) && !currentChat.megagroup ? "-100" + chatId : "-" + chatId));
+            }
+            copyButton = getString(R.string.Copy);
         } else if (position == phoneRow) {
             textToCopy = user.phone;
         } else if (position == birthdayRow) {

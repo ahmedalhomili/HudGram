@@ -1813,6 +1813,19 @@ public class ChatActivity extends BaseFragment implements
         @Override
         public boolean hasDoubleTap(View view, int position) {
             if (chatMode == MODE_QUICK_REPLIES) return false;
+            
+            if (com.hudgram.ui.HudConfig.customDoubleTapAction != 0) {
+                MessageObject messageObject;
+                if (view instanceof ChatMessageCell) {
+                    messageObject = ((ChatMessageCell) view).getPrimaryMessageObject();
+                } else if (view instanceof ChatActionCell) {
+                    messageObject = ((ChatActionCell) view).getMessageObject();
+                } else {
+                    return false;
+                }
+                return messageObject != null && !messageObject.isDateObject && !messageObject.isSending() && !messageObject.isEditing() && !actionBar.isActionModeShowed() && !isSecretChat() && !isInScheduleMode() && !messageObject.isSponsored();
+            }
+
             String reactionStringSetting = getMediaDataController().getDoubleTapReaction();
             TLRPC.TL_availableReaction reaction = getMediaDataController().getReactionsMap().get(reactionStringSetting);
             if (reaction == null && (reactionStringSetting == null || !reactionStringSetting.startsWith("animated_"))) {
@@ -1852,6 +1865,33 @@ public class ChatActivity extends BaseFragment implements
             } else {
                 return;
             }
+            
+            int customAction = com.hudgram.ui.HudConfig.customDoubleTapAction;
+            if (customAction != 0) {
+                if (customAction == 1) { // Translate
+                    CharSequence finalMessageText = messageObject.messageText;
+                    if (finalMessageText == null) finalMessageText = messageObject.caption;
+                    if (!android.text.TextUtils.isEmpty(finalMessageText)) {
+                        String fromLang = "und";
+                        String toLang = org.telegram.ui.Components.TranslateAlert2.getToLanguage();
+                        TLRPC.InputPeer inputPeer = getMessagesController().getInputPeer(dialog_id);
+                        boolean noforwardsOrPaidMedia = messageObject.isPremiumSticker() || messageObject.isSponsored() || getMessagesController().isChatNoForwards(dialog_id);
+                        org.telegram.ui.Components.TranslateAlert2 alert = org.telegram.ui.Components.TranslateAlert2.showAlert(getParentActivity(), ChatActivity.this, currentAccount, inputPeer, messageObject.getId(), messageObject.summarized, fromLang, toLang, finalMessageText, messageObject.messageOwner.entities, noforwardsOrPaidMedia, null, () -> dimBehindView(false));
+                        if (alert != null) alert.setDimBehind(false);
+                    }
+                } else if (customAction == 2) { // Reply
+                    showFieldPanelForReply(messageObject);
+                } else if (customAction == 3) { // Copy Text
+                    CharSequence finalMessageText = messageObject.messageText;
+                    if (finalMessageText == null) finalMessageText = messageObject.caption;
+                    if (!android.text.TextUtils.isEmpty(finalMessageText)) {
+                        org.telegram.messenger.AndroidUtilities.addToClipboard(finalMessageText);
+                        org.telegram.ui.Components.BulletinFactory.of(ChatActivity.this).createCopyBulletin(org.telegram.messenger.LocaleController.getString("TextCopied", org.telegram.messenger.R.string.TextCopied)).show();
+                    }
+                }
+                return;
+            }
+
             if (messageObject.isSecret() || !messageObject.canSetReaction() || messageObject.isExpiredStory() || messageObject.type == MessageObject.TYPE_JOINED_CHANNEL) {
                 return;
             }

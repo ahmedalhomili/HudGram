@@ -1242,6 +1242,12 @@ public class NotificationsController extends BaseController {
                     settingsCache.put(dialogId, value);
                 }
 
+                if (value && com.hudgram.ui.HudConfig.silenceNonContacts && dialogId >= 0 && dialogId != UserConfig.getInstance(currentAccount).getClientUserId()) {
+                    if (!ContactsController.getInstance(currentAccount).isContact(dialogId)) {
+                        value = false;
+                    }
+                }
+
                 if (BuildVars.LOGS_ENABLED) {
                     FileLog.d("NotificationsController: process new messages, value is " + value + " ("+dialogId+", "+isChannel+", "+messageObject.isReactionPush+", "+messageObject.isStoryReactionPush+")");
                 }
@@ -4714,7 +4720,7 @@ public class NotificationsController extends BaseController {
                     .setGroupSummary(true)
                     .setShowWhen(true)
                     .setWhen(((long) lastMessageObject.messageOwner.date) * 1000)
-                    .setColor(color_notification);
+                    .setColor(com.hudgram.ui.HudConfig.accentAsNotificationColor ? org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_actionBarDefault) : color_notification);
 
             long[] vibrationPattern = null;
             Uri sound = null;
@@ -5688,7 +5694,7 @@ public class NotificationsController extends BaseController {
                     .setContentText(text.toString())
                     .setAutoCancel(true)
                     .setNumber(dialogKey.story ? storyPushMessages.size() : messageObjects.size())
-                    .setColor(color_notification)
+                    .setColor(com.hudgram.ui.HudConfig.accentAsNotificationColor ? org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_actionBarDefault) : color_notification)
                     .setGroupSummary(false)
                     .setWhen(date)
                     .setShowWhen(true)

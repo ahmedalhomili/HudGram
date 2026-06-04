@@ -58,9 +58,9 @@ public class HudGeneralSettingsActivity extends BaseHudSettingsActivity {
         // === Settings Categories ===
         items.add(UItem.asHeader(getString("HudSettingsCategories")));
 
-        items.add(TextSettingsCellFactory.of(generalRow, getString("HudSettingsGeneral"), null)
+        items.add(TextSettingsCellFactory.of(generalRow, getString("CommonSettings"), null)
                 .slug("settingsGeneral"));
-        items.add(TextSettingsCellFactory.of(appearanceRow, getString("HudSettingsAppearance"), null)
+        items.add(TextSettingsCellFactory.of(appearanceRow, getString("MainScreenSettings"), null)
                 .slug("settingsAppearance"));
         items.add(TextSettingsCellFactory.of(chatRow, getString("HudSettingsChat"), null)
                 .slug("settingsChat"));
