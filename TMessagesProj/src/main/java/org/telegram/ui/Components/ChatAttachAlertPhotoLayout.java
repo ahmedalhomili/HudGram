@@ -2396,6 +2396,13 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
     }
 
     public void checkCamera(boolean request) {
+        if (com.hudgram.ui.HudConfig.disableInstantCamera) {
+            deviceHasGoodCamera = false;
+            if (adapter != null) {
+                adapter.notifyDataSetChanged();
+            }
+            return;
+        }
         if (parentAlert.destroyed || !needCamera) {
             return;
         }

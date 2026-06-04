@@ -1875,7 +1875,7 @@ public class NotificationsController extends BaseController {
                 }
             }
 
-            return LocaleController.isRTL ? "محتوى مخفي" : "Hidden content";
+            return LocaleController.getString("HiddenContent", R.string.HiddenContent);
         }
         if (AndroidUtilities.needShowPasscode() || SharedConfig.isWaitingForPasscodeEnter) {
             return LocaleController.getString(R.string.NotificationHiddenMessage);
@@ -2571,7 +2571,7 @@ public class NotificationsController extends BaseController {
             if (text != null) {
                 text[0] = true;
             }
-            String placeholder = LocaleController.isRTL ? "محتوى مخفي" : "Hidden content";
+            String placeholder = LocaleController.getString("HiddenContent", R.string.HiddenContent);
             if (shortMessage) {
                 return placeholder;
             }

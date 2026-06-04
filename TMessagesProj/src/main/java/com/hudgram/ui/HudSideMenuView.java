@@ -307,17 +307,17 @@ public class HudSideMenuView extends FrameLayout
         menuViews = new View[7];
 
         menuViews[0] = makeItem(R.drawable.msg_discussion,
-                str("الدردشات", "Chats"),
+                LocaleController.getString("Chats", R.string.Chats),
                 () -> { close(); tabTo(0); });
 
         menuViews[1] = makeItem(R.drawable.msg_contacts,
-                str("جهات الاتصال", "Contacts"),
+                LocaleController.getString("Contacts", R.string.Contacts),
                 () -> { close(); tabTo(3); });
 
         addDivider();
 
         menuViews[2] = makeItem(R.drawable.msg_saved,
-                str("الرسائل المحفوظة", "Saved Messages"),
+                LocaleController.getString("SavedMessages", R.string.SavedMessages),
                 () -> {
                     close();
                     Bundle a = new Bundle();
@@ -327,7 +327,7 @@ public class HudSideMenuView extends FrameLayout
                 });
 
         menuViews[3] = makeItem(R.drawable.msg_stories_saved,
-                str("القصص المحفوظة", "Saved Stories"),
+                LocaleController.getString("SavedStories", R.string.SavedStories),
                 () -> {
                     close();
                     Bundle a = new Bundle();
@@ -340,27 +340,25 @@ public class HudSideMenuView extends FrameLayout
         addDivider();
 
         menuViews[4] = makeItem(R.drawable.msg_customize,
-                str("إعدادات هدهد جرام", "Hudgram Settings"),
+                LocaleController.getString("HudgramSettings", R.string.HudgramSettings),
                 () -> { close(); presentFragment(new HudGeneralSettingsActivity()); });
 
         menuViews[5] = makeItem(R.drawable.msg_palette,
-                str("المظهر والثيمات", "Themes & Appearance"),
+                LocaleController.getString("ThemesAndAppearance", R.string.ThemesAndAppearance),
                 () -> { close(); presentFragment(new org.telegram.ui.ThemeActivity(
                         org.telegram.ui.ThemeActivity.THEME_TYPE_OTHER)); });
 
         addDivider();
 
         menuViews[6] = makeItem(R.drawable.msg_info,
-                str("حول هدهد جرام", "About Hudgram"),
+                LocaleController.getString("AboutHudgram", R.string.AboutHudgram),
                 () -> {
                     close();
                     org.telegram.ui.ActionBar.AlertDialog.Builder b =
                             new org.telegram.ui.ActionBar.AlertDialog.Builder(getContext());
-                    b.setTitle(str("حول هدهد جرام", "About Hudgram"));
-                    b.setMessage(str(
-                            "هدهد جرام هو نسخة معدلة وراقية من تيليجرام.\nشكرًا لاختيارك تطبيقنا! ❤️",
-                            "Hudgram is a premium modification of Telegram.\nThank you for choosing Hudgram! ❤️"));
-                    b.setPositiveButton(str("حسناً", "OK"), null);
+                    b.setTitle(LocaleController.getString("AboutHudgram", R.string.AboutHudgram));
+                    b.setMessage(LocaleController.getString("AboutHudgramText", R.string.AboutHudgramText));
+                    b.setPositiveButton(LocaleController.getString("OK", R.string.OK), null);
                     b.show();
                 });
     }
@@ -758,7 +756,7 @@ public class HudSideMenuView extends FrameLayout
                     AndroidUtilities.dp(16), AndroidUtilities.dp(1)));
 
             TextView addLabel = new TextView(ctx);
-            addLabel.setText(str("إضافة حساب", "Add Account"));
+            addLabel.setText(LocaleController.getString("AddAccount", R.string.AddAccount));
             addLabel.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
             addLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
             addLabel.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));

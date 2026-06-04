@@ -46,7 +46,7 @@ public class HudGeneralSettingsActivity extends BaseHudSettingsActivity {
         items.add(UItem.asShadow(null));
 
         // === Notification Icon Color ===
-        items.add(UItem.asHeader(LocaleController.isRTL ? "مظهر الإشعارات" : "Notification Appearance"));
+        items.add(UItem.asHeader(LocaleController.getString("NotificationAppearance", R.string.NotificationAppearance)));
 
         items.add(UItem.asCheck(hideNotificationContentRow, getString("HideNotificationContent"))
                 .slug("hideNotificationContent")
@@ -64,7 +64,7 @@ public class HudGeneralSettingsActivity extends BaseHudSettingsActivity {
                 }
                 BulletinFactory.of(this).createSimpleBulletin(
                         R.drawable.notification,
-                        LocaleController.isRTL ? "تم تطبيق لون الإشعارات الجديد" : "New notification color applied"
+                        LocaleController.getString("NotificationColorApplied", R.string.NotificationColorApplied)
                 ).show();
             });
         }
@@ -125,7 +125,7 @@ public class HudGeneralSettingsActivity extends BaseHudSettingsActivity {
 
             // Title
             TextView titleView = new TextView(context);
-            titleView.setText(LocaleController.isRTL ? "لون أيقونة الإشعارات" : "Notification Icon Color");
+            titleView.setText(LocaleController.getString("NotificationIconColor", R.string.NotificationIconColor));
             titleView.setTextSize(14);
             titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
             addView(titleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 21, 0, 21, 0));

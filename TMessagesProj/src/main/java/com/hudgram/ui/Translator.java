@@ -18,10 +18,10 @@ public class Translator {
         ArrayList<String> names = new ArrayList<>();
         ArrayList<String> keys = new ArrayList<>();
 
-        names.add(LocaleController.isRTL ? "ترجمة جوجل" : "Google Translate");
+        names.add(LocaleController.getString("GoogleTranslate", org.telegram.messenger.R.string.GoogleTranslate));
         keys.add("google");
 
-        names.add(LocaleController.isRTL ? "ترجمة تيليجرام" : "Telegram Translate");
+        names.add(LocaleController.getString("TelegramTranslate", org.telegram.messenger.R.string.TelegramTranslate));
         keys.add("telegram");
 
         return new Pair<>(names, keys);
@@ -34,7 +34,7 @@ public class Translator {
     public static void showTranslationProviderSelector(Activity activity, View anchor, OnProviderSelectedListener listener, Theme.ResourcesProvider resourcesProvider) {
         Pair<ArrayList<String>, ArrayList<String>> providers = getProviders();
         PopupHelper.show(providers.first,
-                LocaleController.isRTL ? "اختر مزود الترجمة" : "Choose Translation Provider",
+                LocaleController.getString("ChooseTranslationProvider", org.telegram.messenger.R.string.ChooseTranslationProvider),
                 providers.second.indexOf(HudConfig.translationProvider),
                 activity, anchor, i -> {
                     String old = HudConfig.translationProvider;

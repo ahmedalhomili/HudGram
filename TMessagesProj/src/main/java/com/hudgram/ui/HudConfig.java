@@ -93,7 +93,7 @@ public class HudConfig {
     }
 
     // openArchiveOnPull
-    public static boolean openArchiveOnPull = getPrefs().getBoolean("openArchiveOnPull", true);
+    public static boolean openArchiveOnPull = getPrefs().getBoolean("openArchiveOnPull", false);
     public static void toggleOpenArchiveOnPull() {
         openArchiveOnPull = !openArchiveOnPull;
         getPrefs().edit().putBoolean("openArchiveOnPull", openArchiveOnPull).apply();
@@ -190,5 +190,26 @@ public class HudConfig {
     public static void toggleHideNotificationContent() {
         hideNotificationContent = !hideNotificationContent;
         getPrefs().edit().putBoolean("hideNotificationContent", hideNotificationContent).apply();
+    }
+
+    // confirmStickers
+    public static boolean confirmStickers = getPrefs().getBoolean("confirmStickers", false);
+    public static void toggleConfirmStickers() {
+        confirmStickers = !confirmStickers;
+        getPrefs().edit().putBoolean("confirmStickers", confirmStickers).apply();
+    }
+
+    // confirmVoiceMessages
+    public static boolean confirmVoiceMessages = getPrefs().getBoolean("confirmVoiceMessages", false);
+    public static void toggleConfirmVoiceMessages() {
+        confirmVoiceMessages = !confirmVoiceMessages;
+        getPrefs().edit().putBoolean("confirmVoiceMessages", confirmVoiceMessages).apply();
+    }
+
+    // partialCopy
+    public static boolean partialCopy = getPrefs().getBoolean("partialCopy", false);
+    public static void togglePartialCopy() {
+        partialCopy = !partialCopy;
+        getPrefs().edit().putBoolean("partialCopy", partialCopy).apply();
     }
 }

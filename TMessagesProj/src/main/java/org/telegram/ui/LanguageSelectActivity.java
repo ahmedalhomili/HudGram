@@ -706,9 +706,7 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
                     TextSettingsCell settingsCell = (TextSettingsCell) holder.itemView;
                     settingsCell.updateRTL();
                     if (!search && position == 1) {
-                        boolean isRtl = LocaleController.isRTL;
-                        String title = isRtl ? "إعدادات الترجمة" : "Translation Settings";
-                        settingsCell.setTextAndValue(title, null, false);
+                        settingsCell.setTextAndValue(LocaleController.getString("TranslationSettings", R.string.TranslationSettings), null, false);
                     }
                     break;
                 }

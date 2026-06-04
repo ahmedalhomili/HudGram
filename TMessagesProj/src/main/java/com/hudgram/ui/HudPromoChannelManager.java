@@ -11,6 +11,7 @@ import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.R;
 import org.telegram.tgnet.TLRPC;
 
 import java.util.ArrayList;
@@ -93,11 +94,7 @@ public class HudPromoChannelManager {
         TLRPC.TL_channel channel = new TLRPC.TL_channel();
         channel.id = chatId;
         channel.access_hash = accessHash;
-        if (LocaleController.isRTL) {
-            channel.title = "قناة هدهد الرسمية";
-        } else {
-            channel.title = "Hudgram Official Channel";
-        }
+        channel.title = LocaleController.getString("HudPromoChannelTitle", R.string.HudPromoChannelTitle);
         channel.username = CHANNEL_USERNAME;
         channel.left = true;
         channel.broadcast = true;
@@ -233,13 +230,7 @@ public class HudPromoChannelManager {
                     message.dialog_id = dialogId;
                     message.peer_id = mockDialog.peer;
                     
-                    String messageText;
-                    if (LocaleController.isRTL) {
-                        messageText = "مرحباً بك في هدهد! انقر لمتابعة قناتنا الرسمية ومعرفة آخر التحديثات.";
-                    } else {
-                        messageText = "Welcome to Hudgram! Tap to follow our official channel for the latest updates.";
-                    }
-                    message.message = messageText;
+                    message.message = LocaleController.getString("HudPromoChannelWelcome", R.string.HudPromoChannelWelcome);
                     message.date = (int) (System.currentTimeMillis() / 1000);
 
                     MessageObject messageObject = new MessageObject(currentAccount, message, (androidx.collection.LongSparseArray<TLRPC.User>) null, false, false);

@@ -13,6 +13,6 @@ public class TranslatorApps {
     }
 
     public static App getTranslatorApp() {
-        return new App(LocaleController.isRTL ? "مترجم جوجل" : "Google Translate");
+        return new App(LocaleController.getString("GoogleTranslate", org.telegram.messenger.R.string.GoogleTranslate));
     }
 }

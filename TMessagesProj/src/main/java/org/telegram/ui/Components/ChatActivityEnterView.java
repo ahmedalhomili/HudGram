@@ -2909,7 +2909,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     });
                                     return true;
                                 }
-                                MediaController.getInstance().stopRecording(isInScheduleMode() ? 3 : 1, true, 0, voiceOnce, 0);
+                                if (com.hudgram.ui.HudConfig.confirmVoiceMessages && !isInVideoMode()) {
+                                    MediaController.getInstance().stopRecording(2, true, 0, voiceOnce, 0);
+                                } else {
+                                    MediaController.getInstance().stopRecording(isInScheduleMode() ? 3 : 1, true, 0, voiceOnce, 0);
+                                }
                                 delegate.needStartRecordAudio(0);
                             }
                             recordingAudioVideo = false;
@@ -3028,7 +3032,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), (notify, scheduleDate, scheduleRepeatPeriod) -> MediaController.getInstance().stopRecording(1, notify, scheduleDate, false, 0), () -> MediaController.getInstance().stopRecording(0, false, 0, false, 0), resourcesProvider);
                                 }
                                 delegate.needStartRecordAudio(0);
-                                MediaController.getInstance().stopRecording(isInScheduleMode() ? 3 : 1, true, 0, voiceOnce, 0);
+                                if (com.hudgram.ui.HudConfig.confirmVoiceMessages && !isInVideoMode()) {
+                                    MediaController.getInstance().stopRecording(2, true, 0, voiceOnce, 0);
+                                } else {
+                                    MediaController.getInstance().stopRecording(isInScheduleMode() ? 3 : 1, true, 0, voiceOnce, 0);
+                                }
                             }
                             recordingAudioVideo = false;
                             messageTransitionIsRunning = false;
@@ -11931,15 +11939,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         checkChannelRights();
     }
 
-    @Override
-    public void onStickerSelected(TLRPC.Document sticker, String query, Object parent, MessageObject.SendAnimationData sendAnimationData, boolean clearsInputField, boolean notify, int scheduleDate, int scheduleRepeatPeriod) {
-        if (isLiveComment) return;
-        if (replyingQuote != null && parentFragment != null && replyingQuote.outdated) {
-            parentFragment.showQuoteMessageUpdate();
-            return;
-        }
+    private void sendStickerInternal(TLRPC.Document sticker, String query, Object parent, MessageObject.SendAnimationData sendAnimationData, boolean clearsInputField, boolean notify, int scheduleDate, int scheduleRepeatPeriod) {
         if (isInScheduleMode() && scheduleDate == 0) {
-            AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), (n, s, r) -> onStickerSelected(sticker, query, parent, sendAnimationData, clearsInputField, n, s, r), resourcesProvider);
+            AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), (n, s, r) -> sendStickerInternal(sticker, query, parent, sendAnimationData, clearsInputField, n, s, r), resourcesProvider);
         } else {
             AlertsCreator.ensurePaidMessageConfirmation(currentAccount, dialog_id, 1, stars -> {
                 final Runnable runnable = () -> {
@@ -11969,6 +11971,48 @@ public class ChatActivityEnterView extends FrameLayout implements
                     runnable.run();
                 }
             });
+        }
+    }
+
+    private void showStickerConfirmationDialog(TLRPC.Document sticker, Runnable onConfirm) {
+        if (parentActivity == null) {
+            onConfirm.run();
+            return;
+        }
+        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(parentActivity, resourcesProvider);
+        builder.setTitle(LocaleController.getString("ConfirmSend", R.string.ConfirmSend));
+        builder.setMessage(LocaleController.getString("ConfirmSendSticker", R.string.ConfirmSendSticker));
+        
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(parentActivity);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        
+        org.telegram.ui.Components.BackupImageView imageView = new org.telegram.ui.Components.BackupImageView(parentActivity);
+        imageView.setAspectFit(true);
+        imageView.setImage(org.telegram.messenger.ImageLocation.getForDocument(sticker), "120_120", null, null, sticker);
+        
+        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(AndroidUtilities.dp(120), AndroidUtilities.dp(120));
+        lp.topMargin = AndroidUtilities.dp(8);
+        lp.bottomMargin = AndroidUtilities.dp(8);
+        layout.addView(imageView, lp);
+        
+        builder.setView(layout);
+        builder.setPositiveButton(LocaleController.getString("Send", R.string.Send), (dialog, which) -> onConfirm.run());
+        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+        builder.show();
+    }
+
+    @Override
+    public void onStickerSelected(TLRPC.Document sticker, String query, Object parent, MessageObject.SendAnimationData sendAnimationData, boolean clearsInputField, boolean notify, int scheduleDate, int scheduleRepeatPeriod) {
+        if (isLiveComment) return;
+        if (replyingQuote != null && parentFragment != null && replyingQuote.outdated) {
+            parentFragment.showQuoteMessageUpdate();
+            return;
+        }
+        if (com.hudgram.ui.HudConfig.confirmStickers) {
+            showStickerConfirmationDialog(sticker, () -> sendStickerInternal(sticker, query, parent, sendAnimationData, clearsInputField, notify, scheduleDate, scheduleRepeatPeriod));
+        } else {
+            sendStickerInternal(sticker, query, parent, sendAnimationData, clearsInputField, notify, scheduleDate, scheduleRepeatPeriod);
         }
     }
 

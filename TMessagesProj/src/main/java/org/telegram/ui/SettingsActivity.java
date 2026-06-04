@@ -682,7 +682,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         }
 
         // Custom Hudgram settings card at the very top
-        items.add(SettingCell.Factory.of(100, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_devices, LocaleController.isRTL ? "إعدادات هدهد جرام" : "Hudgram Settings", LocaleController.isRTL ? "تخصيص الواجهة، المترجم، والأدوات الإضافية" : "Customize interface, translator, and extra tools"));
+        items.add(SettingCell.Factory.of(100, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_devices, getString(R.string.HudgramSettings), getString(R.string.HudgramSettingsInfo)));
         items.add(UItem.asShadow(null));
 
         items.add(SettingCell.Factory.of(1, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_account, getString(R.string.SettingsAccount), getString(R.string.SettingsAccountInfo)));

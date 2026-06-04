@@ -8746,7 +8746,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     public boolean hasHiddenArchive() {
-        return !onlySelect && initialDialogsType == DIALOGS_TYPE_DEFAULT && folderId == 0 && getMessagesController().hasHiddenArchive();
+        return !onlySelect && initialDialogsType == DIALOGS_TYPE_DEFAULT && folderId == 0 && getMessagesController().hasHiddenArchive() && !com.hudgram.ui.HudConfig.openArchiveOnPull;
     }
 
     private boolean waitingForDialogsAnimationEnd(ViewPage viewPage) {
@@ -13497,7 +13497,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 args.putLong("user_id", UserConfig.getInstance(currentAccount).getClientUserId());
                 presentFragment(new ChatActivity(args));
             });
-            io.add(R.drawable.msg_customize, org.telegram.messenger.LocaleController.isRTL ? "إعدادات هدهد جرام" : "Hudgram Settings", () -> {
+            io.add(R.drawable.msg_customize, LocaleController.getString("HudgramSettings", R.string.HudgramSettings), () -> {
                 presentFragment(new com.hudgram.ui.HudGeneralSettingsActivity());
             });
             if (com.hudgram.ui.HudConfig.hideSettingsTab) {

@@ -338,7 +338,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         otherItem.addSubItem(2, R.drawable.msg_channel, LocaleController.getString(R.string.NewChannel));
         otherItem.addSubItem(3, R.drawable.msg_stories_archive, LocaleController.getString(R.string.ArchivedStories));
         otherItem.addSubItem(4, R.drawable.msg_stories_saved, LocaleController.getString(R.string.SavedStories));
-        otherItem.addSubItem(5, R.drawable.msg_customize, LocaleController.isRTL ? "إعدادات هدهد جرام" : "Hudgram Settings");
+        otherItem.addSubItem(5, R.drawable.msg_customize, LocaleController.getString("HudgramSettings", R.string.HudgramSettings));
 
         statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
         statusDrawable.center = true;
@@ -504,9 +504,9 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         // No channels placeholder
         noChannelsView = new StickerEmptyView(context, null, StickerEmptyView.STICKER_TYPE_NO_CONTACTS, getResourceProvider());
-        noChannelsView.title.setText(LocaleController.isRTL ? "لا توجد قنوات بعد" : "No channels yet");
-        noChannelsView.setSubtitle(LocaleController.isRTL ? "يمكنك إنشاء قناة جديدة أو البحث عن قنوات لمتابعتها." : "You can create a new channel or search for channels to follow.");
-        noChannelsView.createButtonLayout(LocaleController.isRTL ? "إنشاء قناة" : "Create Channel", () -> {
+        noChannelsView.title.setText(LocaleController.getString("NoChannelsYet", R.string.NoChannelsYet));
+        noChannelsView.setSubtitle(LocaleController.getString("NoChannelsYetInfo", R.string.NoChannelsYetInfo));
+        noChannelsView.createButtonLayout(LocaleController.getString("CreateChannel", R.string.CreateChannel), () -> {
             Bundle args = new Bundle();
             presentFragment(new ChannelCreateActivity(args));
         });
@@ -883,10 +883,10 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         }
         if (channelsArchiveButton != null) {
             channelsArchiveButton.setVisibility(hasArchived ? View.VISIBLE : View.GONE);
-            channelsArchiveButton.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات" : "Channels") : (LocaleController.isRTL ? "المؤرشفة" : "Archive"));
+            channelsArchiveButton.setText(showArchivedChannels ? LocaleController.getString("UpdatesChannels", R.string.UpdatesChannels) : LocaleController.getString("UpdatesArchive", R.string.UpdatesArchive));
         }
         if (statusHeader != null) {
-            statusHeader.setText(showArchivedChannels ? (LocaleController.isRTL ? "القصص المخفية" : "Hidden Stories") : getString(R.string.UpdatesStatusHeader));
+            statusHeader.setText(showArchivedChannels ? LocaleController.getString("HiddenStories", R.string.HiddenStories) : getString(R.string.UpdatesStatusHeader));
         }
 
         loadData();
@@ -2015,9 +2015,9 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                         }
                     }
                 }
-                channelsHeaderTextView.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات المؤرشفة" : "Archived Channels") : getString(R.string.UpdatesChannelsHeader));
+                channelsHeaderTextView.setText(showArchivedChannels ? LocaleController.getString("ArchivedChannels", R.string.ArchivedChannels) : getString(R.string.UpdatesChannelsHeader));
                 channelsArchiveButton.setVisibility(hasArchived ? View.VISIBLE : View.GONE);
-                channelsArchiveButton.setText(showArchivedChannels ? (LocaleController.isRTL ? "القنوات" : "Channels") : (LocaleController.isRTL ? "المؤرشفة" : "Archive"));
+                channelsArchiveButton.setText(showArchivedChannels ? LocaleController.getString("UpdatesChannels", R.string.UpdatesChannels) : LocaleController.getString("UpdatesArchive", R.string.UpdatesArchive));
             } else if (type == TYPE_CHANNEL) {
                 DialogCell cell = (DialogCell) holder.itemView;
                 int dialogIndex = position - 2;

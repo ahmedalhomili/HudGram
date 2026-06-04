@@ -1135,6 +1135,7 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_DELETE = 1;
     public final static int OPTION_FORWARD = 2;
     public final static int OPTION_COPY = 3;
+    public final static int OPTION_PARTIAL_COPY = 1989;
     public final static int OPTION_SAVE_TO_GALLERY = 4;
     public final static int OPTION_APPLY_LOCALIZATION_OR_THEME = 5;
     public final static int OPTION_SHARE = 6;
@@ -32642,6 +32643,56 @@ public class ChatActivity extends BaseFragment implements
                 undoView.showWithAction(0, UndoView.ACTION_MESSAGE_COPIED, null);
                 break;
             }
+            case OPTION_PARTIAL_COPY: {
+                if (selectedObject == null) {
+                    break;
+                }
+                CharSequence textToSelect = "";
+                if (selectedObject.isDice()) {
+                    textToSelect = selectedObject.getDiceEmoji();
+                } else {
+                    CharSequence caption = getMessageCaption(selectedObject, selectedObjectGroup);
+                    if (caption != null) {
+                        textToSelect = caption;
+                    } else {
+                        textToSelect = getMessageContent(selectedObject, 0, false);
+                    }
+                }
+                if (android.text.TextUtils.isEmpty(textToSelect)) {
+                    break;
+                }
+                try {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), themeDelegate);
+                    builder.setTitle(LocaleController.getString("SelectCopyText", R.string.SelectCopyText));
+                    
+                    android.widget.ScrollView scrollView = new android.widget.ScrollView(getParentActivity());
+                    android.widget.TextView textView = new android.widget.TextView(getParentActivity());
+                    textView.setText(textToSelect);
+                    textView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
+                    textView.setTextIsSelectable(true);
+                    textView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, themeDelegate));
+                    
+                    int padding = AndroidUtilities.dp(16);
+                    textView.setPadding(padding, padding, padding, padding);
+                    scrollView.addView(textView);
+                    
+                    builder.setView(scrollView);
+                    builder.setNegativeButton(LocaleController.getString("Close", R.string.Close), null);
+                    builder.setPositiveButton(LocaleController.getString("CopyAll", R.string.CopyAll), (dialog, which) -> {
+                        AndroidUtilities.addToClipboard(textView.getText());
+                        createUndoView();
+                        if (undoView != null) {
+                            undoView.showWithAction(0, UndoView.ACTION_MESSAGE_COPIED, null);
+                        }
+                    });
+                    
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+                } catch (Exception e) {
+                    FileLog.e(e);
+                }
+                break;
+            }
             case OPTION_SAVE_TO_GALLERY: {
                 if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && getParentActivity().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                     getParentActivity().requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
@@ -44712,6 +44763,11 @@ public class ChatActivity extends BaseFragment implements
                 items.add(LocaleController.getString(R.string.Copy));
                 options.add(OPTION_COPY);
                 icons.add(R.drawable.msg_copy);
+                if (com.hudgram.ui.HudConfig.partialCopy) {
+                    items.add(LocaleController.getString("PartialCopy", R.string.PartialCopy));
+                    options.add(OPTION_PARTIAL_COPY);
+                    icons.add(R.drawable.msg_copy);
+                }
             }
             items.add(LocaleController.getString(R.string.CancelSending));
             options.add(OPTION_CANCEL_SENDING);
@@ -44800,6 +44856,11 @@ public class ChatActivity extends BaseFragment implements
                 items.add(LocaleController.getString(R.string.Copy));
                 options.add(OPTION_COPY);
                 icons.add(R.drawable.msg_copy);
+                if (com.hudgram.ui.HudConfig.partialCopy) {
+                    items.add(LocaleController.getString("PartialCopy", R.string.PartialCopy));
+                    options.add(OPTION_PARTIAL_COPY);
+                    icons.add(R.drawable.msg_copy);
+                }
             }
             items.add(LocaleController.getString(chatMode == MODE_SAVED && threadMessageId != getUserConfig().getClientUserId() ? R.string.Remove : R.string.Delete));
             options.add(OPTION_DELETE);
@@ -44831,6 +44892,11 @@ public class ChatActivity extends BaseFragment implements
                     items.add(LocaleController.getString(R.string.Copy));
                     options.add(OPTION_COPY);
                     icons.add(R.drawable.msg_copy);
+                    if (com.hudgram.ui.HudConfig.partialCopy) {
+                        items.add(LocaleController.getString("PartialCopy", R.string.PartialCopy));
+                        options.add(OPTION_PARTIAL_COPY);
+                        icons.add(R.drawable.msg_copy);
+                    }
                 }
                 if (!isThreadChat() && chatMode != MODE_SCHEDULED && currentChat != null && primaryMessage != null && (currentChat.has_link || primaryMessage.hasReplies()) && currentChat.megagroup && primaryMessage.canViewThread()) {
                     if (primaryMessage.hasReplies()) {
@@ -45126,6 +45192,11 @@ public class ChatActivity extends BaseFragment implements
                     items.add(LocaleController.getString(R.string.Copy));
                     options.add(OPTION_COPY);
                     icons.add(R.drawable.msg_copy);
+                    if (com.hudgram.ui.HudConfig.partialCopy) {
+                        items.add(LocaleController.getString("PartialCopy", R.string.PartialCopy));
+                        options.add(OPTION_PARTIAL_COPY);
+                        icons.add(R.drawable.msg_copy);
+                    }
                 }
                 if (!isThreadChat() && chatMode != MODE_SCHEDULED && currentChat != null && primaryMessage != null && (currentChat.has_link || primaryMessage.hasReplies()) && currentChat.megagroup && primaryMessage.canViewThread()) {
                     if (primaryMessage.hasReplies()) {

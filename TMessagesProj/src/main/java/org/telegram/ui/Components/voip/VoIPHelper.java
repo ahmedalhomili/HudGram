@@ -74,6 +74,23 @@ public class VoIPHelper {
 	private static final int VOIP_SUPPORT_ID = 4244000;
 
 	public static void startCall(TLRPC.User user, boolean videoCall, boolean canVideoCall, final Activity activity, TLRPC.UserFull userFull, AccountInstance accountInstance) {
+		startCall(user, videoCall, canVideoCall, activity, userFull, accountInstance, false);
+	}
+
+	public static void startCall(TLRPC.User user, boolean videoCall, boolean canVideoCall, final Activity activity, TLRPC.UserFull userFull, AccountInstance accountInstance, boolean bypassAsk) {
+		if (!bypassAsk && com.hudgram.ui.HudConfig.askBeforeCall && activity != null) {
+			String name = ContactsController.formatName(user.first_name, user.last_name);
+			String message = LocaleController.formatString("ConfirmCallMessage", R.string.ConfirmCallMessage, name);
+			new AlertDialog.Builder(activity)
+					.setTitle(LocaleController.getString("ConfirmCall", R.string.ConfirmCall))
+					.setMessage(message)
+					.setPositiveButton(LocaleController.getString("Call", R.string.Call), (dialog, which) -> {
+						startCall(user, videoCall, canVideoCall, activity, userFull, accountInstance, true);
+					})
+					.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null)
+					.show();
+			return;
+		}
 		if (accountInstance == null ? MessagesController.getInstance(UserConfig.selectedAccount).isFrozen() : accountInstance.getMessagesController().isFrozen()) {
 			AccountFrozenAlert.show(accountInstance == null ? UserConfig.selectedAccount : accountInstance.getCurrentAccount());
 			return;
