@@ -288,9 +288,21 @@ public class Hud3DDrawerLayout extends FrameLayout {
     // TOUCH HANDLING (Gesture-based open/close)
     // ==============================================
 
+    private boolean isSwipeAllowed() {
+        if (contentView instanceof org.telegram.ui.ActionBar.DrawerLayoutContainer) {
+            org.telegram.ui.ActionBar.DrawerLayoutContainer container = (org.telegram.ui.ActionBar.DrawerLayoutContainer) contentView;
+            if (container.getParentActionBarLayout() != null) {
+                if (container.getParentActionBarLayout().getFragmentStack().size() > 1) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        if (contentView == null || drawerView == null) {
+        if (contentView == null || drawerView == null || !isSwipeAllowed()) {
             return false;
         }
 
@@ -337,7 +349,7 @@ public class Hud3DDrawerLayout extends FrameLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-        if (contentView == null || drawerView == null) {
+        if (contentView == null || drawerView == null || !isSwipeAllowed()) {
             return false;
         }
 

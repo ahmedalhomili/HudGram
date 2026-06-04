@@ -87,6 +87,10 @@ public class DrawerLayoutContainer extends FrameLayout {
         parentActionBarLayout = layout;
     }
 
+    public INavigationLayout getParentActionBarLayout() {
+        return parentActionBarLayout;
+    }
+
     public void setAllowDrawContent(boolean value) {
         if (allowDrawContent != value) {
             allowDrawContent = value;
