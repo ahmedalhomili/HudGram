@@ -150,7 +150,7 @@ public class LinkManager {
         if ("m".equalsIgnoreCase(key)) {
             fragment = new com.hudgram.ui.HudMainScreenSettingsActivity();
         } else if ("ts".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudTranslationSettingsActivity();
+            fragment = new com.hudgram.ui.HudChatSettingsActivity();
         } else if ("c".equalsIgnoreCase(key)) {
             fragment = new com.hudgram.ui.HudCommonSettingsActivity();
         } else if ("g".equalsIgnoreCase(key)) {

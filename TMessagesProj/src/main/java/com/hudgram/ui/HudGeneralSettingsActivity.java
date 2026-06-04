@@ -1,25 +1,28 @@
 package com.hudgram.ui;
 
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.FrameLayout;
-import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
-import org.telegram.messenger.NotificationsController;
 import org.telegram.messenger.R;
-import org.telegram.messenger.UserConfig;
-import org.telegram.messenger.Utilities;
+import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.UItem;
@@ -29,63 +32,88 @@ import java.util.ArrayList;
 
 public class HudGeneralSettingsActivity extends BaseHudSettingsActivity {
 
-    private final int translationSettingsRow = rowId++;
-    private final int mainScreenSettingsRow = rowId++;
-    private final int commonSettingsRow = rowId++;
-    private final int hideNotificationContentRow = rowId++;
+    // Category navigation rows
+    private final int generalRow = rowId++;
+    private final int appearanceRow = rowId++;
+    private final int chatRow = rowId++;
+    private final int otherRow = rowId++;
 
-    private NotificationColorPickerCell colorPickerCell;
+    private final int notificationsRow = rowId++;
+
+    // Footer links
+    private final int officialChannelRow = rowId++;
+    private final int aboutHudgramRow = rowId++;
+
+    private HudgramHeaderCell headerCell;
 
     @Override
     protected void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
-        // === Sections / Sub-Settings Screens ===
-        items.add(UItem.asHeader(getString("SettingsSections")));
-        items.add(TextSettingsCellFactory.of(translationSettingsRow, getString("TranslationSettings"), null).slug("translationSettings"));
-        items.add(TextSettingsCellFactory.of(mainScreenSettingsRow, getString("MainScreenSettings"), null).slug("mainScreenSettings"));
-        items.add(TextSettingsCellFactory.of(commonSettingsRow, getString("CommonSettings"), null).slug("commonSettings"));
+
+        // === App Header (Logo + Name + Version) ===
+        if (headerCell == null) {
+            headerCell = new HudgramHeaderCell(getParentActivity());
+        }
+        items.add(UItem.asCustom(headerCell));
+
+        // === Settings Categories ===
+        items.add(UItem.asHeader(getString("HudSettingsCategories")));
+
+        items.add(TextSettingsCellFactory.of(generalRow, getString("HudSettingsGeneral"), null)
+                .slug("settingsGeneral"));
+        items.add(TextSettingsCellFactory.of(appearanceRow, getString("HudSettingsAppearance"), null)
+                .slug("settingsAppearance"));
+        items.add(TextSettingsCellFactory.of(chatRow, getString("HudSettingsChat"), null)
+                .slug("settingsChat"));
+        items.add(TextSettingsCellFactory.of(notificationsRow, getString("HudSettingsNotifications"), null)
+                .slug("settingsNotifications"));
+        items.add(TextSettingsCellFactory.of(otherRow, getString("HudSettingsOther"), null)
+                .slug("settingsOther"));
         items.add(UItem.asShadow(null));
 
-        // === Notification Icon Color ===
-        items.add(UItem.asHeader(LocaleController.getString("NotificationAppearance", R.string.NotificationAppearance)));
-
-        items.add(UItem.asCheck(hideNotificationContentRow, getString("HideNotificationContent"))
-                .slug("hideNotificationContent")
-                .setChecked(HudConfig.hideNotificationContent));
-        items.add(UItem.asShadow(getString("HideNotificationContentAbout")));
-
-        if (colorPickerCell == null) {
-            int currentAccount = UserConfig.selectedAccount;
-            SharedPreferences preferences = MessagesController.getNotificationsSettings(currentAccount);
-            int selectedColor = preferences.getInt("hud_notification_color", 0xff11acfa);
-            colorPickerCell = new NotificationColorPickerCell(getParentActivity(), selectedColor, color -> {
-                preferences.edit().putInt("hud_notification_color", color).apply();
-                for (int i = 0; i < UserConfig.MAX_ACCOUNT_COUNT; i++) {
-                    NotificationsController.getInstance(i).loadNotificationColors();
-                }
-                BulletinFactory.of(this).createSimpleBulletin(
-                        R.drawable.notification,
-                        LocaleController.getString("NotificationColorApplied", R.string.NotificationColorApplied)
-                ).show();
-            });
-        }
-        items.add(UItem.asCustom(colorPickerCell));
+        // === About & Links Footer ===
+        items.add(UItem.asHeader(getString("HudAboutAndLinks")));
+        items.add(TextSettingsCellFactory.of(officialChannelRow, getString("HudOfficialChannel"), "@hudgramchannel")
+                .slug("officialChannel"));
+        items.add(TextSettingsCellFactory.of(aboutHudgramRow, getString("AboutHudgram"), null)
+                .slug("aboutHudgram"));
         items.add(UItem.asShadow(null));
     }
 
     @Override
     protected void onItemClick(UItem item, View view, int position, float x, float y) {
         int id = item.id;
-        if (id == translationSettingsRow) {
-            presentFragment(new HudTranslationSettingsActivity());
-        } else if (id == mainScreenSettingsRow) {
-            presentFragment(new HudMainScreenSettingsActivity());
-        } else if (id == commonSettingsRow) {
+        if (id == generalRow) {
             presentFragment(new HudCommonSettingsActivity());
-        } else if (id == hideNotificationContentRow) {
-            HudConfig.toggleHideNotificationContent();
-            if (view instanceof org.telegram.ui.Cells.TextCheckCell) {
-                ((org.telegram.ui.Cells.TextCheckCell) view).setChecked(HudConfig.hideNotificationContent);
+        } else if (id == appearanceRow) {
+            presentFragment(new HudMainScreenSettingsActivity());
+        } else if (id == chatRow) {
+            presentFragment(new HudChatSettingsActivity());
+        } else if (id == notificationsRow) {
+            presentFragment(new HudNotificationsSettingsActivity());
+        } else if (id == otherRow) {
+            presentFragment(new HudOtherSettingsActivity());
+        } else if (id == officialChannelRow) {
+            // Open the official channel
+            try {
+                MessagesController.getInstance(currentAccount).getUserNameResolver().resolve("hudgramchannel", peerId -> {
+                    if (peerId != null) {
+                        AndroidUtilities.runOnUIThread(() -> {
+                            Bundle args = new Bundle();
+                            args.putLong("chat_id", -peerId);
+                            presentFragment(new org.telegram.ui.ChatActivity(args));
+                        });
+                    }
+                });
+            } catch (Exception e) {
+                org.telegram.messenger.FileLog.e(e);
             }
+        } else if (id == aboutHudgramRow) {
+            // Show About dialog
+            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+            builder.setTitle(getString("AboutHudgram"));
+            builder.setMessage(getString("AboutHudgramText"));
+            builder.setPositiveButton(LocaleController.getString("OK", R.string.OK), null);
+            builder.show();
         }
     }
 
@@ -99,105 +127,51 @@ public class HudGeneralSettingsActivity extends BaseHudSettingsActivity {
         return "g";
     }
 
-    public static class NotificationColorPickerCell extends FrameLayout {
-        
-        private final int[] colors = {
-            0xff11acfa, // Blue (Hudgram Default)
-            0xff00cbd6, // Teal
-            0xff00d262, // Green
-            0xffff9800, // Orange
-            0xfff44336, // Red
-            0xffe91e63, // Pink
-            0xff9c27b0, // Purple
-            0xffffc107  // Yellow
-        };
-        
-        private final ArrayList<FrameLayout> optionViews = new ArrayList<>();
-        private int selectedColor;
-        private final Utilities.Callback<Integer> onColorSelected;
+    // ========================
+    // Hudgram Header Cell
+    // ========================
 
-        public NotificationColorPickerCell(Context context, int selectedColor, Utilities.Callback<Integer> onColorSelected) {
+    public static class HudgramHeaderCell extends LinearLayout {
+
+        public HudgramHeaderCell(Context context) {
             super(context);
-            this.selectedColor = selectedColor;
-            this.onColorSelected = onColorSelected;
+            setOrientation(VERTICAL);
+            setGravity(Gravity.CENTER_HORIZONTAL);
+            setPadding(0, AndroidUtilities.dp(28), 0, AndroidUtilities.dp(20));
 
-            setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(16));
+            // App Icon
+            ImageView iconView = new ImageView(context);
+            iconView.setImageResource(R.mipmap.ic_launcher);
+            iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            addView(iconView, new LinearLayout.LayoutParams(AndroidUtilities.dp(80), AndroidUtilities.dp(80)));
 
-            // Title
-            TextView titleView = new TextView(context);
-            titleView.setText(LocaleController.getString("NotificationIconColor", R.string.NotificationIconColor));
-            titleView.setTextSize(14);
-            titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
-            addView(titleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 21, 0, 21, 0));
+            // App Name
+            TextView nameView = new TextView(context);
+            nameView.setText("Hudgram");
+            nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22);
+            nameView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            nameView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            nameView.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+            nameLp.topMargin = AndroidUtilities.dp(10);
+            addView(nameView, nameLp);
 
-            // Horizontal ScrollView for colors
-            HorizontalScrollView scrollView = new HorizontalScrollView(context);
-            scrollView.setHorizontalScrollBarEnabled(false);
-            scrollView.setOverScrollMode(OVER_SCROLL_NEVER);
-            
-            LinearLayout container = new LinearLayout(context);
-            container.setOrientation(LinearLayout.HORIZONTAL);
-            container.setPadding(AndroidUtilities.dp(15), 0, AndroidUtilities.dp(15), 0);
-            
-            for (int i = 0; i < colors.length; i++) {
-                final int color = colors[i];
-                final FrameLayout optionView = new FrameLayout(context);
-                optionView.setClickable(true);
-                optionView.setFocusable(true);
-                
-                // Add the inner circle showing the color/icon
-                View colorCircle = new View(context);
-                optionView.addView(colorCircle, LayoutHelper.createFrame(40, 40, Gravity.CENTER));
-                
-                ImageView iconView = new ImageView(context);
-                iconView.setImageResource(R.drawable.notification);
-                iconView.setScaleType(ImageView.ScaleType.CENTER);
-                optionView.addView(iconView, LayoutHelper.createFrame(22, 22, Gravity.CENTER));
-                
-                updateOptionState(colorCircle, iconView, color, color == selectedColor);
-                
-                optionView.setOnClickListener(v -> {
-                    if (this.selectedColor != color) {
-                        this.selectedColor = color;
-                        for (int j = 0; j < colors.length; j++) {
-                            FrameLayout child = optionViews.get(j);
-                            View childCircle = child.getChildAt(0);
-                            ImageView childIcon = (ImageView) child.getChildAt(1);
-                            updateOptionState(childCircle, childIcon, colors[j], colors[j] == this.selectedColor);
-                        }
-                        if (this.onColorSelected != null) {
-                            this.onColorSelected.run(color);
-                        }
-                    }
-                });
-                
-                // Apply background selector (ripple)
-                optionView.setBackground(Theme.createSimpleSelectorCircleDrawable(AndroidUtilities.dp(48), 0, Theme.getColor(Theme.key_listSelector)));
-                
-                optionViews.add(optionView);
-                container.addView(optionView, LayoutHelper.createLinear(48, 48, 6, 0, 6, 0));
-            }
-            
-            scrollView.addView(container, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
-            addView(scrollView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP, 0, 26, 0, 0));
-        }
-
-        private void updateOptionState(View circle, ImageView icon, int color, boolean selected) {
-            GradientDrawable drawable = new GradientDrawable();
-            drawable.setShape(GradientDrawable.OVAL);
-            if (selected) {
-                drawable.setColor(color);
-                drawable.setStroke(0, 0);
-            } else {
-                drawable.setColor(0x00000000);
-                drawable.setStroke(AndroidUtilities.dp(1.5f), color);
-            }
-            circle.setBackground(drawable);
-            
-            icon.setColorFilter(new android.graphics.PorterDuffColorFilter(
-                selected ? 0xffffffff : color,
-                android.graphics.PorterDuff.Mode.SRC_IN
-            ));
+            // Version
+            TextView versionView = new TextView(context);
+            String versionText = "v" + BuildVars.BUILD_VERSION_STRING;
+            try {
+                PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+                versionText = "v" + pInfo.versionName + " (" + pInfo.versionCode + ")";
+            } catch (Exception ignored) {}
+            versionView.setText(versionText);
+            versionView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            versionView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+            versionView.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+            versionLp.topMargin = AndroidUtilities.dp(4);
+            addView(versionView, versionLp);
         }
     }
 }

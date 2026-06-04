@@ -209,7 +209,7 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
             try {
                 boolean search = listView.getAdapter() == searchListViewAdapter;
                 if (!search && position == 1) {
-                    presentFragment(new com.hudgram.ui.HudTranslationSettingsActivity());
+                    presentFragment(new com.hudgram.ui.HudChatSettingsActivity());
                     return;
                 }
                 if (view instanceof TextCheckCell) {

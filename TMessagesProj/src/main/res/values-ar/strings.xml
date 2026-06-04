@@ -10883,4 +10883,12 @@
     <string name="ThemesAndAppearance">المظهر والثيمات</string>
     <string name="AboutHudgram">حول هدهد جرام</string>
     <string name="AboutHudgramText">هدهد جرام هو نسخة معدلة وراقية من تيليجرام.\nشكرًا لاختيارك تطبيقنا! ❤️</string>
+    <string name="HudSettingsGeneral">عام</string>
+    <string name="HudSettingsAppearance">المظهر</string>
+    <string name="HudSettingsChat">المحادثة</string>
+    <string name="HudSettingsNotifications">الإشعارات</string>
+    <string name="HudSettingsOther">أخرى</string>
+    <string name="HudOfficialChannel">القناة الرسمية</string>
+    <string name="HudSettingsCategories">الإعدادات</string>
+    <string name="HudAboutAndLinks">حول والروابط</string>
 </resources>

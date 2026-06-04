@@ -10920,4 +10920,12 @@
     <string name="ThemesAndAppearance">Themes &amp; Appearance</string>
     <string name="AboutHudgram">About Hudgram</string>
     <string name="AboutHudgramText">Hudgram is a premium modification of Telegram.\nThank you for choosing Hudgram! ❤️</string>
+    <string name="HudSettingsGeneral">General</string>
+    <string name="HudSettingsAppearance">Appearance</string>
+    <string name="HudSettingsChat">Chat</string>
+    <string name="HudSettingsNotifications">Notifications</string>
+    <string name="HudSettingsOther">Other</string>
+    <string name="HudOfficialChannel">Official Channel</string>
+    <string name="HudSettingsCategories">Settings</string>
+    <string name="HudAboutAndLinks">About &amp; Links</string>
 </resources>

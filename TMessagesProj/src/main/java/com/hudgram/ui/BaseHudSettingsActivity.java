@@ -489,6 +489,17 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
             case "ConfirmStickersAbout": return LocaleController.getString("ConfirmStickersAbout", R.string.ConfirmStickersAbout);
             case "ConfirmVoiceMessages": return LocaleController.getString("ConfirmVoiceMessages", R.string.ConfirmVoiceMessages);
             case "ConfirmVoiceMessagesAbout": return LocaleController.getString("ConfirmVoiceMessagesAbout", R.string.ConfirmVoiceMessagesAbout);
+            case "HudSettingsGeneral": return LocaleController.getString("HudSettingsGeneral", R.string.HudSettingsGeneral);
+            case "HudSettingsAppearance": return LocaleController.getString("HudSettingsAppearance", R.string.HudSettingsAppearance);
+            case "HudSettingsChat": return LocaleController.getString("HudSettingsChat", R.string.HudSettingsChat);
+            case "HudSettingsNotifications": return LocaleController.getString("HudSettingsNotifications", R.string.HudSettingsNotifications);
+            case "HudSettingsOther": return LocaleController.getString("HudSettingsOther", R.string.HudSettingsOther);
+            case "HudOfficialChannel": return LocaleController.getString("HudOfficialChannel", R.string.HudOfficialChannel);
+            case "HudSettingsCategories": return LocaleController.getString("HudSettingsCategories", R.string.HudSettingsCategories);
+            case "HudAboutAndLinks": return LocaleController.getString("HudAboutAndLinks", R.string.HudAboutAndLinks);
+            case "AboutHudgram": return LocaleController.getString("AboutHudgram", R.string.AboutHudgram);
+            case "AboutHudgramText": return LocaleController.getString("AboutHudgramText", R.string.AboutHudgramText);
+            case "NotificationAppearance": return LocaleController.getString("NotificationAppearance", R.string.NotificationAppearance);
         }
         return key;
     }

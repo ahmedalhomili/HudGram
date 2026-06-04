@@ -16,6 +16,7 @@ public class HudMainScreenSettingsActivity extends BaseHudSettingsActivity {
     private final int hideSettingsTabRow = rowId++;
     private final int hideSearchBarRow = rowId++;
     private final int hideFolderTabsRow = rowId++;
+    private final int openArchiveOnPullRow = rowId++;
 
     @Override
     protected void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
@@ -34,6 +35,8 @@ public class HudMainScreenSettingsActivity extends BaseHudSettingsActivity {
         items.add(UItem.asShadow(getString("HideSearchBarAbout")));
         items.add(UItem.asCheck(hideFolderTabsRow, getString("HideFolderTabs")).slug("hideFolderTabs").setChecked(HudConfig.hideFolderTabs));
         items.add(UItem.asShadow(getString("HideFolderTabsAbout")));
+        items.add(UItem.asCheck(openArchiveOnPullRow, getString("OpenArchiveOnPull")).slug("openArchiveOnPull").setChecked(HudConfig.openArchiveOnPull));
+        items.add(UItem.asShadow(null));
     }
 
     @Override
@@ -86,6 +89,12 @@ public class HudMainScreenSettingsActivity extends BaseHudSettingsActivity {
                 ((TextCheckCell) view).setChecked(HudConfig.hideFolderTabs);
             }
             org.telegram.messenger.NotificationCenter.getInstance(currentAccount).postNotificationName(org.telegram.messenger.NotificationCenter.mainUserInfoChanged);
+        } else if (id == openArchiveOnPullRow) {
+            HudConfig.toggleOpenArchiveOnPull();
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(HudConfig.openArchiveOnPull);
+            }
+            org.telegram.messenger.NotificationCenter.getInstance(currentAccount).postNotificationName(org.telegram.messenger.NotificationCenter.dialogsNeedReload);
         }
     }
 
