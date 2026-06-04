@@ -257,7 +257,7 @@ public class HudSideMenuView extends FrameLayout
         headerCard.addView(arrowView, LayoutHelper.createFrame(
                 40, 40,
                 (isRTL() ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL,
-                isRTL() ? 6 : 0, 0, isRTL() ? 0 : 6, 0));
+                isRTL() ? 70 : 0, 0, isRTL() ? 0 : 70, 0));
 
         headerCard.setOnClickListener(v -> toggleAccounts());
     }

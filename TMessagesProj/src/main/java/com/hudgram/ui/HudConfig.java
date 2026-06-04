@@ -184,4 +184,11 @@ public class HudConfig {
         restrictedLanguagesSet = new HashSet<>(langs);
         getPrefs().edit().putStringSet("restrictedLanguages", restrictedLanguagesSet).apply();
     }
+
+    // hideNotificationContent
+    public static boolean hideNotificationContent = getPrefs().getBoolean("hideNotificationContent", false);
+    public static void toggleHideNotificationContent() {
+        hideNotificationContent = !hideNotificationContent;
+        getPrefs().edit().putBoolean("hideNotificationContent", hideNotificationContent).apply();
+    }
 }

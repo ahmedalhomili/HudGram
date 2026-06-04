@@ -165,16 +165,29 @@ public class NotificationsController extends BaseController {
     public static final int SETTING_SOUND_OFF = 1;
 
     public int color_notification = 0xff11acfa;
-    public final int COLOR_VOIP_CALL_BACKGROUND = 0xff282e31;
-    public final int COLOR_VOIP_CALL_ACCENT = 0xff2ca5e0;
-    public final int COLOR_VOIP_ACTION_DECLINE = 0xFFF44336;
-    public final int COLOR_VOIP_ACTION_ANSWER = 0xFF00AA00;
-    public final int COLOR_MUSIC_PLAYER_NOTIFICATION = 0xff11acfa;
-    public final int COLOR_LIVE_LOCATION_NOTIFICATION = 0xff11acfa;
-    public final int COLOR_STORY_UPLOAD_NOTIFICATION = 0xff11acfa;
-    public final int COLOR_IMPORTING_NOTIFICATION = 0xff11acfa;
-    public final int COLOR_FILES_MIGRATION_NOTIFICATION = 0xff11acfa;
-    public final int COLOR_VIDEO_ENCODING_NOTIFICATION = 0xff11acfa;
+    public int COLOR_VOIP_CALL_BACKGROUND = 0xff282e31;
+    public int COLOR_VOIP_CALL_ACCENT = 0xff2ca5e0;
+    public int COLOR_VOIP_ACTION_DECLINE = 0xFFF44336;
+    public int COLOR_VOIP_ACTION_ANSWER = 0xFF00AA00;
+    public int COLOR_MUSIC_PLAYER_NOTIFICATION = 0xff11acfa;
+    public int COLOR_LIVE_LOCATION_NOTIFICATION = 0xff11acfa;
+    public int COLOR_STORY_UPLOAD_NOTIFICATION = 0xff11acfa;
+    public int COLOR_IMPORTING_NOTIFICATION = 0xff11acfa;
+    public int COLOR_FILES_MIGRATION_NOTIFICATION = 0xff11acfa;
+    public int COLOR_VIDEO_ENCODING_NOTIFICATION = 0xff11acfa;
+
+    public void loadNotificationColors() {
+        SharedPreferences preferences = getAccountInstance().getNotificationsSettings();
+        int customColor = preferences.getInt("hud_notification_color", 0xff11acfa);
+        color_notification = customColor;
+        COLOR_MUSIC_PLAYER_NOTIFICATION = customColor;
+        COLOR_LIVE_LOCATION_NOTIFICATION = customColor;
+        COLOR_STORY_UPLOAD_NOTIFICATION = customColor;
+        COLOR_IMPORTING_NOTIFICATION = customColor;
+        COLOR_FILES_MIGRATION_NOTIFICATION = customColor;
+        COLOR_VIDEO_ENCODING_NOTIFICATION = customColor;
+        COLOR_VOIP_CALL_ACCENT = customColor;
+    }
 
     NotificationsSettingsFacade dialogsNotificationsFacade;
 
@@ -258,6 +271,7 @@ public class NotificationsController extends BaseController {
         };
 
         dialogsNotificationsFacade = new NotificationsSettingsFacade(currentAccount);
+        loadNotificationColors();
     }
 
     public static void checkOtherNotificationsChannel() {
@@ -1786,6 +1800,83 @@ public class NotificationsController extends BaseController {
     }
 
     private String getShortStringForMessage(MessageObject messageObject, String[] userName, boolean[] preview) {
+        if (com.hudgram.ui.HudConfig.hideNotificationContent && !(messageObject.messageOwner instanceof TLRPC.TL_messageService) && !AndroidUtilities.needShowPasscode() && !SharedConfig.isWaitingForPasscodeEnter) {
+            long dialogId = messageObject.messageOwner.dialog_id;
+            if (DialogObject.isEncryptedDialog(dialogId)) {
+                if (userName != null) {
+                    userName[0] = null;
+                }
+                return LocaleController.getString(R.string.NotificationHiddenMessage);
+            }
+            if (preview != null) {
+                preview[0] = true;
+            }
+
+            long selfUsedId = getUserConfig().getClientUserId();
+            long chat_id = messageObject.messageOwner.peer_id.chat_id != 0 ? messageObject.messageOwner.peer_id.chat_id : messageObject.messageOwner.peer_id.channel_id;
+            long fromId = messageObject.messageOwner.peer_id.user_id;
+            if (fromId == 0) {
+                fromId = messageObject.getFromChatId();
+                if (fromId == 0) {
+                    fromId = -chat_id;
+                }
+            } else if (fromId == selfUsedId) {
+                fromId = messageObject.getFromChatId();
+            }
+
+            if (dialogId == 0) {
+                if (chat_id != 0) {
+                    dialogId = -chat_id;
+                } else if (fromId != 0) {
+                    dialogId = fromId;
+                }
+            }
+
+            String name = null;
+            if (UserObject.isReplyUser(dialogId) && messageObject.messageOwner.fwd_from != null && messageObject.messageOwner.fwd_from.from_id != null) {
+                fromId = MessageObject.getPeerId(messageObject.messageOwner.fwd_from.from_id);
+            }
+            if (fromId > 0) {
+                TLRPC.User user = getMessagesController().getUser(fromId);
+                if (user != null) {
+                    name = UserObject.getUserName(user);
+                    if (userName != null) {
+                        if (chat_id != 0) {
+                            userName[0] = name;
+                        } else {
+                            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.O_MR1) {
+                                userName[0] = name;
+                            } else {
+                                userName[0] = null;
+                            }
+                        }
+                    }
+                }
+            } else {
+                TLRPC.Chat fromChat = getMessagesController().getChat(-fromId);
+                if (fromChat != null) {
+                    name = getTitle(fromChat);
+                    if (userName != null) {
+                        userName[0] = name;
+                    }
+                }
+            }
+
+            if (userName != null && name != null && fromId > 0 && UserObject.isReplyUser(dialogId) && messageObject.messageOwner.fwd_from != null && messageObject.messageOwner.fwd_from.saved_from_peer != null) {
+                long id = MessageObject.getPeerId(messageObject.messageOwner.fwd_from.saved_from_peer);
+                if (DialogObject.isChatDialog(id)) {
+                    TLRPC.Chat fromChat = getMessagesController().getChat(-id);
+                    if (fromChat != null) {
+                        name += " @ " + getTitle(fromChat);
+                        if (userName[0] != null) {
+                            userName[0] = name;
+                        }
+                    }
+                }
+            }
+
+            return LocaleController.isRTL ? "محتوى مخفي" : "Hidden content";
+        }
         if (AndroidUtilities.needShowPasscode() || SharedConfig.isWaitingForPasscodeEnter) {
             return LocaleController.getString(R.string.NotificationHiddenMessage);
         }
@@ -2469,6 +2560,76 @@ public class NotificationsController extends BaseController {
     }
 
     private String getStringForMessage(MessageObject messageObject, boolean shortMessage, boolean[] text, boolean[] preview) {
+        if (com.hudgram.ui.HudConfig.hideNotificationContent && !(messageObject.messageOwner instanceof TLRPC.TL_messageService) && !AndroidUtilities.needShowPasscode() && !SharedConfig.isWaitingForPasscodeEnter) {
+            long dialogId = messageObject.messageOwner.dialog_id;
+            if (DialogObject.isEncryptedDialog(dialogId)) {
+                return LocaleController.getString(R.string.YouHaveNewMessage);
+            }
+            if (preview != null) {
+                preview[0] = true;
+            }
+            if (text != null) {
+                text[0] = true;
+            }
+            String placeholder = LocaleController.isRTL ? "محتوى مخفي" : "Hidden content";
+            if (shortMessage) {
+                return placeholder;
+            }
+
+            long selfUsedId = getUserConfig().getClientUserId();
+            long chatId = messageObject.messageOwner.peer_id.chat_id != 0 ? messageObject.messageOwner.peer_id.chat_id : messageObject.messageOwner.peer_id.channel_id;
+            long fromId = messageObject.messageOwner.peer_id.user_id;
+            if (fromId == 0) {
+                fromId = messageObject.getFromChatId();
+                if (fromId == 0) {
+                    fromId = -chatId;
+                }
+            } else if (fromId == selfUsedId) {
+                fromId = messageObject.getFromChatId();
+            }
+
+            String name = null;
+            if (messageObject.getDialogId() == UserObject.OAUTH || messageObject.isOauthPush) {
+                name = LocaleController.getString(R.string.BotAuthNotificationTitle);
+            } else if (fromId > 0) {
+                if (messageObject.messageOwner.from_scheduled) {
+                    if (dialogId == selfUsedId) {
+                        name = LocaleController.getString(R.string.MessageScheduledReminderNotification);
+                    } else {
+                        name = LocaleController.getString(R.string.NotificationMessageScheduledName);
+                    }
+                } else {
+                    TLRPC.User user = getMessagesController().getUser(fromId);
+                    if (user != null) {
+                        name = UserObject.getUserName(user);
+                    }
+                }
+            } else {
+                TLRPC.Chat fromChat = getMessagesController().getChat(-fromId);
+                if (fromChat != null) {
+                    name = getTitle(fromChat);
+                }
+            }
+            if (name == null) {
+                name = "";
+            }
+
+            TLRPC.Chat chat = null;
+            if (chatId != 0) {
+                chat = getMessagesController().getChat(chatId);
+            }
+
+            if (chat != null) {
+                boolean isChannel = ChatObject.isChannel(chat) && !chat.megagroup;
+                if (isChannel) {
+                    return LocaleController.formatString(R.string.NotificationMessageText, getTitle(chat), placeholder);
+                } else {
+                    return LocaleController.formatString(R.string.NotificationMessageGroupText, name, getTitle(chat), placeholder);
+                }
+            } else {
+                return LocaleController.formatString(R.string.NotificationMessageText, name, placeholder);
+            }
+        }
         if (AndroidUtilities.needShowPasscode() || SharedConfig.isWaitingForPasscodeEnter) {
             return LocaleController.getString(R.string.YouHaveNewMessage);
         }

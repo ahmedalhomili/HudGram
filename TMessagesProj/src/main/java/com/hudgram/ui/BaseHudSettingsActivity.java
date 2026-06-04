@@ -481,6 +481,8 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
             case "HideSearchBarAbout": return LocaleController.isRTL ? "إخفاء شريط البحث في قائمة المحادثات مع إبقاء أيقونة البحث في الأعلى" : "Hide the search bar in the chats list but keep the search icon in the action bar";
             case "HideFolderTabs": return LocaleController.isRTL ? "إخفاء شريط المجلدات" : "Hide Folder Tabs";
             case "HideFolderTabsAbout": return LocaleController.isRTL ? "إخفاء شريط التبويبات والمجلدات أسفل شريط العنوان" : "Hide folder and tab capsules under the title bar";
+            case "HideNotificationContent": return LocaleController.isRTL ? "إخفاء محتوى الإشعارات" : "Hide Notification Content";
+            case "HideNotificationContentAbout": return LocaleController.isRTL ? "عدم عرض نص الرسالة في الإشعار واستبداله بـ «محتوى مخفي»" : "Do not show message preview in notifications and show 'Hidden content' instead";
         }
         return key;
     }
