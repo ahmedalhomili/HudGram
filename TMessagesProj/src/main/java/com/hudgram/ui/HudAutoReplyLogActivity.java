@@ -83,7 +83,11 @@ public class HudAutoReplyLogActivity extends BaseHudSettingsActivity {
                     if (entry.messageId != 0) {
                         args.putInt("message_id", entry.messageId);
                     }
-                    presentFragment(new org.telegram.ui.ChatActivity(args));
+                    org.telegram.ui.ChatActivity chatActivity = new org.telegram.ui.ChatActivity(args);
+                    if (entry.messageId != 0) {
+                        chatActivity.setHighlightMessageId(entry.messageId);
+                    }
+                    presentFragment(chatActivity);
                 }
             }
         }

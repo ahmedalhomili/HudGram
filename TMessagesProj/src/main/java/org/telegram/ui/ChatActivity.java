@@ -29111,8 +29111,10 @@ public class ChatActivity extends BaseFragment implements
                         message.setContentIsRead();
                     }
                     if (view instanceof ChatMessageCell) {
-                        ((ChatMessageCell) view).setHighlighted(false);
-                        ((ChatMessageCell) view).setHighlightedAnimated();
+                        if (highlightMessageId == Integer.MAX_VALUE || (message != null && message.getId() == highlightMessageId)) {
+                            ((ChatMessageCell) view).setHighlighted(false);
+                            ((ChatMessageCell) view).setHighlightedAnimated();
+                        }
                     }
                 }
             }
@@ -37399,7 +37401,9 @@ public class ChatActivity extends BaseFragment implements
                         if (inPreviewMode) {
                             messageCell.setHighlighted(true);
                         } else {
-                            messageCell.setHighlightedAnimated();
+                            if (highlightMessageId == Integer.MAX_VALUE || (message != null && message.getId() == highlightMessageId)) {
+                                messageCell.setHighlightedAnimated();
+                            }
                         }
                     }
                 }
