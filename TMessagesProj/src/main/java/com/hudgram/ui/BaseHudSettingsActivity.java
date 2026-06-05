@@ -500,6 +500,25 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
             case "AboutHudgram": return LocaleController.getString("AboutHudgram", R.string.AboutHudgram);
             case "AboutHudgramText": return LocaleController.getString("AboutHudgramText", R.string.AboutHudgramText);
             case "NotificationAppearance": return LocaleController.getString("NotificationAppearance", R.string.NotificationAppearance);
+            case "HudQuickReplyTitle": return LocaleController.getString("HudQuickReplyTitle", R.string.HudQuickReplyTitle);
+            case "HudQuickReplyRow": return LocaleController.getString("HudQuickReplyRow", R.string.HudQuickReplyRow);
+            case "HudQuickReplySettingsInfo": return LocaleController.getString("HudQuickReplySettingsInfo", R.string.HudQuickReplySettingsInfo);
+            case "HudQuickReplyLabelHint": return LocaleController.getString("HudQuickReplyLabelHint", R.string.HudQuickReplyLabelHint);
+            case "HudQuickReplyValueHint": return LocaleController.getString("HudQuickReplyValueHint", R.string.HudQuickReplyValueHint);
+            case "HudQuickReplyDeleteConfirm": return LocaleController.getString("HudQuickReplyDeleteConfirm", R.string.HudQuickReplyDeleteConfirm);
+            case "HudQuickReplyDeleteTitle": return LocaleController.getString("HudQuickReplyDeleteTitle", R.string.HudQuickReplyDeleteTitle);
+            case "HudQuickReplyEdit": return LocaleController.getString("HudQuickReplyEdit", R.string.HudQuickReplyEdit);
+            case "HudQuickReplyAdded": return LocaleController.getString("HudQuickReplyAdded", R.string.HudQuickReplyAdded);
+            case "HudQuickReplyUpdated": return LocaleController.getString("HudQuickReplyUpdated", R.string.HudQuickReplyUpdated);
+            case "HudQuickReplyDeleted": return LocaleController.getString("HudQuickReplyDeleted", R.string.HudQuickReplyDeleted);
+            case "HudQuickReplyEmpty": return LocaleController.getString("HudQuickReplyEmpty", R.string.HudQuickReplyEmpty);
+            case "HudQuickReplyFillFields": return LocaleController.getString("HudQuickReplyFillFields", R.string.HudQuickReplyFillFields);
+            case "HudQuickReplyInvalidLabel": return LocaleController.getString("HudQuickReplyInvalidLabel", R.string.HudQuickReplyInvalidLabel);
+            case "HudQuickReplyDuplicate": return LocaleController.getString("HudQuickReplyDuplicate", R.string.HudQuickReplyDuplicate);
+            case "HudQuickReplyAddNew": return LocaleController.getString("HudQuickReplyAddNew", R.string.HudQuickReplyAddNew);
+            case "HudQuickReplyEditMode": return LocaleController.getString("HudQuickReplyEditMode", R.string.HudQuickReplyEditMode);
+            case "HudQuickReplyEnabled": return LocaleController.getString("HudQuickReplyEnabled", R.string.HudQuickReplyEnabled);
+            case "HudQuickReplyDisabled": return LocaleController.getString("HudQuickReplyDisabled", R.string.HudQuickReplyDisabled);
         }
         return key;
     }

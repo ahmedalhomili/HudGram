@@ -10891,4 +10891,23 @@
     <string name="HudOfficialChannel">القناة الرسمية</string>
     <string name="HudSettingsCategories">الإعدادات</string>
     <string name="HudAboutAndLinks">حول والروابط</string>
+    <string name="HudQuickReplyTitle">رد سريع</string>
+    <string name="HudQuickReplyRow">الردود السريعة</string>
+    <string name="HudQuickReplySettingsInfo">إنشاء قائمة الرد السريع :\n• اكتب # في لوحة المفاتيح داخل الدردشة لإظهار قائمة الرد السريع.\n• انقر فوق العنصر لتعديله أو حذفه.</string>
+    <string name="HudQuickReplyLabelHint">إدخال التسمية</string>
+    <string name="HudQuickReplyValueHint">قيمة المدخلات</string>
+    <string name="HudQuickReplyDeleteConfirm">هل أنت متأكد من رغبتك في حذف هذا الرد السريع؟</string>
+    <string name="HudQuickReplyDeleteTitle">حذف الرد السريع</string>
+    <string name="HudQuickReplyEdit">تعديل</string>
+    <string name="HudQuickReplyAdded">تمت إضافة الرد السريع بنجاح</string>
+    <string name="HudQuickReplyUpdated">تم تحديث الرد السريع بنجاح</string>
+    <string name="HudQuickReplyDeleted">تم حذف الرد السريع</string>
+    <string name="HudQuickReplyEmpty">لا توجد ردود سريعة بعد. أضف واحدة أعلاه للبدء.</string>
+    <string name="HudQuickReplyFillFields">يرجى ملء جميع الحقول</string>
+    <string name="HudQuickReplyInvalidLabel">يرجى إدخال تسمية صالحة</string>
+    <string name="HudQuickReplyDuplicate">هذا الاختصار موجود بالفعل</string>
+    <string name="HudQuickReplyAddNew">إضافة رد سريع جديد</string>
+    <string name="HudQuickReplyEditMode">تعديل</string>
+    <string name="HudQuickReplyEnabled">تم تفعيل الردود السريعة</string>
+    <string name="HudQuickReplyDisabled">تم تعطيل الردود السريعة</string>
 </resources>

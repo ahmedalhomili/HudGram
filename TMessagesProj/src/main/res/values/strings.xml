@@ -10928,4 +10928,23 @@
     <string name="HudOfficialChannel">Official Channel</string>
     <string name="HudSettingsCategories">Settings</string>
     <string name="HudAboutAndLinks">About &amp; Links</string>
+    <string name="HudQuickReplyTitle">Quick Reply</string>
+    <string name="HudQuickReplyRow">Quick Replies</string>
+    <string name="HudQuickReplySettingsInfo">Create list of quick replies:\n• Type # in keyboard inside the chat to show quick reply list.\n• Tap on an item to edit or delete it.</string>
+    <string name="HudQuickReplyLabelHint">Enter Label</string>
+    <string name="HudQuickReplyValueHint">Value Input</string>
+    <string name="HudQuickReplyDeleteConfirm">Are you sure you want to delete this quick reply?</string>
+    <string name="HudQuickReplyDeleteTitle">Delete Quick Reply</string>
+    <string name="HudQuickReplyEdit">Edit</string>
+    <string name="HudQuickReplyAdded">Quick reply added successfully</string>
+    <string name="HudQuickReplyUpdated">Quick reply updated successfully</string>
+    <string name="HudQuickReplyDeleted">Quick reply deleted</string>
+    <string name="HudQuickReplyEmpty">No quick replies yet. Add one above to get started.</string>
+    <string name="HudQuickReplyFillFields">Please fill in all fields</string>
+    <string name="HudQuickReplyInvalidLabel">Please enter a valid label</string>
+    <string name="HudQuickReplyDuplicate">This shortcut already exists</string>
+    <string name="HudQuickReplyAddNew">Add new quick reply</string>
+    <string name="HudQuickReplyEditMode">Editing</string>
+    <string name="HudQuickReplyEnabled">Quick replies enabled</string>
+    <string name="HudQuickReplyDisabled">Quick replies disabled</string>
 </resources>

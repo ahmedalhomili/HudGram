@@ -112,6 +112,7 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
     private ArrayList<String> searchResultCommandsHelp;
     private String quickRepliesQuery;
     private ArrayList<QuickRepliesController.QuickReply> quickReplies;
+    private ArrayList<com.hudgram.ui.HudConfig.QuickReplyItem> hudQuickReplies;
     private ArrayList<MediaDataController.KeywordResult> searchResultSuggestions;
     private String[] lastSearchKeyboardLanguage;
     private ArrayList<TLRPC.User> searchResultCommandsUsers;
@@ -887,6 +888,7 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
                 searchResultUsernamesMap = null;
                 searchResultCommands = null;
                 quickReplies = null;
+                hudQuickReplies = null;
                 searchResultSuggestions = null;
                 searchResultCommandsHelp = null;
                 searchResultCommandsUsers = null;
@@ -1448,6 +1450,7 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
             searchResultHashtags = null;
             stickers = null;
             quickReplies = null;
+            hudQuickReplies = null;
             searchResultCommands = null;
             searchResultCommandsHelp = null;
             searchResultCommandsUsers = null;
@@ -1524,16 +1527,30 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
                 showUsersResult(newResult, newMap, true);
             }
         } else if (foundType == 1) {
-            ArrayList<String> newResult = new ArrayList<>();
             String hashtagString = result.toString().toLowerCase();
-            ArrayList<SearchAdapterHelper.HashtagObject> hashtags = searchAdapterHelper.getHashtags();
-            for (int a = 0; a < hashtags.size(); a++) {
-                SearchAdapterHelper.HashtagObject hashtagObject = hashtags.get(a);
-                if (hashtagObject != null && hashtagObject.hashtag != null && hashtagObject.hashtag.startsWith(hashtagString)) {
-                    newResult.add(hashtagObject.hashtag);
+            ArrayList<com.hudgram.ui.HudConfig.QuickReplyItem> allQuickReplies = com.hudgram.ui.HudConfig.quickReplyEnabled ? com.hudgram.ui.HudConfig.getQuickReplies() : null;
+            if (allQuickReplies != null && !allQuickReplies.isEmpty()) {
+                ArrayList<com.hudgram.ui.HudConfig.QuickReplyItem> matched = new ArrayList<>();
+                String query = hashtagString.startsWith("#") ? hashtagString.substring(1) : hashtagString;
+                for (com.hudgram.ui.HudConfig.QuickReplyItem item : allQuickReplies) {
+                    if (query.isEmpty() || item.label.toLowerCase().startsWith(query)) {
+                        matched.add(item);
+                    }
                 }
+                hudQuickReplies = matched;
+                searchResultHashtags = null;
+            } else {
+                hudQuickReplies = null;
+                ArrayList<String> newResult = new ArrayList<>();
+                ArrayList<SearchAdapterHelper.HashtagObject> hashtags = searchAdapterHelper.getHashtags();
+                for (int a = 0; a < hashtags.size(); a++) {
+                    SearchAdapterHelper.HashtagObject hashtagObject = hashtags.get(a);
+                    if (hashtagObject != null && hashtagObject.hashtag != null && hashtagObject.hashtag.startsWith(hashtagString)) {
+                        newResult.add(hashtagObject.hashtag);
+                    }
+                }
+                searchResultHashtags = newResult;
             }
-            searchResultHashtags = newResult;
             stickers = null;
             searchResultUsernames = null;
             searchResultUsernamesMap = null;
@@ -1545,7 +1562,7 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
             contextMedia = false;
             searchResultBotContext = null;
             notifyDataSetChanged();
-            delegate.needChangePanelVisibility(!searchResultHashtags.isEmpty() || hintHashtag != null);
+            delegate.needChangePanelVisibility((hudQuickReplies != null && !hudQuickReplies.isEmpty()) || (searchResultHashtags != null && !searchResultHashtags.isEmpty()) || hintHashtag != null);
         } else if (foundType == 2) {
             ArrayList<String> newResult = new ArrayList<>();
             ArrayList<String> newResultHelp = new ArrayList<>();
@@ -1579,6 +1596,7 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
                 quickRepliesQuery = null;
                 quickReplies = null;
             }
+            hudQuickReplies = null;
             searchResultHashtags = null;
             stickers = null;
             searchResultUsernames = null;
@@ -1605,6 +1623,7 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
                 searchResultUsernamesMap = null;
                 searchResultCommands = null;
                 quickReplies = null;
+                hudQuickReplies = null;
                 searchResultCommandsHelp = null;
                 searchResultCommandsUsers = null;
                 notifyDataSetChanged();
@@ -1617,6 +1636,7 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
             searchResultSuggestions = null;
             searchResultCommands = null;
             quickReplies = null;
+            hudQuickReplies = null;
             searchResultCommandsHelp = null;
             searchResultCommandsUsers = null;
         }
@@ -1699,6 +1719,8 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
             count += searchResultBotContext.size() + (searchResultBotContextSwitch != null || searchResultBotWebViewSwitch != null ? 1 : 0);
         } else if (searchResultUsernames != null) {
             count += searchResultUsernames.size();
+        } else if (hudQuickReplies != null) {
+            count += hudQuickReplies.size();
         } else if (searchResultHashtags != null) {
             count += searchResultHashtags.size();
         } else if (searchResultCommands != null || quickReplies != null) {
@@ -1734,6 +1756,10 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
         }
         if (quickReplies != null) {
             quickReplies.clear();
+        }
+        if (hudQuickReplies != null) {
+            hudQuickReplies.clear();
+            hudQuickReplies = null;
         }
         if (searchResultSuggestions != null) {
             searchResultSuggestions.clear();
@@ -1824,6 +1850,11 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
                 return null;
             }
             return searchResultUsernames.get(i);
+        } else if (hudQuickReplies != null) {
+            if (i < 0 || i >= hudQuickReplies.size()) {
+                return null;
+            }
+            return hudQuickReplies.get(i);
         } else if (searchResultHashtags != null) {
             if (i < 0 || i >= searchResultHashtags.size()) {
                 return null;
@@ -2001,6 +2032,9 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
                 } else if (object instanceof TLRPC.Chat) {
                     cell.setChat((TLRPC.Chat) object);
                 }
+            } else if (hudQuickReplies != null && position >= 0 && position < hudQuickReplies.size()) {
+                com.hudgram.ui.HudConfig.QuickReplyItem item = hudQuickReplies.get(position);
+                cell.setQuickReply(item.label, item.value);
             } else if (searchResultHashtags != null && position >= 0 && position < searchResultHashtags.size()) {
                 cell.setText(searchResultHashtags.get(position));
             } else if (searchResultSuggestions != null && position >= 0 && position < searchResultSuggestions.size()) {

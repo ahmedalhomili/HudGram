@@ -218,4 +218,71 @@ public class HudConfig {
         partialCopy = !partialCopy;
         getPrefs().edit().putBoolean("partialCopy", partialCopy).apply();
     }
+
+    // quickReplyEnabled
+    public static boolean quickReplyEnabled = getPrefs().getBoolean("quickReplyEnabled", true);
+    public static void toggleQuickReplyEnabled() {
+        quickReplyEnabled = !quickReplyEnabled;
+        getPrefs().edit().putBoolean("quickReplyEnabled", quickReplyEnabled).apply();
+    }
+
+    // Quick Replies
+    public static class QuickReplyItem {
+        public String label;
+        public String value;
+        public QuickReplyItem(String label, String value) {
+            this.label = label;
+            this.value = value;
+        }
+    }
+
+    public static ArrayList<QuickReplyItem> getQuickReplies() {
+        String defaultJson = "[" +
+                "{\"label\":\"سلام\",\"value\":\"السلام عليكم ورحمة الله وبركاته\"}," +
+                "{\"label\":\"وعليكم\",\"value\":\"وعليكم السلام ورحمة الله وبركاته\"}," +
+                "{\"label\":\"شكر\",\"value\":\"شكراً جزيلاً لك على لطفك وتعاونك\"}," +
+                "{\"label\":\"اهل\",\"value\":\"أهلاً وسهلاً بك، حياك الله\"}," +
+                "{\"label\":\"جزاك\",\"value\":\"جزاك الله خيراً وبارك فيك\"}," +
+                "{\"label\":\"انشاءالله\",\"value\":\"إن شاء الله تعالى\"}," +
+                "{\"label\":\"الحمدلله\",\"value\":\"الحمد لله رب العالمين\"}," +
+                "{\"label\":\"لاحول\",\"value\":\"لا حول ولا قوة إلا بالله العلي العظيم\"}," +
+                "{\"label\":\"امان\",\"value\":\"في أمان الله ورعايته، مع السلامة\"}," +
+                "{\"label\":\"صلي\",\"value\":\"اللهم صل وسلم وبارك على نبينا محمد وعلى آله وصحبه أجمعين\"}" +
+                "]";
+        if (getPrefs().getInt("quickRepliesVersion", 1) < 2) {
+            getPrefs().edit()
+                    .putString("quickRepliesJson", defaultJson)
+                    .putInt("quickRepliesVersion", 2)
+                    .apply();
+        }
+
+        String json = getPrefs().getString("quickRepliesJson", defaultJson);
+        ArrayList<QuickReplyItem> list = new ArrayList<>();
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                org.json.JSONObject obj = array.getJSONObject(i);
+                list.add(new QuickReplyItem(obj.getString("label"), obj.getString("value")));
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        return list;
+    }
+
+    public static void setQuickReplies(ArrayList<QuickReplyItem> list) {
+        org.json.JSONArray array = new org.json.JSONArray();
+        try {
+            for (QuickReplyItem item : list) {
+                org.json.JSONObject obj = new org.json.JSONObject();
+                obj.put("label", item.label);
+                obj.put("value", item.value);
+                array.put(obj);
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        getPrefs().edit().putString("quickRepliesJson", array.toString()).apply();
+    }
 }
+

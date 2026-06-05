@@ -7154,6 +7154,10 @@ public class ChatActivity extends BaseFragment implements
             Object object = mentionContainer.getAdapter().getItem(position);
             int start = mentionContainer.getAdapter().getResultStartPosition();
             int len = mentionContainer.getAdapter().getResultLength();
+            if (object instanceof com.hudgram.ui.HudConfig.QuickReplyItem) {
+                chatActivityEnterView.replaceWithText(start, len, ((com.hudgram.ui.HudConfig.QuickReplyItem) object).value, false);
+                return;
+            }
             if (mentionContainer.getAdapter().isLocalHashtagHint(position)) {
                 chatActivityEnterView.replaceWithText(start, len, mentionContainer.getAdapter().getHashtagHint() + "@" + ChatObject.getPublicUsername(currentChat) + " ", false);
                 return;

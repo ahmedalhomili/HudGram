@@ -159,6 +159,14 @@ public class MentionCell extends LinearLayout {
         nameTextView.setText(text);
     }
 
+    public void setQuickReply(String shortcut, String value) {
+        resetEmojiSuggestion();
+        imageView.setVisibility(GONE);
+        usernameTextView.setVisibility(VISIBLE);
+        nameTextView.setText("#" + shortcut);
+        usernameTextView.setText(value);
+    }
+
     @Override
     public void invalidate() {
         super.invalidate();
