@@ -519,6 +519,82 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
             case "HudQuickReplyEditMode": return LocaleController.getString("HudQuickReplyEditMode", R.string.HudQuickReplyEditMode);
             case "HudQuickReplyEnabled": return LocaleController.getString("HudQuickReplyEnabled", R.string.HudQuickReplyEnabled);
             case "HudQuickReplyDisabled": return LocaleController.getString("HudQuickReplyDisabled", R.string.HudQuickReplyDisabled);
+            case "HudAutoReplyTitle": return LocaleController.getString("HudAutoReplyTitle", R.string.HudAutoReplyTitle);
+            case "HudAutoReplyRow": return LocaleController.getString("HudAutoReplyRow", R.string.HudAutoReplyRow);
+            case "HudAutoReplyMentionEnabled": return LocaleController.getString("HudAutoReplyMentionEnabled", R.string.HudAutoReplyMentionEnabled);
+            case "HudAutoReplyMentionText": return LocaleController.getString("HudAutoReplyMentionText", R.string.HudAutoReplyMentionText);
+            case "HudAutoReplyMentionTextHint": return LocaleController.getString("HudAutoReplyMentionTextHint", R.string.HudAutoReplyMentionTextHint);
+            case "HudAutoReplyMentionCooldown": return LocaleController.getString("HudAutoReplyMentionCooldown", R.string.HudAutoReplyMentionCooldown);
+            case "HudAutoReplyMentionCooldownAbout": return LocaleController.getString("HudAutoReplyMentionCooldownAbout", R.string.HudAutoReplyMentionCooldownAbout);
+            case "HudAutoReplySaved": return LocaleController.getString("HudAutoReplySaved", R.string.HudAutoReplySaved);
+            case "HudAutoReplyReplyMode": return LocaleController.getString("HudAutoReplyReplyMode", R.string.HudAutoReplyReplyMode);
+            case "HudAutoReplyModeSingle": return LocaleController.getString("HudAutoReplyModeSingle", R.string.HudAutoReplyModeSingle);
+            case "HudAutoReplyModeMultiple": return LocaleController.getString("HudAutoReplyModeMultiple", R.string.HudAutoReplyModeMultiple);
+            case "HudAutoReplyModeSmart": return LocaleController.getString("HudAutoReplyModeSmart", R.string.HudAutoReplyModeSmart);
+            case "HudAutoReplyManageMessages": return LocaleController.getString("HudAutoReplyManageMessages", R.string.HudAutoReplyManageMessages);
+            case "HudAutoReplyAddMessage": return LocaleController.getString("HudAutoReplyAddMessage", R.string.HudAutoReplyAddMessage);
+            case "HudAutoReplyEditMessage": return LocaleController.getString("HudAutoReplyEditMessage", R.string.HudAutoReplyEditMessage);
+            case "HudAutoReplyDeleteMessage": return LocaleController.getString("HudAutoReplyDeleteMessage", R.string.HudAutoReplyDeleteMessage);
+            case "HudAutoReplyDeleteConfirm": return LocaleController.getString("HudAutoReplyDeleteConfirm", R.string.HudAutoReplyDeleteConfirm);
+            case "HudAutoReplyScheduleHeader": return LocaleController.getString("HudAutoReplyScheduleHeader", R.string.HudAutoReplyScheduleHeader);
+            case "HudAutoReplyScheduleEnabled": return LocaleController.getString("HudAutoReplyScheduleEnabled", R.string.HudAutoReplyScheduleEnabled);
+            case "HudAutoReplyScheduleAbout": return LocaleController.getString("HudAutoReplyScheduleAbout", R.string.HudAutoReplyScheduleAbout);
+            case "HudAutoReplyScheduleFrom": return LocaleController.getString("HudAutoReplyScheduleFrom", R.string.HudAutoReplyScheduleFrom);
+            case "HudAutoReplyScheduleTo": return LocaleController.getString("HudAutoReplyScheduleTo", R.string.HudAutoReplyScheduleTo);
+            case "HudAutoReplyCooldownMode": return LocaleController.getString("HudAutoReplyCooldownMode", R.string.HudAutoReplyCooldownMode);
+            case "HudAutoReplyCooldownPerGroup": return LocaleController.getString("HudAutoReplyCooldownPerGroup", R.string.HudAutoReplyCooldownPerGroup);
+            case "HudAutoReplyCooldownPerSender": return LocaleController.getString("HudAutoReplyCooldownPerSender", R.string.HudAutoReplyCooldownPerSender);
+            case "HudAutoReplyCooldownModeAbout": return LocaleController.getString("HudAutoReplyCooldownModeAbout", R.string.HudAutoReplyCooldownModeAbout);
+            case "HudAutoReplySmartHeader": return LocaleController.getString("HudAutoReplySmartHeader", R.string.HudAutoReplySmartHeader);
+            case "HudAutoReplySmartMorning": return LocaleController.getString("HudAutoReplySmartMorning", R.string.HudAutoReplySmartMorning);
+            case "HudAutoReplySmartAfternoon": return LocaleController.getString("HudAutoReplySmartAfternoon", R.string.HudAutoReplySmartAfternoon);
+            case "HudAutoReplySmartEvening": return LocaleController.getString("HudAutoReplySmartEvening", R.string.HudAutoReplySmartEvening);
+            case "HudAutoReplySmartNight": return LocaleController.getString("HudAutoReplySmartNight", R.string.HudAutoReplySmartNight);
+            case "HudAutoReplyFilterMode": return LocaleController.getString("HudAutoReplyFilterMode", R.string.HudAutoReplyFilterMode);
+            case "HudAutoReplyFilterAll": return LocaleController.getString("HudAutoReplyFilterAll", R.string.HudAutoReplyFilterAll);
+            case "HudAutoReplyFilterWhitelist": return LocaleController.getString("HudAutoReplyFilterWhitelist", R.string.HudAutoReplyFilterWhitelist);
+            case "HudAutoReplyFilterBlacklist": return LocaleController.getString("HudAutoReplyFilterBlacklist", R.string.HudAutoReplyFilterBlacklist);
+            case "HudAutoReplyFilterManage": return LocaleController.getString("HudAutoReplyFilterManage", R.string.HudAutoReplyFilterManage);
+            case "HudAutoReplyFilterHeader": return LocaleController.getString("HudAutoReplyFilterHeader", R.string.HudAutoReplyFilterHeader);
+            case "HudAutoReplyFilterAbout": return LocaleController.getString("HudAutoReplyFilterAbout", R.string.HudAutoReplyFilterAbout);
+            case "HudAutoReplyLog": return LocaleController.getString("HudAutoReplyLog", R.string.HudAutoReplyLog);
+            case "HudAutoReplyLogEmpty": return LocaleController.getString("HudAutoReplyLogEmpty", R.string.HudAutoReplyLogEmpty);
+            case "HudAutoReplyLogClear": return LocaleController.getString("HudAutoReplyLogClear", R.string.HudAutoReplyLogClear);
+            case "HudAutoReplyLogCleared": return LocaleController.getString("HudAutoReplyLogCleared", R.string.HudAutoReplyLogCleared);
+            case "HudAutoReplyLogHeader": return LocaleController.getString("HudAutoReplyLogHeader", R.string.HudAutoReplyLogHeader);
+            case "HudAutoReplyAdvanced": return LocaleController.getString("HudAutoReplyAdvanced", R.string.HudAutoReplyAdvanced);
+            case "HudAutoReplyMessageSettings": return LocaleController.getString("HudAutoReplyMessageSettings", R.string.HudAutoReplyMessageSettings);
+            case "HudAutoReplyMultipleHeader": return LocaleController.getString("HudAutoReplyMultipleHeader", R.string.HudAutoReplyMultipleHeader);
+            case "HudAutoReplyMessageAdded": return LocaleController.getString("HudAutoReplyMessageAdded", R.string.HudAutoReplyMessageAdded);
+            case "HudAutoReplyMessageDeleted": return LocaleController.getString("HudAutoReplyMessageDeleted", R.string.HudAutoReplyMessageDeleted);
+            case "HudAutoReplyMessageUpdated": return LocaleController.getString("HudAutoReplyMessageUpdated", R.string.HudAutoReplyMessageUpdated);
+            case "HudAutoReplyNoMessages": return LocaleController.getString("HudAutoReplyNoMessages", R.string.HudAutoReplyNoMessages);
+            case "HudAutoReplyHelpTitle": return LocaleController.getString("HudAutoReplyHelpTitle", R.string.HudAutoReplyHelpTitle);
+            case "HudAutoReplyHelpText": return LocaleController.getString("HudAutoReplyHelpText", R.string.HudAutoReplyHelpText);
+            case "HudAutoReplyCooldown10s": {
+                int res = LocaleController.getStringResId("HudAutoReplyCooldown10s");
+                return res != 0 ? LocaleController.getString("HudAutoReplyCooldown10s", res) : "10 seconds";
+            }
+            case "HudAutoReplyCooldown30s": {
+                int res = LocaleController.getStringResId("HudAutoReplyCooldown30s");
+                return res != 0 ? LocaleController.getString("HudAutoReplyCooldown30s", res) : "30 seconds";
+            }
+            case "HudAutoReplyCooldown1m": {
+                int res = LocaleController.getStringResId("HudAutoReplyCooldown1m");
+                return res != 0 ? LocaleController.getString("HudAutoReplyCooldown1m", res) : "1 minute";
+            }
+            case "HudAutoReplyCooldown2m": {
+                int res = LocaleController.getStringResId("HudAutoReplyCooldown2m");
+                return res != 0 ? LocaleController.getString("HudAutoReplyCooldown2m", res) : "2 minutes";
+            }
+            case "HudAutoReplyCooldown5m": {
+                int res = LocaleController.getStringResId("HudAutoReplyCooldown5m");
+                return res != 0 ? LocaleController.getString("HudAutoReplyCooldown5m", res) : "5 minutes";
+            }
+            case "HudAutoReplyCooldown10m": {
+                int res = LocaleController.getStringResId("HudAutoReplyCooldown10m");
+                return res != 0 ? LocaleController.getString("HudAutoReplyCooldown10m", res) : "10 minutes";
+            }
         }
         return key;
     }

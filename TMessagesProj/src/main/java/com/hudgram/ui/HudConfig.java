@@ -226,6 +226,208 @@ public class HudConfig {
         getPrefs().edit().putBoolean("quickReplyEnabled", quickReplyEnabled).apply();
     }
 
+    // autoReplyMentionEnabled
+    public static boolean autoReplyMentionEnabled = getPrefs().getBoolean("autoReplyMentionEnabled", false);
+    public static void toggleAutoReplyMentionEnabled() {
+        autoReplyMentionEnabled = !autoReplyMentionEnabled;
+        getPrefs().edit().putBoolean("autoReplyMentionEnabled", autoReplyMentionEnabled).apply();
+    }
+
+    // autoReplyMentionText
+    public static String autoReplyMentionText = getPrefs().getString("autoReplyMentionText", "أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.");
+    public static void setAutoReplyMentionText(String text) {
+        autoReplyMentionText = text;
+        getPrefs().edit().putString("autoReplyMentionText", autoReplyMentionText).apply();
+    }
+
+    // autoReplyMentionCooldown
+    public static int autoReplyMentionCooldown = getPrefs().getInt("autoReplyMentionCooldown", 30);
+    public static void setAutoReplyMentionCooldown(int cooldown) {
+        autoReplyMentionCooldown = cooldown;
+        getPrefs().edit().putInt("autoReplyMentionCooldown", autoReplyMentionCooldown).apply();
+    }
+
+    // autoReplyMode: 0=single, 1=multiple, 2=smart
+    public static int autoReplyMode = getPrefs().getInt("autoReplyMode", 0);
+    public static void setAutoReplyMode(int mode) {
+        autoReplyMode = mode;
+        getPrefs().edit().putInt("autoReplyMode", mode).apply();
+    }
+
+    // autoReplyCooldownMode: 0=per-group, 1=per-sender
+    public static int autoReplyCooldownMode = getPrefs().getInt("autoReplyCooldownMode", 1);
+    public static void setAutoReplyCooldownMode(int mode) {
+        autoReplyCooldownMode = mode;
+        getPrefs().edit().putInt("autoReplyCooldownMode", mode).apply();
+    }
+
+    // Schedule
+    public static boolean autoReplyScheduleEnabled = getPrefs().getBoolean("autoReplyScheduleEnabled", false);
+    public static void toggleAutoReplyScheduleEnabled() {
+        autoReplyScheduleEnabled = !autoReplyScheduleEnabled;
+        getPrefs().edit().putBoolean("autoReplyScheduleEnabled", autoReplyScheduleEnabled).apply();
+    }
+    public static int autoReplyScheduleStartHour = getPrefs().getInt("autoReplyScheduleStartHour", 23);
+    public static int autoReplyScheduleStartMinute = getPrefs().getInt("autoReplyScheduleStartMinute", 0);
+    public static void setAutoReplyScheduleStart(int hour, int minute) {
+        autoReplyScheduleStartHour = hour;
+        autoReplyScheduleStartMinute = minute;
+        getPrefs().edit().putInt("autoReplyScheduleStartHour", hour).putInt("autoReplyScheduleStartMinute", minute).apply();
+    }
+    public static int autoReplyScheduleEndHour = getPrefs().getInt("autoReplyScheduleEndHour", 8);
+    public static int autoReplyScheduleEndMinute = getPrefs().getInt("autoReplyScheduleEndMinute", 0);
+    public static void setAutoReplyScheduleEnd(int hour, int minute) {
+        autoReplyScheduleEndHour = hour;
+        autoReplyScheduleEndMinute = minute;
+        getPrefs().edit().putInt("autoReplyScheduleEndHour", hour).putInt("autoReplyScheduleEndMinute", minute).apply();
+    }
+
+    // Smart time-based reply messages
+    public static String autoReplyMorningText = getPrefs().getString("autoReplyMorningText", "صباح الخير، سأرد عليك بعد قليل إن شاء الله.");
+    public static void setAutoReplyMorningText(String text) {
+        autoReplyMorningText = text;
+        getPrefs().edit().putString("autoReplyMorningText", text).apply();
+    }
+    public static String autoReplyAfternoonText = getPrefs().getString("autoReplyAfternoonText", "أهلاً، سأطلع على رسالتك وأرد عليك قريباً إن شاء الله.");
+    public static void setAutoReplyAfternoonText(String text) {
+        autoReplyAfternoonText = text;
+        getPrefs().edit().putString("autoReplyAfternoonText", text).apply();
+    }
+    public static String autoReplyEveningText = getPrefs().getString("autoReplyEveningText", "مساء الخير، سأرجع لك بأقرب وقت إن شاء الله.");
+    public static void setAutoReplyEveningText(String text) {
+        autoReplyEveningText = text;
+        getPrefs().edit().putString("autoReplyEveningText", text).apply();
+    }
+    public static String autoReplyNightText = getPrefs().getString("autoReplyNightText", "شكراً على رسالتك، سأرد عليك صباحاً إن شاء الله.");
+    public static void setAutoReplyNightText(String text) {
+        autoReplyNightText = text;
+        getPrefs().edit().putString("autoReplyNightText", text).apply();
+    }
+
+    // Group filter: 0=all, 1=whitelist, 2=blacklist
+    public static int autoReplyFilterMode = getPrefs().getInt("autoReplyFilterMode", 0);
+    public static void setAutoReplyFilterMode(int mode) {
+        autoReplyFilterMode = mode;
+        getPrefs().edit().putInt("autoReplyFilterMode", mode).apply();
+    }
+    public static java.util.Set<String> getAutoReplyFilterGroups() {
+        return getPrefs().getStringSet("autoReplyFilterGroups", new java.util.HashSet<>());
+    }
+    public static void setAutoReplyFilterGroups(java.util.Set<String> groups) {
+        getPrefs().edit().putStringSet("autoReplyFilterGroups", groups).apply();
+    }
+    public static void addAutoReplyFilterGroup(long dialogId) {
+        java.util.Set<String> groups = new java.util.HashSet<>(getAutoReplyFilterGroups());
+        groups.add(String.valueOf(dialogId));
+        setAutoReplyFilterGroups(groups);
+    }
+    public static void removeAutoReplyFilterGroup(long dialogId) {
+        java.util.Set<String> groups = new java.util.HashSet<>(getAutoReplyFilterGroups());
+        groups.remove(String.valueOf(dialogId));
+        setAutoReplyFilterGroups(groups);
+    }
+    public static boolean isGroupInAutoReplyFilter(long dialogId) {
+        return getAutoReplyFilterGroups().contains(String.valueOf(dialogId));
+    }
+
+    // Multiple auto-reply messages
+    public static ArrayList<String> getAutoReplyMessages() {
+        String defaultJson = "[\"أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.\",\"شكراً على الإشارة، سأرجع لك بأقرب وقت.\",\"تم الاستلام، سأرد عليك في أقرب فرصة إن شاء الله.\"]";
+        String json = getPrefs().getString("autoReplyMessages", defaultJson);
+        ArrayList<String> list = new ArrayList<>();
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                list.add(array.getString(i));
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        return list;
+    }
+    public static void setAutoReplyMessages(ArrayList<String> list) {
+        org.json.JSONArray array = new org.json.JSONArray();
+        for (String s : list) {
+            array.put(s);
+        }
+        getPrefs().edit().putString("autoReplyMessages", array.toString()).apply();
+    }
+
+    // Auto-reply log
+    public static class AutoReplyLogEntry {
+        public String groupName;
+        public String senderName;
+        public String replyText;
+        public long timestamp;
+        public long groupId;
+        public long senderId;
+        public int messageId;
+        public AutoReplyLogEntry(String groupName, String senderName, String replyText, long timestamp, long groupId, long senderId, int messageId) {
+            this.groupName = groupName;
+            this.senderName = senderName;
+            this.replyText = replyText;
+            this.timestamp = timestamp;
+            this.groupId = groupId;
+            this.senderId = senderId;
+            this.messageId = messageId;
+        }
+    }
+    public static ArrayList<AutoReplyLogEntry> getAutoReplyLog() {
+        String json = getPrefs().getString("autoReplyLog", "[]");
+        ArrayList<AutoReplyLogEntry> list = new ArrayList<>();
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                org.json.JSONObject obj = array.getJSONObject(i);
+                list.add(new AutoReplyLogEntry(
+                        obj.optString("group", ""),
+                        obj.optString("sender", ""),
+                        obj.optString("text", ""),
+                        obj.optLong("time", 0),
+                        obj.optLong("groupId", 0),
+                        obj.optLong("senderId", 0),
+                        obj.optInt("messageId", 0)
+                ));
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        return list;
+    }
+    public static void addAutoReplyLogEntry(String groupName, String senderName, String replyText, long groupId, long senderId, int messageId) {
+        ArrayList<AutoReplyLogEntry> log = getAutoReplyLog();
+        log.add(0, new AutoReplyLogEntry(groupName, senderName, replyText, System.currentTimeMillis(), groupId, senderId, messageId));
+        if (log.size() > 50) log = new ArrayList<>(log.subList(0, 50));
+        org.json.JSONArray array = new org.json.JSONArray();
+        try {
+            for (AutoReplyLogEntry entry : log) {
+                org.json.JSONObject obj = new org.json.JSONObject();
+                obj.put("group", entry.groupName);
+                obj.put("sender", entry.senderName);
+                obj.put("text", entry.replyText);
+                obj.put("time", entry.timestamp);
+                obj.put("groupId", entry.groupId);
+                obj.put("senderId", entry.senderId);
+                obj.put("messageId", entry.messageId);
+                array.put(obj);
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        getPrefs().edit().putString("autoReplyLog", array.toString()).apply();
+    }
+    @Deprecated
+    public static void addAutoReplyLogEntry(String groupName, String senderName, String replyText, long groupId, long senderId) {
+        addAutoReplyLogEntry(groupName, senderName, replyText, groupId, senderId, 0);
+    }
+    @Deprecated
+    public static void addAutoReplyLogEntry(String groupName, String senderName, String replyText) {
+        addAutoReplyLogEntry(groupName, senderName, replyText, 0, 0, 0);
+    }
+    public static void clearAutoReplyLog() {
+        getPrefs().edit().putString("autoReplyLog", "[]").apply();
+    }
+
     // Quick Replies
     public static class QuickReplyItem {
         public String label;
