@@ -30,7 +30,6 @@ import org.telegram.ui.ActionBar.Theme;
  *   translates to the right, and tilts slightly — revealing the drawer underneath.
  * - A shadow overlay on the content card adds depth.
  *
- * Inspired by apps like JasoosDB and other modern slide-behind drawer patterns.
  */
 public class Hud3DDrawerLayout extends FrameLayout {
 
@@ -59,7 +58,6 @@ public class Hud3DDrawerLayout extends FrameLayout {
     private static final PathInterpolator PREMIUM_INTERPOLATOR =
             new PathInterpolator(0.25f, 1f, 0.5f, 1f);
 
-    // Animation parameters (JasoosDB inspired 3D effect)
     private static final float CONTENT_SCALE_CLOSED = 1.0f;
     private static final float CONTENT_SCALE_OPEN = 0.85f; // Keep it large enough, rely on 3D tilt for effect
     private static final float CONTENT_ROTATION_Y = -18f; // Perfect balance of strong 3D tilt and readability
@@ -207,7 +205,6 @@ public class Hud3DDrawerLayout extends FrameLayout {
             contentWrapper.setPivotX(LocaleController.isRTL ? contentWrapper.getWidth() : 0f);
             contentWrapper.setPivotY(contentWrapper.getHeight() / 2f);
 
-            // The secret to JasoosDB's tilt: A smaller camera distance creates strong perspective distortion!
             // Decreased to 1800 for a much more pronounced and sharp tilt
             contentWrapper.setCameraDistance(contentWrapper.getResources().getDisplayMetrics().density * 1800);
 
