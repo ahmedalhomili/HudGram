@@ -289,9 +289,14 @@ public class Hud3DDrawerLayout extends FrameLayout {
         if (contentView instanceof org.telegram.ui.ActionBar.DrawerLayoutContainer) {
             org.telegram.ui.ActionBar.DrawerLayoutContainer container = (org.telegram.ui.ActionBar.DrawerLayoutContainer) contentView;
             if (container.getParentActionBarLayout() != null) {
-                if (container.getParentActionBarLayout().getFragmentStack().size() > 1) {
-                    return false;
+                java.util.List<org.telegram.ui.ActionBar.BaseFragment> stack = container.getParentActionBarLayout().getFragmentStack();
+                if (stack != null && !stack.isEmpty()) {
+                    org.telegram.ui.ActionBar.BaseFragment topFragment = stack.get(stack.size() - 1);
+                    if (topFragment instanceof org.telegram.ui.MainTabsActivity) {
+                        return true;
+                    }
                 }
+                return false;
             }
         }
         return true;
@@ -310,16 +315,21 @@ public class Hud3DDrawerLayout extends FrameLayout {
             lastX = startX;
             isDragging = false;
 
-            // If drawer is closed, detect swipe from left edge (30dp for easier grabbing)
             if (!isOpen) {
-                boolean edgeSwipe = LocaleController.isRTL ?
-                        startX >= getWidth() - AndroidUtilities.dp(30) :
-                        startX <= AndroidUtilities.dp(30);
-                if (edgeSwipe) {
-                    return true;
+                // Intercept ACTION_DOWN only if the touch is below the top ActionBar header (100dp).
+                // This ensures ActionBar buttons (optionsItem, avatar, etc.) remain clickable,
+                // while preserving edge swipes on the main chat list body.
+                boolean isBelowHeader = startY > AndroidUtilities.dp(100);
+                if (isBelowHeader) {
+                    boolean edgeSwipe = LocaleController.isRTL ?
+                            startX >= getWidth() - AndroidUtilities.dp(30) :
+                            startX <= AndroidUtilities.dp(30);
+                    if (edgeSwipe) {
+                        return true;
+                    }
                 }
             } else {
-                // If open, tapping on the content card closes it
+                // If open, tapping on the content card closes it. We intercept immediately.
                 boolean tapOnContent = LocaleController.isRTL ?
                         startX < getWidth() - drawerWidth :
                         startX > drawerWidth;
@@ -332,10 +342,19 @@ public class Hud3DDrawerLayout extends FrameLayout {
             float dy = ev.getY() - startY;
 
             if (Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy)) {
-                if (!isOpen && ((!LocaleController.isRTL && dx > 0) || (LocaleController.isRTL && dx < 0))) {
-                    isDragging = true;
-                    return true;
-                } else if (isOpen && ((!LocaleController.isRTL && dx < 0) || (LocaleController.isRTL && dx > 0))) {
+                if (!isOpen) {
+                    // Check if the gesture started from the edge
+                    boolean edgeSwipe = LocaleController.isRTL ?
+                            startX >= getWidth() - AndroidUtilities.dp(30) :
+                            startX <= AndroidUtilities.dp(30);
+                    // Check swipe direction: from right to left in RTL, left to right in LTR
+                    boolean correctDirection = LocaleController.isRTL ? dx < 0 : dx > 0;
+                    if (edgeSwipe && correctDirection) {
+                        isDragging = true;
+                        return true;
+                    }
+                } else {
+                    // If open, horizontal swipe in either direction can drag it
                     isDragging = true;
                     return true;
                 }
@@ -370,10 +389,23 @@ public class Hud3DDrawerLayout extends FrameLayout {
             updateDrawerProgress(newProgress);
             return true;
         } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-            // Determine velocity direction
+            // Determine velocity direction and gesture type
             float totalDx = ev.getX() - startX;
-            boolean isQuickSwipe = Math.abs(totalDx) > AndroidUtilities.dp(40);
+            float totalDy = ev.getY() - startY;
+            boolean isTap = Math.abs(totalDx) < touchSlop && Math.abs(totalDy) < touchSlop;
 
+            if (isOpen && isTap) {
+                // If open and it's a tap, check if it was on the content card area
+                boolean tapOnContent = LocaleController.isRTL ?
+                        startX < getWidth() - drawerWidth :
+                        startX > drawerWidth;
+                if (tapOnContent) {
+                    closeDrawer(true);
+                    return true;
+                }
+            }
+
+            boolean isQuickSwipe = Math.abs(totalDx) > AndroidUtilities.dp(40);
             if (isQuickSwipe) {
                 // Quick swipe — follow the direction
                 boolean openDirection = LocaleController.isRTL ? totalDx < 0 : totalDx > 0;
