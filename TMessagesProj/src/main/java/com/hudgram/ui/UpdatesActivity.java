@@ -35,6 +35,7 @@ import org.telegram.ui.*;
 import org.telegram.ui.ActionBar.*;
 import org.telegram.ui.Cells.DialogCell;
 import org.telegram.ui.Components.*;
+import org.telegram.ui.Components.blur3.capture.IBlur3Hash;
 import org.telegram.ui.Stories.*;
 import org.telegram.ui.Stories.recorder.*;
 import org.telegram.ui.Components.Premium.LimitReachedBottomSheet;
@@ -43,6 +44,9 @@ import org.telegram.messenger.ChatObject;
 
 // Custom cells under the com.hudgram.ui.cells package
 import com.hudgram.ui.cells.UpdatesStoryCell;
+
+import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceRenderNode;
+import org.telegram.ui.Components.blur3.RenderNodeWithHash;
 
 import android.os.Bundle;
 import android.widget.ImageView;
@@ -70,7 +74,7 @@ import android.graphics.drawable.Drawable;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
 
-public class UpdatesActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
+public class UpdatesActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate, org.telegram.ui.MainTabsActivity.TabFragmentDelegate {
 
     private RecyclerListView listView;
     private UpdatesAdapter adapter;
@@ -89,6 +93,12 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     private FragmentFloatingButton cameraFab;
     private FragmentFloatingButton liveFab;
     private TextView statusHeader;
+    private org.telegram.ui.ActionBar.ActionBarMenuItem themeToggleItem;
+    private int searchTab = 0;
+    private FrameLayout searchTabsContainer;
+    private org.telegram.ui.Components.ViewPagerFixed.TabsView searchTabs;
+    private BlurredBackgroundSourceRenderNode iBlur3SourceGlass;
+    private int storiesHeight;
 
     public UpdatesActivity(android.os.Bundle args) {
         super(args);
@@ -122,6 +132,21 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         super.onFragmentCreate();
         if (getArguments() != null) {
             hasMainTabs = getArguments().getBoolean("hasMainTabs", false);
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            iBlur3SourceGlass = new BlurredBackgroundSourceRenderNode(null);
+            iBlur3SourceGlass.setupRenderer(new RenderNodeWithHash.Renderer() {
+                @Override
+                public void renderNodeCalculateHash(IBlur3Hash hash) {
+                    hash.add(getThemedColor(Theme.key_windowBackgroundWhite));
+                }
+
+                @Override
+                public void renderNodeUpdateDisplayList(android.graphics.Canvas canvas) {
+                    canvas.drawColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                }
+            });
         }
 
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.storiesUpdated);
@@ -297,6 +322,9 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             @Override
             public void onSearchExpand() {
                 searching = true;
+                if (searchTabsContainer != null) {
+                    searchTabsContainer.setVisibility(View.VISIBLE);
+                }
                 if (actionBar.getBackButton() != null) {
                     actionBar.getBackButton().setVisibility(View.VISIBLE);
                     actionBar.getBackButton().setAlpha(0f);
@@ -306,12 +334,20 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                     });
                 }
                 updateHeaderAvatar();
+                androidx.core.view.ViewCompat.requestApplyInsets(fragmentView);
             }
 
             @Override
             public void onSearchCollapse() {
                 searching = false;
                 searchQuery = null;
+                searchTab = 0;
+                if (searchTabs != null) {
+                    searchTabs.scrollToTab(0, 0);
+                }
+                if (searchTabsContainer != null) {
+                    searchTabsContainer.setVisibility(View.GONE);
+                }
                 if (actionBar.getBackButton() != null) {
                     actionBar.getBackButton().animate().alpha(0f).setDuration(150).withEndAction(() -> {
                         actionBar.getBackButton().setVisibility(View.GONE);
@@ -322,6 +358,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                         }
                     });
                 }
+                androidx.core.view.ViewCompat.requestApplyInsets(fragmentView);
                 updateUI();
             }
 
@@ -330,6 +367,14 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 searchQuery = editText.getText().toString();
                 updateUI();
             }
+        });
+
+        // 2. Theme switch icon
+        boolean isDark = getResourceProvider() != null ? getResourceProvider().isDark() : org.telegram.ui.ActionBar.Theme.isCurrentThemeDark();
+        themeToggleItem = menu.addItem(21, isDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24);
+        themeToggleItem.setContentDescription(LocaleController.getString(isDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight));
+        themeToggleItem.setOnClickListener(v -> {
+            com.hudgram.ui.HudUiHelper.toggleTheme(this, this::switchTheme);
         });
 
         // 3. Three-dots icon
@@ -372,11 +417,55 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         listView = new RecyclerListView(context);
         listView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
         listView.setClipToPadding(false);
+        listView.setItemAnimator(new org.telegram.ui.Components.DialogsItemAnimator(listView));
         adapter = new UpdatesAdapter(context);
         listView.setAdapter(adapter);
         rootLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
+        searchTabsContainer = new FrameLayout(context);
+        searchTabsContainer.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        searchTabsContainer.setVisibility(View.GONE);
+
+        searchTabs = new org.telegram.ui.Components.ViewPagerFixed.TabsView(context, false, 0, getResourceProvider());
+        searchTabs.addTab(0, LocaleController.getString("UpdatesChannels", R.string.UpdatesChannels));
+        searchTabs.addTab(1, LocaleController.getString("Stories", R.string.StoriesSoundEnabled));
+        searchTabs.finishAddingTabs();
+        searchTabs.setDelegate(new org.telegram.ui.Components.ViewPagerFixed.TabsView.TabsViewDelegate() {
+            @Override
+            public void onPageSelected(int page, boolean forward) {
+                searchTab = page;
+                updateUI();
+            }
+        });
+
+        searchTabsContainer.addView(searchTabs, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 44));
+
+        View separator = new View(context);
+        separator.setBackgroundColor(getThemedColor(Theme.key_divider));
+        searchTabsContainer.addView(separator, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 1, Gravity.BOTTOM));
+
+        rootLayout.addView(searchTabsContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 45));
+
         listView.setOnItemClickListener((view, position, x, y) -> {
+            if (searching) {
+                if (searchTab == 0) {
+                    if (position >= 0 && position < channelDialogs.size()) {
+                        TLRPC.Dialog dialog = channelDialogs.get(position);
+                        if (inSelectionMode) {
+                            toggleSelection(dialog.id);
+                        } else {
+                            presentFragment(ChatActivity.of(dialog.id));
+                        }
+                    }
+                } else {
+                    if (position >= 0 && position < storyItems.size()) {
+                        TL_stories.PeerStories peerStories = storyItems.get(position);
+                        long dialogId = getDialogIdFromPeerStories(peerStories);
+                        openStoryViewer(dialogId);
+                    }
+                }
+                return;
+            }
             if (position < 2) {
                 return;
             }
@@ -394,6 +483,31 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         listView.setOnItemLongClickListener(new RecyclerListView.OnItemLongClickListenerExtended() {
             @Override
             public boolean onItemClick(View view, int position, float x, float y) {
+                if (searching) {
+                    if (searchTab == 0) {
+                        if (position >= 0 && position < channelDialogs.size()) {
+                            TLRPC.Dialog dialog = channelDialogs.get(position);
+                            if (view instanceof DialogCell) {
+                                DialogCell cell = (DialogCell) view;
+                                if (cell.isPointInsideAvatar(x, y)) {
+                                    if (!inSelectionMode) {
+                                        return showChatPreview(cell);
+                                    }
+                                } else {
+                                    toggleSelection(dialog.id);
+                                    return true;
+                                }
+                            }
+                        }
+                    } else {
+                        if (position >= 0 && position < storyItems.size()) {
+                            long dialogId = getDialogIdFromPeerStories(storyItems.get(position));
+                            showStoryItemMenu(view, dialogId);
+                            return true;
+                        }
+                    }
+                    return false;
+                }
                 if (position < 2) {
                     return false;
                 }
@@ -426,6 +540,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         // Floating storiesContainer
         storiesContainer = new LinearLayout(context);
+        storiesContainer.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         storiesContainer.setOrientation(LinearLayout.VERTICAL);
         storiesContainer.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         
@@ -490,14 +605,6 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         });
 
         storiesContainer.addView(storiesRecyclerView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 140, 0, 0, 0, 8));
-        rootLayout.addView(storiesContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
-        storiesContainer.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
-            int oldHeight = oldBottom - oldTop;
-            int newHeight = bottom - top;
-            if (oldHeight != newHeight && adapter != null) {
-                adapter.notifyItemChanged(0);
-            }
-        });
 
         // Add action bar after list and stories container to draw it on top
         rootLayout.addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
@@ -571,11 +678,21 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         fragmentView = rootLayout;
 
+        fragmentView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (iBlur3SourceGlass != null) {
+                iBlur3SourceGlass.setSize(right - left, bottom - top);
+                iBlur3SourceGlass.updateDisplayListIfNeeded();
+            }
+        });
+
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, (v, insets) -> {
             int top = AndroidUtilities.getStatusBarHeight(context) + ActionBar.getCurrentActionBarHeight();
             int bottomPadding = insets.getSystemWindowInsetBottom() + dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS);
-            listView.setPadding(0, top, 0, bottomPadding);
-            storiesContainer.setTranslationY(top);
+            int listTop = top + (searching ? dp(45) : 0);
+            listView.setPadding(0, listTop, 0, bottomPadding);
+            if (searchTabsContainer != null) {
+                searchTabsContainer.setTranslationY(top);
+            }
             updateStoriesScroll();
             return insets;
         });
@@ -903,7 +1020,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void switchTheme(Theme.ThemeInfo themeInfo, boolean toDark) {
-        ActionBarMenuItem originItem = otherItem;
+        ActionBarMenuItem originItem = themeToggleItem != null ? themeToggleItem : otherItem;
         if (originItem == null) return;
         int[] pos = new int[2];
         originItem.getLocationInWindow(pos);
@@ -993,11 +1110,80 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     public void onResume() {
         super.onResume();
         updateUI();
+        if (cameraFab != null) {
+            cameraFab.setButtonVisible(true, false);
+        }
+        if (liveFab != null) {
+            liveFab.setButtonVisible(true, false);
+        }
+        if (!isInPreviewMode() && blurredView != null && blurredView.getVisibility() == View.VISIBLE) {
+            blurredView.setVisibility(View.GONE);
+            blurredView.setBackground(null);
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (undoView != null) {
+            undoView.hide(true, 0);
+        }
+    }
+
+    @Override
+    public void onBecomeFullyVisible() {
+        super.onBecomeFullyVisible();
+        if (cameraFab != null) {
+            cameraFab.setButtonVisible(true, true);
+        }
+        if (liveFab != null) {
+            liveFab.setButtonVisible(true, true);
+        }
+    }
+
+    @Override
+    public void onBecomeFullyHidden() {
+        super.onBecomeFullyHidden();
+        if (searching) {
+            if (actionBar != null) {
+                actionBar.closeSearchField();
+            }
+        }
+        if (undoView != null) {
+            undoView.hide(true, 0);
+        }
+        if (!isInPreviewMode() && blurredView != null && blurredView.getVisibility() == View.VISIBLE) {
+            blurredView.setVisibility(View.GONE);
+            blurredView.setBackground(null);
+        }
     }
 
     @Override
     public boolean canBeginSlide() {
         return true;
+    }
+
+    @Override
+    public boolean canParentTabsSlide(android.view.MotionEvent ev, boolean forward) {
+        if (searching || inSelectionMode) {
+            return false;
+        }
+        if (blurredView != null && blurredView.getVisibility() == View.VISIBLE) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public BlurredBackgroundSourceRenderNode getGlassSource() {
+        return iBlur3SourceGlass;
+    }
+
+    @Override
+    public void onParentScrollToTop() {
+        if (listView != null) {
+            listView.smoothScrollToPosition(0);
+        }
     }
 
     @Override
@@ -1733,6 +1919,17 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 blurredView.setAlpha(progress);
             }
         }
+        float scale = isOpen ? progress : (1.0f - progress);
+        if (cameraFab != null) {
+            cameraFab.setScaleX(scale);
+            cameraFab.setScaleY(scale);
+            cameraFab.setAlpha(scale);
+        }
+        if (liveFab != null) {
+            liveFab.setScaleX(scale);
+            liveFab.setScaleY(scale);
+            liveFab.setAlpha(scale);
+        }
     }
 
     @Override
@@ -1742,6 +1939,18 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 ((ViewGroup) blurredView.getParent()).removeView(blurredView);
             }
             blurredView.setBackground(null);
+        }
+        if (cameraFab != null) {
+            cameraFab.setScaleX(isOpen ? 1.0f : 0.0f);
+            cameraFab.setScaleY(isOpen ? 1.0f : 0.0f);
+            cameraFab.setAlpha(isOpen ? 1.0f : 0.0f);
+            cameraFab.setVisibility(isOpen ? View.VISIBLE : View.GONE);
+        }
+        if (liveFab != null) {
+            liveFab.setScaleX(isOpen ? 1.0f : 0.0f);
+            liveFab.setScaleY(isOpen ? 1.0f : 0.0f);
+            liveFab.setAlpha(isOpen ? 1.0f : 0.0f);
+            liveFab.setVisibility(isOpen ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -1811,7 +2020,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         if (holder != null && holder.getItemViewType() == TYPE_STORIES_PLACEHOLDER) {
             return listView.getPaddingTop() - firstChild.getTop();
         }
-        return storiesContainer != null ? storiesContainer.getHeight() : 0;
+        return storiesHeight > 0 ? storiesHeight : (storiesContainer != null ? storiesContainer.getHeight() : 0);
     }
 
     private boolean isStoriesBarVisible() {
@@ -1825,21 +2034,16 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         if (storiesContainer == null || getContext() == null) {
             return;
         }
-        int scrollY = getStoriesScrollY();
-        int height = storiesContainer.getHeight();
+        int height = storiesHeight > 0 ? storiesHeight : storiesContainer.getHeight();
         if (height == 0) {
             height = storiesContainer.getMeasuredHeight();
         }
-        if (height == 0 && isStoriesBarVisible()) {
+        if (height == 0) {
             return;
         }
-        int translationY = -Math.min(scrollY, height);
-        int topPadding = AndroidUtilities.getStatusBarHeight(getContext()) + ActionBar.getCurrentActionBarHeight();
-        storiesContainer.setTranslationY(topPadding + translationY);
-
+        int scrollY = getStoriesScrollY();
         float alpha = isStoriesBarVisible() ? (1.0f - Math.min(1.0f, (float) scrollY / height)) : 0f;
         storiesContainer.setAlpha(alpha);
-        storiesContainer.setVisibility(alpha == 0f ? View.GONE : View.VISIBLE);
     }
 
     private void executeSwipeAction(long dialogId, int action, int position) {
@@ -1893,18 +2097,6 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
-    private class StoriesPlaceholderView extends View {
-        public StoriesPlaceholderView(Context context) {
-            super(context);
-        }
-
-        @Override
-        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            int height = isStoriesBarVisible() && storiesContainer != null ? storiesContainer.getMeasuredHeight() : 0;
-            setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), height);
-        }
-    }
-
     private class UpdatesAdapter extends RecyclerListView.SelectionAdapter {
         private final Context context;
 
@@ -1919,6 +2111,13 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         @Override
         public int getItemCount() {
+            if (searching) {
+                if (searchTab == 0) {
+                    return channelDialogs.isEmpty() ? 1 : channelDialogs.size();
+                } else {
+                    return storyItems.isEmpty() ? 1 : storyItems.size();
+                }
+            }
             if (channelDialogs.isEmpty()) {
                 return 3; // Placeholder, Header, EmptyView
             }
@@ -1927,6 +2126,13 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
         @Override
         public int getItemViewType(int position) {
+            if (searching) {
+                if (searchTab == 0) {
+                    return channelDialogs.isEmpty() ? TYPE_EMPTY : TYPE_CHANNEL;
+                } else {
+                    return storyItems.isEmpty() ? TYPE_EMPTY : TYPE_CHANNEL;
+                }
+            }
             if (position == 0) {
                 return TYPE_STORIES_PLACEHOLDER;
             } else if (position == 1) {
@@ -1945,7 +2151,13 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View view;
             if (viewType == TYPE_STORIES_PLACEHOLDER) {
-                view = new StoriesPlaceholderView(context);
+                if (storiesContainer.getParent() != null) {
+                    ((ViewGroup) storiesContainer.getParent()).removeView(storiesContainer);
+                }
+                storiesContainer.setTranslationY(0);
+                storiesContainer.setAlpha(1.0f);
+                storiesContainer.setVisibility(isStoriesBarVisible() ? View.VISIBLE : View.GONE);
+                view = storiesContainer;
             } else if (viewType == TYPE_HEADER) {
                 FrameLayout headerLayout = new FrameLayout(context);
                 
@@ -1981,8 +2193,8 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                         int storiesHeight = storiesContainer != null ? storiesContainer.getMeasuredHeight() : 0;
                         int headerHeight = dp(40);
                         int minHeight = totalHeight - storiesHeight - headerHeight;
-                        if (minHeight < dp(300)) {
-                            minHeight = dp(300);
+                        if (minHeight < dp(380)) {
+                            minHeight = dp(380);
                         }
                         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(minHeight, MeasureSpec.EXACTLY));
                     }
@@ -2004,7 +2216,14 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             int type = holder.getItemViewType();
-            if (type == TYPE_HEADER) {
+            if (type == TYPE_STORIES_PLACEHOLDER) {
+                boolean visible = isStoriesBarVisible();
+                storiesContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
+                storiesContainer.setLayoutParams(new RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    visible ? ViewGroup.LayoutParams.WRAP_CONTENT : 0
+                ));
+            } else if (type == TYPE_HEADER) {
                 boolean hasArchived = false;
                 ArrayList<TLRPC.Dialog> allChannels = MessagesController.getInstance(currentAccount).dialogsChannelsOnly;
                 if (allChannels != null) {
@@ -2020,13 +2239,26 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                 channelsArchiveButton.setText(showArchivedChannels ? LocaleController.getString("UpdatesChannels", R.string.UpdatesChannels) : LocaleController.getString("UpdatesArchive", R.string.UpdatesArchive));
             } else if (type == TYPE_CHANNEL) {
                 DialogCell cell = (DialogCell) holder.itemView;
-                int dialogIndex = position - 2;
-                if (dialogIndex >= 0 && dialogIndex < channelDialogs.size()) {
-                    TLRPC.Dialog dialog = channelDialogs.get(dialogIndex);
-                    cell.setDialog(dialog, DialogsActivity.DIALOGS_TYPE_CHANNELS_ONLY, 0);
-                    cell.setChecked(inSelectionMode && selectedDialogIds.contains(dialog.id), false);
-
-
+                if (searching && searchTab == 1) {
+                    int storyIndex = position;
+                    if (storyIndex >= 0 && storyIndex < storyItems.size()) {
+                        TL_stories.PeerStories peerStories = storyItems.get(storyIndex);
+                        long id = getDialogIdFromPeerStories(peerStories);
+                        TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(id);
+                        if (dialog == null) {
+                            dialog = new TLRPC.TL_dialog();
+                            dialog.id = id;
+                        }
+                        cell.setDialog(dialog, DialogsActivity.DIALOGS_TYPE_DEFAULT, 0);
+                        cell.setChecked(false, false);
+                    }
+                } else {
+                    int dialogIndex = searching ? position : position - 2;
+                    if (dialogIndex >= 0 && dialogIndex < channelDialogs.size()) {
+                        TLRPC.Dialog dialog = channelDialogs.get(dialogIndex);
+                        cell.setDialog(dialog, DialogsActivity.DIALOGS_TYPE_CHANNELS_ONLY, 0);
+                        cell.setChecked(inSelectionMode && selectedDialogIds.contains(dialog.id), false);
+                    }
                 }
             }
         }
@@ -2123,6 +2355,11 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
 
                 actionBar.updateColors();
             }
+            if (themeToggleItem != null) {
+                boolean isDark = getResourceProvider() != null ? getResourceProvider().isDark() : org.telegram.ui.ActionBar.Theme.isCurrentThemeDark();
+                themeToggleItem.setIcon(isDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24);
+                themeToggleItem.setContentDescription(LocaleController.getString(isDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight));
+            }
             if (actionModeCloseView != null) {
                 actionModeCloseView.setColorFilter(new android.graphics.PorterDuffColorFilter(getThemedColor(Theme.key_actionBarActionModeDefaultIcon), android.graphics.PorterDuff.Mode.MULTIPLY));
                 actionModeCloseView.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_actionBarActionModeDefaultSelector)));
@@ -2145,6 +2382,12 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             }
             if (storiesContainer != null) {
                 storiesContainer.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+            }
+            if (searchTabsContainer != null) {
+                searchTabsContainer.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+            }
+            if (searchTabs != null) {
+                searchTabs.updateColors();
             }
             if (storiesRecyclerView != null) {
                 int count = storiesRecyclerView.getChildCount();
@@ -2187,6 +2430,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(fragmentView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
         themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(listView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
         themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(storiesContainer, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
+        themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(searchTabsContainer, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
         themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
         themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(listView, org.telegram.ui.ActionBar.ThemeDescription.FLAG_LISTGLOWCOLOR, null, null, null, null, Theme.key_actionBarDefault));
         themeDescriptions.add(new org.telegram.ui.ActionBar.ThemeDescription(actionBar, org.telegram.ui.ActionBar.ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_actionBarDefaultIcon));
