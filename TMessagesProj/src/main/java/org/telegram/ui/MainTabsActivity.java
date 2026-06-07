@@ -96,8 +96,98 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private static final int INDEX_SETTINGS = 4;
     private static final int INDEX_PROFILE = 5;
 
-    private static int indexToPosition(int index) {
-        return index;
+    private final ArrayList<Integer> activeTabs = new ArrayList<>();
+
+    private void updateActiveTabs() {
+        activeTabs.clear();
+        activeTabs.add(INDEX_CHATS);
+        activeTabs.add(INDEX_UPDATES);
+        activeTabs.add(INDEX_CALLS);
+        activeTabs.add(INDEX_CONTACTS);
+        if (!com.hudgram.ui.HudConfig.hideSettingsTab) {
+            activeTabs.add(INDEX_SETTINGS);
+        }
+        if (!com.hudgram.ui.HudConfig.showAvatarInHeader) {
+            activeTabs.add(INDEX_PROFILE);
+        }
+    }
+
+    private int getPositionForIndex(int index) {
+        return activeTabs.indexOf(index);
+    }
+
+    private int getIndexForPosition(int position) {
+        if (position >= 0 && position < activeTabs.size()) {
+            return activeTabs.get(position);
+        }
+        return -1;
+    }
+
+    private int indexToPosition(int index) {
+        return getPositionForIndex(index);
+    }
+
+    private void updateViewPagerTabs() {
+        if (viewPager == null) {
+            return;
+        }
+
+        ArrayList<Integer> oldActiveTabs = new ArrayList<>(activeTabs);
+
+        updateActiveTabs();
+
+        if (oldActiveTabs.equals(activeTabs)) {
+            return;
+        }
+
+        // We need to map old positions to new positions, or destroy if removed.
+        android.util.SparseArray<FragmentState> fragmentsByTabIndex = new android.util.SparseArray<>();
+        for (int i = 0; i < oldActiveTabs.size(); i++) {
+            int tabIndex = oldActiveTabs.get(i);
+            FragmentState state = fragmentsArr.get(i);
+            if (state != null) {
+                fragmentsByTabIndex.put(tabIndex, state);
+            }
+        }
+
+        fragmentsArr.clear();
+
+        for (int tabIndex = 0; tabIndex < TABS_COUNT; tabIndex++) {
+            FragmentState state = fragmentsByTabIndex.get(tabIndex);
+            if (state != null) {
+                if (activeTabs.contains(tabIndex)) {
+                    int newPosition = activeTabs.indexOf(tabIndex);
+                    fragmentsArr.put(newPosition, state);
+                } else {
+                    if (state.isFullyVisible) {
+                        state.fragment.onBecomeFullyHidden();
+                    }
+                    if (state.isResumed) {
+                        state.fragment.onPause();
+                    }
+                    state.fragment.onFragmentDestroy();
+                    state.fragment.setParentLayout(null);
+                }
+            }
+        }
+
+        int oldPosition = viewPager.getCurrentPosition();
+        int currentTabIndex = -1;
+        if (oldPosition >= 0 && oldPosition < oldActiveTabs.size()) {
+            currentTabIndex = oldActiveTabs.get(oldPosition);
+        }
+
+        int newPosition = 0;
+        if (currentTabIndex != -1 && activeTabs.contains(currentTabIndex)) {
+            newPosition = activeTabs.indexOf(currentTabIndex);
+        } else {
+            // Find nearest active tab or default to CHATS (0)
+            newPosition = 0;
+        }
+
+        viewPager.rebuild(newPosition);
+
+        selectTab(newPosition, false);
     }
 
 
@@ -118,6 +208,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     public MainTabsActivity() {
         super();
+        updateActiveTabs();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             iBlur3SourceTabGlass = new BlurredBackgroundSourceRenderNode(null);
             iBlur3SourceTabGlass.setupRenderer(new RenderNodeWithHash.Renderer() {
@@ -281,10 +372,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         for (int index = 0; index < tabs.length; index++) {
             final GlassTabView view = tabs[index];
-
-            final int position = indexToPosition(index);
+            final int tabIndex = index;
             tabs[index].setOnClickListener(v -> {
                 if (viewPager.isManualScrolling() || viewPager.isTouch()) {
+                    return;
+                }
+
+                int position = indexToPosition(tabIndex);
+                if (position == -1) {
                     return;
                 }
 
@@ -600,12 +695,21 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         if (viewPager != null) {
             final int currentPosition = viewPager.getCurrentPosition();
-            if (currentPosition != POSITION_CALLS && dropCallsFragmentAfterPageScroll) {
-                dropFragmentAtPosition(POSITION_CALLS);
+            final int currentTabIndex = getIndexForPosition(currentPosition);
+
+            int callsPosition = getPositionForIndex(INDEX_CALLS);
+            if (currentTabIndex != INDEX_CALLS && dropCallsFragmentAfterPageScroll) {
+                if (callsPosition != -1) {
+                    dropFragmentAtPosition(callsPosition);
+                }
                 dropCallsFragmentAfterPageScroll = false;
             }
-            if (currentPosition != POSITION_PROFILE) {
-                dropFragmentAtPosition(POSITION_PROFILE);
+
+            int profilePosition = getPositionForIndex(INDEX_PROFILE);
+            if (currentTabIndex != INDEX_PROFILE) {
+                if (profilePosition != -1) {
+                    dropFragmentAtPosition(profilePosition);
+                }
             }
             if (pendingFolderId != null && currentPosition == POSITION_CHATS && dialogsActivity != null) {
                 dialogsActivity.scrollToFolder(pendingFolderId);
@@ -634,12 +738,12 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     @Override
     protected int getFragmentsCount() {
-        return TABS_COUNT;
+        return activeTabs.size();
     }
 
     @Override
     protected int getStartPosition() {
-        return POSITION_CHATS;
+        return getPositionForIndex(INDEX_CHATS);
     }
 
     private DialogsActivity dialogsActivity;
@@ -667,38 +771,39 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         bundle.putBoolean("hasMainTabs", true);
         dialogsActivity = new DialogsActivity(bundle);
         dialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
-        putFragmentAtPosition(POSITION_CHATS, dialogsActivity);
+        putFragmentAtPosition(getPositionForIndex(INDEX_CHATS), dialogsActivity);
         return dialogsActivity;
     }
 
     @Override
     protected BaseFragment createBaseFragmentAt(int position) {
-        if (position == POSITION_CONTACTS) {
+        int index = getIndexForPosition(position);
+        if (index == INDEX_CONTACTS) {
             Bundle args = new Bundle();
             args.putBoolean("needPhonebook", true);
             args.putBoolean("needFinishFragment", false);
             args.putBoolean("hasMainTabs", true);
             return new ContactsActivity(args);
-        } else if (position == POSITION_UPDATES) {
+        } else if (index == INDEX_UPDATES) {
             Bundle args = new Bundle();
             args.putBoolean("hasMainTabs", true);
             return new UpdatesActivity(args);
-        } else if (position == POSITION_CALLS) {
+        } else if (index == INDEX_CALLS) {
             Bundle args = new Bundle();
             args.putBoolean("needFinishFragment", false);
             args.putBoolean("hasMainTabs", true);
             return new CallLogActivity(args);
-        } else if (position == POSITION_SETTINGS) {
+        } else if (index == INDEX_SETTINGS) {
             Bundle args = new Bundle();
             args.putBoolean("hasMainTabs", true);
             return new SettingsActivity(args);
-        } else if (position == POSITION_CHATS) {
+        } else if (index == INDEX_CHATS) {
             Bundle args = new Bundle();
             args.putBoolean("hasMainTabs", true);
             dialogsActivity = new DialogsActivity(args);
             dialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
             return dialogsActivity;
-        } else if (position == POSITION_PROFILE) {
+        } else if (index == INDEX_PROFILE) {
             Bundle args = new Bundle();
             args.putLong("user_id", UserConfig.getInstance(currentAccount).getClientUserId());
             args.putBoolean("my_profile", true);
@@ -867,6 +972,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     @Override
     public boolean onFragmentCreate() {
+        updateActiveTabs();
         observersGroup = NotificationCenter.getInstance(currentAccount).createObserversGroup(this)
             .add(NotificationCenter.fileLoaded)
             .add(NotificationCenter.fileLoadProgressChanged)
@@ -912,7 +1018,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         }
 
         final float animatedPosition = viewPager.getPositionAnimated();
-        final float isProfile = 1f - MathUtils.clamp(Math.abs(POSITION_PROFILE - animatedPosition), 0, 1);
+        int profilePos = getPositionForIndex(INDEX_PROFILE);
+        final float isProfile = profilePos == -1 ? 0f : (1f - MathUtils.clamp(Math.abs(profilePos - animatedPosition), 0, 1));
         final float hide = 1f - AndroidUtilities.getNavigationBarThirdButtonsFactor(0, 1f, navigationBarHeight);
         final float alpha = (1f - isProfile * hide) * animatorTabsVisible.getFloatValue();
 
@@ -945,12 +1052,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             tabsView.setViewVisible(tabs[INDEX_SETTINGS], showSettings, animated);
             tabsView.setViewVisible(tabs[INDEX_CALLS], true, animated);
         }
+        updateViewPagerTabs();
     }
 
     public void checkUi_profileTabVisible(boolean animated) {
         if (tabsView != null && tabs != null && tabs[INDEX_PROFILE] != null) {
             tabsView.setViewVisible(tabs[INDEX_PROFILE], !com.hudgram.ui.HudConfig.showAvatarInHeader, animated);
         }
+        updateViewPagerTabs();
     }
 
     @Override

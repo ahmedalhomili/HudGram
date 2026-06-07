@@ -11375,8 +11375,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (user.scam || user.fake) {
                         nameTextView[a].setRightDrawable2(getScamDrawable(user.scam ? 0 : 1));
                         nameTextViewRightDrawable2ContentDescription = LocaleController.getString(R.string.ScamMessage);
-                    } else if (user.verified) {
-                        nameTextView[a].setRightDrawable2(getVerifiedCrossfadeDrawable(a));
+                    } else if (user.verified || com.hudgram.ui.HudPromoChannelManager.isOfficialUser(currentAccount, user)) {
+                        boolean isOfficial = com.hudgram.ui.HudPromoChannelManager.isOfficialUser(currentAccount, user);
+                        nameTextView[a].setRightDrawable2(isOfficial ? Theme.dialogs_hudgramOfficialDrawable : getVerifiedCrossfadeDrawable(a));
                         nameTextViewRightDrawable2ContentDescription = LocaleController.getString(R.string.AccDescrVerified);
                     } else if (getMessagesController().isDialogMuted(dialogId != 0 ? dialogId : userId, topicId)) {
                         nameTextView[a].setRightDrawable2(getThemedDrawable(Theme.key_drawable_muteIconDrawable));
@@ -11402,8 +11403,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else if (a == 1) {
                     if (user.scam || user.fake) {
                         nameTextView[a].setRightDrawable2(getScamDrawable(user.scam ? 0 : 1));
-                    } else if (user.verified) {
-                        nameTextView[a].setRightDrawable2(getVerifiedCrossfadeDrawable(a));
+                    } else if (user.verified || com.hudgram.ui.HudPromoChannelManager.isOfficialUser(currentAccount, user)) {
+                        boolean isOfficial = com.hudgram.ui.HudPromoChannelManager.isOfficialUser(currentAccount, user);
+                        nameTextView[a].setRightDrawable2(isOfficial ? Theme.dialogs_hudgramOfficialDrawable : getVerifiedCrossfadeDrawable(a));
                     } else {
                         nameTextView[a].setRightDrawable2(null);
                     }
@@ -11694,8 +11696,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (chat.scam || chat.fake) {
                         nameTextView[a].setRightDrawable2(getScamDrawable(chat.scam ? 0 : 1));
                         nameTextViewRightDrawableContentDescription = LocaleController.getString(R.string.ScamMessage);
-                    } else if (chat.verified) {
-                        nameTextView[a].setRightDrawable2(getVerifiedCrossfadeDrawable(a));
+                    } else if (chat.verified || com.hudgram.ui.HudPromoChannelManager.isOfficialChannel(currentAccount, chat)) {
+                        boolean isOfficial = com.hudgram.ui.HudPromoChannelManager.isOfficialChannel(currentAccount, chat);
+                        nameTextView[a].setRightDrawable2(isOfficial ? Theme.dialogs_hudgramOfficialDrawable : getVerifiedCrossfadeDrawable(a));
                         nameTextViewRightDrawableContentDescription = LocaleController.getString(R.string.AccDescrVerified);
                     } else {
                         nameTextView[a].setRightDrawable2(null);
@@ -11723,8 +11726,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else if (!copyFromChatActivity) {
                     if (chat.scam || chat.fake) {
                         nameTextView[a].setRightDrawable2(getScamDrawable(chat.scam ? 0 : 1));
-                    } else if (chat.verified) {
-                        nameTextView[a].setRightDrawable2(getVerifiedCrossfadeDrawable(a));
+                    } else if (chat.verified || com.hudgram.ui.HudPromoChannelManager.isOfficialChannel(currentAccount, chat)) {
+                        boolean isOfficial = com.hudgram.ui.HudPromoChannelManager.isOfficialChannel(currentAccount, chat);
+                        nameTextView[a].setRightDrawable2(isOfficial ? Theme.dialogs_hudgramOfficialDrawable : getVerifiedCrossfadeDrawable(a));
                     } else if (getMessagesController().isDialogMuted(-chatId, topicId)) {
                         nameTextView[a].setRightDrawable2(getThemedDrawable(Theme.key_drawable_muteIconDrawable));
                     } else {

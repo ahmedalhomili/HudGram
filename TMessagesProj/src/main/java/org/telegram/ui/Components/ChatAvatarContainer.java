@@ -895,6 +895,13 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
     }
 
     public void setTitle(CharSequence value, boolean scam, boolean fake, boolean verified, boolean premium, TLRPC.EmojiStatus emojiStatus, boolean animated) {
+        if (parentFragment != null) {
+            TLRPC.Chat chat = parentFragment.getCurrentChat();
+            TLRPC.User user = parentFragment.getCurrentUser();
+            if (com.hudgram.ui.HudPromoChannelManager.isOfficial(currentAccount, user, chat)) {
+                verified = true;
+            }
+        }
         if (value != null) {
             value = Emoji.replaceEmoji(value, titleTextView.getPaint().getFontMetricsInt(), false);
         }
@@ -909,14 +916,27 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
                 rightDrawableIsScamOrVerified = true;
             }
         } else if (verified) {
-            verifiedBackground = getResources().getDrawable(R.drawable.verified_area).mutate();
-            verifiedBackground.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_profile_verifiedBackground), PorterDuff.Mode.MULTIPLY));
-            verifiedCheck = getResources().getDrawable(R.drawable.verified_check).mutate();
-            verifiedCheck.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_profile_verifiedCheck), PorterDuff.Mode.MULTIPLY));
-            Drawable verifiedDrawable = new CombinedDrawable(verifiedBackground, verifiedCheck);
-            titleTextView.setRightDrawable2(verifiedDrawable);
-            rightDrawableIsScamOrVerified = true;
-            rightDrawable2ContentDescription = getString(R.string.AccDescrVerified);
+            boolean isOfficialChannel = false;
+            if (parentFragment != null) {
+                TLRPC.Chat chat = parentFragment.getCurrentChat();
+                TLRPC.User user = parentFragment.getCurrentUser();
+                isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficial(currentAccount, user, chat);
+            }
+            if (isOfficialChannel) {
+                Theme.dialogs_hudgramOfficialDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_profile_verifiedBackground), PorterDuff.Mode.MULTIPLY));
+                titleTextView.setRightDrawable2(Theme.dialogs_hudgramOfficialDrawable);
+                rightDrawableIsScamOrVerified = true;
+                rightDrawable2ContentDescription = getString(R.string.AccDescrVerified);
+            } else {
+                verifiedBackground = getResources().getDrawable(R.drawable.verified_area).mutate();
+                verifiedBackground.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_profile_verifiedBackground), PorterDuff.Mode.MULTIPLY));
+                verifiedCheck = getResources().getDrawable(R.drawable.verified_check).mutate();
+                verifiedCheck.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_profile_verifiedCheck), PorterDuff.Mode.MULTIPLY));
+                Drawable verifiedDrawable = new CombinedDrawable(verifiedBackground, verifiedCheck);
+                titleTextView.setRightDrawable2(verifiedDrawable);
+                rightDrawableIsScamOrVerified = true;
+                rightDrawable2ContentDescription = getString(R.string.AccDescrVerified);
+            }
         } else if (titleTextView.getRightDrawable() instanceof ScamDrawable) {
             titleTextView.setRightDrawable2(null);
             rightDrawableIsScamOrVerified = false;

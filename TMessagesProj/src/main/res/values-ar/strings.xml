@@ -10801,7 +10801,7 @@
     <string name="NotificationAppearance">مظهر الإشعارات</string>
     <string name="NotificationColorApplied">تم تطبيق لون الإشعارات الجديد</string>
     <string name="NotificationIconColor">لون أيقونة الإشعارات</string>
-    <string name="HudgramSettings">إعدادات هدهد جرام</string>
+    <string name="HudgramSettings">إعدادات هُدْ جرام</string>
     <string name="HudgramSettingsInfo">تخصيص الواجهة، المترجم، والأدوات الإضافية</string>
     <string name="NoChannelsYet">لا توجد قنوات بعد</string>
     <string name="NoChannelsYetInfo">يمكنك إنشاء قناة جديدة أو البحث عن قنوات عامة.</string>
@@ -10865,7 +10865,7 @@
     <string name="CommonSettingsAbout">تخصيص الكاميرا، تأكيد الاتصال، وتفاعلات الأرشيف</string>
     <string name="ShowAvatarInHeader">عرض الملف الشخصي في العنوان</string>
     <string name="ShowAvatarInHeaderAbout">إخفاء صورة الملف الشخصي من الشريط السفلي وعرضها بشكل دائري في شريط العنوان بالأعلى</string>
-    <string name="ShowMyNameInHeader">عرض اسمي بدل عنوان هدهدجرام</string>
+    <string name="ShowMyNameInHeader">عرض اسمي بدل عنوان هُدْجرام</string>
     <string name="ShowMyNameInHeaderAbout">عرض اسمك الأول والأخير في شريط العنوان بالأعلى بدلاً من شعار أو كلمة Hudgram</string>
     <string name="ShowBioAsSubtitle">عرض البايو كعنوان فرعي</string>
     <string name="ShowBioAsSubtitleAbout">عرض السيرة الذاتية (Bio) الخاصة بك كعنوان فرعي صغير أسفل اسمك في شريط العنوان</string>
@@ -10878,11 +10878,11 @@
     <string name="HideNotificationContent">إخفاء محتوى الإشعارات</string>
     <string name="HideNotificationContentAbout">عدم عرض نص الرسالة في الإشعار واستبداله بـ «محتوى مخفي»</string>
     <string name="SelectCopyText">تحديد ونسخ النص</string>
-    <string name="HudPromoChannelTitle">قناة هدهد الرسمية</string>
-    <string name="HudPromoChannelWelcome">مرحباً بك في هدهد! انقر لمتابعة قناتنا الرسمية ومعرفة آخر التحديثات.</string>
+    <string name="HudPromoChannelTitle">قناة هُدْ الرسمية</string>
+    <string name="HudPromoChannelWelcome">مرحباً بك في هُدْ! انقر لمتابعة قناتنا الرسمية ومعرفة آخر التحديثات.</string>
     <string name="ThemesAndAppearance">المظهر والثيمات</string>
-    <string name="AboutHudgram">حول هدهد جرام</string>
-    <string name="AboutHudgramText">هدهد جرام هو نسخة معدلة وراقية من تيليجرام.\nشكرًا لاختيارك تطبيقنا! ❤️</string>
+    <string name="AboutHudgram">حول هُدْ جرام</string>
+    <string name="AboutHudgramText">هُدْ جرام هو نسخة معدلة وراقية من تيليجرام.\nشكرًا لاختيارك تطبيقنا! ❤️</string>
     <string name="HudSettingsGeneral">عام</string>
     <string name="HudSettingsAppearance">المظهر</string>
     <string name="HudSettingsChat">المحادثة</string>

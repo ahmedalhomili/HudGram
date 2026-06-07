@@ -201,6 +201,47 @@ public class ViewPagerFixed extends FrameLayout {
         fillTabs(false);
     }
 
+    public void rebuild(int position) {
+        if (manualScrolling != null) {
+            manualScrolling.cancel();
+            manualScrolling = null;
+        }
+        if (tabsAnimation != null) {
+            tabsAnimation.cancel();
+            tabsAnimation = null;
+        }
+        tabsAnimationInProgress = false;
+
+        if (viewPages[0] != null) {
+            removeView(viewPages[0]);
+            viewPages[0] = null;
+        }
+        if (viewPages[1] != null) {
+            removeView(viewPages[1]);
+            viewPages[1] = null;
+        }
+
+        viewsByType.clear();
+
+        currentPosition = position;
+        nextPosition = 0;
+        currentProgress = 1f;
+
+        if (adapter != null) {
+            viewTypes[0] = adapter.getItemViewType(currentPosition);
+            viewPages[0] = adapter.createView(viewTypes[0]);
+            if (viewPages[0] == null && currentPosition != 0) {
+                currentPosition = 0;
+                viewTypes[0] = adapter.getItemViewType(currentPosition);
+                viewPages[0] = adapter.createView(viewTypes[0]);
+            }
+            adapter.bindView(viewPages[0], currentPosition, viewTypes[0]);
+            addView(viewPages[0]);
+            viewPages[0].setVisibility(View.VISIBLE);
+        }
+        fillTabs(false);
+    }
+
     protected void onTabPageSelected(int position, boolean forward) {
         onTabPageSelected(position);
     }

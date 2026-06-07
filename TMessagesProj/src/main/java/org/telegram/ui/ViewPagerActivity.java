@@ -368,9 +368,9 @@ public abstract class ViewPagerActivity extends BaseFragment {
         public final @NonNull BaseFragment fragment;
         private boolean onCreateCalled;
 
-        private boolean isFullyVisible;
-        private boolean isResumed;
-        private boolean isInAnimation;
+        public boolean isFullyVisible;
+        public boolean isResumed;
+        public boolean isInAnimation;
 
         private float lastVisibility;
 

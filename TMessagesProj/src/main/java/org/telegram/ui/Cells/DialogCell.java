@@ -593,6 +593,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     private StaticLayout mentionLayout;
 
     private boolean drawVerified;
+    private boolean drawHudgramOfficialBadge;
     private boolean drawBotVerified;
     private boolean drawPremium;
     private final View emojiStatusView;
@@ -1187,6 +1188,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
         drawNameLock = false;
         drawVerified = false;
+        drawHudgramOfficialBadge = false;
         drawBotVerified = false;
         drawPremium = false;
         drawForwardIcon = false;
@@ -1260,7 +1262,13 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     }
                 }
             } else {
-                drawVerified = !forbidVerified && customDialog.verified;
+                boolean isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
+                if (isOfficialChannel) {
+                    drawHudgramOfficialBadge = !forbidVerified;
+                    drawVerified = false;
+                } else {
+                    drawVerified = !forbidVerified && customDialog.verified;
+                }
                 if (useForceThreeLines || SharedConfig.useThreeLinesLayout) {
                     if (!LocaleController.isRTL) {
                         nameLeft = dp(messagePaddingStart + 6);
@@ -1375,7 +1383,12 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     long dialogBotVerificationIcon = 0;
                     if (chat != null) {
                         dialogBotVerificationIcon = DialogObject.getBotVerificationIcon(chat);
-                        if (chat.scam) {
+                        boolean isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
+                        if (isOfficialChannel) {
+                            drawHudgramOfficialBadge = !forbidVerified;
+                            drawVerified = false;
+                            drawBotVerified = false;
+                        } else if (chat.scam) {
                             drawScam = 1;
                             Theme.dialogs_scamDrawable.checkText();
                         } else if (chat.fake) {
@@ -1393,7 +1406,12 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         }
                     } else if (user != null) {
                         dialogBotVerificationIcon = DialogObject.getBotVerificationIcon(user);
-                        if (user.scam) {
+                        boolean isOfficial = com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
+                        if (isOfficial) {
+                            drawHudgramOfficialBadge = !forbidVerified;
+                            drawVerified = false;
+                            drawBotVerified = false;
+                        } else if (user.scam) {
                             drawScam = 1;
                             Theme.dialogs_scamDrawable.checkText();
                         } else if (user.fake) {
@@ -2217,7 +2235,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         }
 
         nameAdditionalsForChannelSubscriber = 0;
-        final boolean reserveMuteSlot = (dialogMuted || drawUnmute || dialogMutedProgress > 0) && !drawVerified && drawScam == 0;
+        final boolean reserveMuteSlot = (dialogMuted || drawUnmute || dialogMutedProgress > 0) && !drawVerified && !drawHudgramOfficialBadge && drawScam == 0;
         if (drawPremium && emojiStatus.getDrawable() != null) {
             int w = dp(6 + 24 + 6);
             if (reserveMuteSlot) {
@@ -2233,6 +2251,13 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             if (drawPremium) {
                 w += dp(6 + 24 + 6);
             }
+            nameWidth -= w;
+            nameAdditionalsForChannelSubscriber += w;
+            if (LocaleController.isRTL) {
+                nameLeft += w;
+            }
+        } else if (drawHudgramOfficialBadge) {
+            int w = dp(6) + Theme.dialogs_hudgramOfficialDrawable.getIntrinsicWidth();
             nameWidth -= w;
             nameAdditionalsForChannelSubscriber += w;
             if (LocaleController.isRTL) {
@@ -2676,13 +2701,15 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 if (nameLayoutEllipsizeByGradient) {
                     widthpx = Math.min(nameWidth, widthpx);
                 }
-                if ((dialogMuted || drawUnmute || dialogMutedProgress > 0) && !drawVerified && drawScam == 0) {
+                if (reserveMuteSlot) {
                     if (drawPremium) {
                         nameMuteLeft = (int) (nameLeft + (nameWidth - widthpx - left) - dp(24));
                         nameMutedIconLeft = nameMuteLeft - dp(6) - Theme.dialogs_muteDrawable.getIntrinsicWidth();
                     } else {
                         nameMuteLeft = (int) (nameLeft + (nameWidth - widthpx) - dp(6) - Theme.dialogs_muteDrawable.getIntrinsicWidth());
                     }
+                } else if (drawHudgramOfficialBadge) {
+                    nameMuteLeft = (int) (nameLeft + (nameWidth - widthpx) - dp(6) - Theme.dialogs_hudgramOfficialDrawable.getIntrinsicWidth());
                 } else if (drawVerified) {
                     nameMuteLeft = (int) (nameLeft + (nameWidth - widthpx) - dp(6) - Theme.dialogs_verifiedDrawable.getIntrinsicWidth());
                 } else if (drawPremium) {
@@ -3120,8 +3147,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             readOutboxMaxId = -1;
             if (isDialogCell) {
                 TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(currentDialogId);
-                long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
-                isHudPromoCell = (promoChannelId != 0 && currentDialogId == -promoChannelId);
+                isHudPromoCell = com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
                 if (dialog == null && isHudPromoCell) {
                     dialog = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoDialog();
                 }
@@ -3134,7 +3160,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         message = groupMessages != null && groupMessages.size() > 0 ? groupMessages.get(0) : null;
                         lastUnreadState = message != null && message.isUnread();
                         TLRPC.Chat localChat = MessagesController.getInstance(currentAccount).getChat(-dialog.id);
-                        if (localChat == null && promoChannelId != 0 && -dialog.id == promoChannelId) {
+                        if (localChat == null && com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, dialog.id)) {
                             localChat = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
                         }
                         boolean isForumCell = localChat != null && localChat.forum && !isTopic;
@@ -3305,8 +3331,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     }
                     if (isDialogCell) {
                         TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(currentDialogId);
-                        long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
-                        if (dialog == null && promoChannelId != 0 && currentDialogId == -promoChannelId) {
+                        if (dialog == null && com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId)) {
                             dialog = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoDialog();
                         }
                         int newCount;
@@ -3315,7 +3340,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         int newPollVotesCount = 0;
 
                         TLRPC.Chat localChat = dialog == null ? null : MessagesController.getInstance(currentAccount).getChat(-dialog.id);
-                        if (localChat == null && dialog != null && promoChannelId != 0 && -dialog.id == promoChannelId) {
+                        if (localChat == null && dialog != null && com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, dialog.id)) {
                             localChat = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
                         }
                         if (localChat != null && (localChat.forum || localChat.monoforum && ChatObject.canManageMonoForum(currentAccount, localChat))) {
@@ -3408,8 +3433,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     user = MessagesController.getInstance(currentAccount).getUser(dialogId);
                 } else {
                     chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
-                    long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
-                    if (chat == null && promoChannelId != 0 && -dialogId == promoChannelId) {
+                    if (chat == null && com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, dialogId)) {
                         chat = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
                     }
                     if (!isDialogCell && chat != null && chat.migrated_to != null) {
@@ -4275,7 +4299,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 }
             }
             boolean drawMuted = drawUnmute || dialogMuted;
-            if (dialogsType != 2 && (drawMuted || dialogMutedProgress > 0) && !drawVerified && drawScam == 0) {
+            if (dialogsType != 2 && (drawMuted || dialogMutedProgress > 0) && !drawVerified && !drawHudgramOfficialBadge && drawScam == 0) {
                 if (drawMuted && dialogMutedProgress != 1f) {
                     dialogMutedProgress += 16 / 150f;
                     if (dialogMutedProgress > 1f) {
@@ -4320,6 +4344,13 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     }
                 }
 
+            } else if (drawHudgramOfficialBadge) {
+                float y = dp(useForceThreeLines || SharedConfig.useThreeLinesLayout ? 13.5f : 16.5f);
+                if ((!(useForceThreeLines || SharedConfig.useThreeLinesLayout) || isForumCell()) && hasTags()) {
+                    y -= dp(9);
+                }
+                setDrawableBounds(Theme.dialogs_hudgramOfficialDrawable, nameMuteLeft - dp(1), y);
+                Theme.dialogs_hudgramOfficialDrawable.draw(canvas);
             }
             if (drawVerified) {
                 float y = dp(useForceThreeLines || SharedConfig.useThreeLinesLayout ? 13.5f : 16.5f);
@@ -5376,7 +5407,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 sb.append(". ");
             }
         }
-        if (drawVerified) {
+        if (drawVerified || drawHudgramOfficialBadge) {
             sb.append(getString(R.string.AccDescrVerified));
             sb.append(". ");
         }

@@ -42,6 +42,44 @@ public class HudPromoChannelManager {
         return instances[account];
     }
 
+    // Add any official channel, group, bot, or user IDs here to show the official mascot badge
+    private static final long[] OFFICIAL_IDS = {
+        3921220948L
+        // Example: 123456789L, 987654321L
+    };
+
+    public static boolean isOfficialId(long id) {
+        for (long officialId : OFFICIAL_IDS) {
+            if (officialId == id) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isOfficialChannel(int account, long channelId) {
+        if (channelId == 0) return false;
+        return channelId == getInstance(account).getPromoChannelId() || isOfficialId(channelId);
+    }
+
+    public static boolean isOfficialDialog(int account, long dialogId) {
+        if (dialogId == 0) return false;
+        long absId = Math.abs(dialogId);
+        return absId == getInstance(account).getPromoChannelId() || isOfficialId(absId);
+    }
+
+    public static boolean isOfficialChannel(int account, TLRPC.Chat chat) {
+        return chat != null && isOfficialChannel(account, chat.id);
+    }
+
+    public static boolean isOfficialUser(int account, TLRPC.User user) {
+        return user != null && isOfficialChannel(account, user.id);
+    }
+
+    public static boolean isOfficial(int account, TLRPC.User user, TLRPC.Chat chat) {
+        return (user != null && isOfficialChannel(account, user.id)) || (chat != null && isOfficialChannel(account, chat.id));
+    }
+
     private HudPromoChannelManager(int account) {
         this.currentAccount = account;
         SharedPreferences prefs = ApplicationLoader.applicationContext.getSharedPreferences(PREFS_NAME + "_" + account, Context.MODE_PRIVATE);

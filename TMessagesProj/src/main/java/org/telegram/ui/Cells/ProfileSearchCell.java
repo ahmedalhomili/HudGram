@@ -434,11 +434,16 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             updateStatus(false, null, null, false);
         } else if (chat != null) {
             dialog_id = -chat.id;
-            drawCheck = chat.verified;
-            if (chat.monoforum) {
-                TLRPC.Chat mfChat = MessagesController.getInstance(currentAccount).getChat(chat.linked_monoforum_id);
-                if (mfChat != null) {
-                    drawCheck = mfChat.verified;
+            boolean isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, dialog_id);
+            if (isOfficialChannel) {
+                drawCheck = true;
+            } else {
+                drawCheck = chat.verified;
+                if (chat.monoforum) {
+                    TLRPC.Chat mfChat = MessagesController.getInstance(currentAccount).getChat(chat.linked_monoforum_id);
+                    if (mfChat != null) {
+                        drawCheck = mfChat.verified;
+                    }
                 }
             }
             if (!LocaleController.isRTL) {
@@ -455,7 +460,12 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
                 nameLeft = dp(11);
             }
             nameLockTop = dp(21);
-            drawCheck = user.verified;
+            boolean isOfficialUser = com.hudgram.ui.HudPromoChannelManager.isOfficialChannel(currentAccount, dialog_id);
+            if (isOfficialUser) {
+                drawCheck = true;
+            } else {
+                drawCheck = user.verified;
+            }
             drawPremium = !savedMessages && MessagesController.getInstance(currentAccount).isPremiumUser(user);
             updateStatus(drawCheck, user, null, false);
         } else if (contact != null) {
@@ -778,7 +788,12 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
 
     public void updateStatus(boolean verified, TLRPC.User user, TLRPC.Chat chat, boolean animated) {
         statusDrawable.center = LocaleController.isRTL;
-        if (allowEmojiStatus && verified) {
+        boolean isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficial(currentAccount, user, chat);
+
+        if (isOfficialChannel) {
+            statusDrawable.set(Theme.dialogs_hudgramOfficialDrawable, animated);
+            statusDrawable.setColor(null);
+        } else if (allowEmojiStatus && verified) {
             statusDrawable.set(new CombinedDrawable(Theme.dialogs_verifiedDrawable, Theme.dialogs_verifiedCheckDrawable, 0, 0), animated);
             statusDrawable.setColor(null);
         } else if (allowEmojiStatus && user != null && !savedMessages && DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0) {

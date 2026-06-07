@@ -33,7 +33,12 @@ public class StatusBadgeComponent {
     }
 
     public Drawable updateDrawable(TLRPC.User user, TLRPC.Chat chat, int colorFilter, boolean animated) {
-        if (chat != null && chat.verified) {
+        boolean isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficial(org.telegram.messenger.UserConfig.selectedAccount, user, chat);
+
+        if (isOfficialChannel) {
+            statusDrawable.set(Theme.dialogs_hudgramOfficialDrawable, animated);
+            statusDrawable.setColor(null);
+        } else if (chat != null && chat.verified) {
             statusDrawable.set(verifiedDrawable = (verifiedDrawable == null ? new CombinedDrawable(Theme.dialogs_verifiedDrawable, Theme.dialogs_verifiedCheckDrawable) : verifiedDrawable), animated);
             statusDrawable.setColor(null);
         } else if (chat != null && DialogObject.getEmojiStatusDocumentId(chat.emoji_status) != 0) {
