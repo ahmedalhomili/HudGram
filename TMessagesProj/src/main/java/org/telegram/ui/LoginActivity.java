@@ -4229,17 +4229,17 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             LinearLayout stepsContainer = new LinearLayout(context);
             stepsContainer.setOrientation(LinearLayout.VERTICAL);
 
-            stepsContainer.addView(createStepRow(context, "١", 
+            stepsContainer.addView(createStepRow(context, LocaleController.getString("HudgramHowToReceiveCodeStep1Number", R.string.HudgramHowToReceiveCodeStep1Number), 
                 LocaleController.getString("HudgramHowToReceiveCodeStep1Title", R.string.HudgramHowToReceiveCodeStep1Title),
                 LocaleController.getString("HudgramHowToReceiveCodeStep1Desc", R.string.HudgramHowToReceiveCodeStep1Desc),
                 resourceProvider), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
 
-            stepsContainer.addView(createStepRow(context, "٢", 
+            stepsContainer.addView(createStepRow(context, LocaleController.getString("HudgramHowToReceiveCodeStep2Number", R.string.HudgramHowToReceiveCodeStep2Number), 
                 LocaleController.getString("HudgramHowToReceiveCodeStep2Title", R.string.HudgramHowToReceiveCodeStep2Title),
                 LocaleController.getString("HudgramHowToReceiveCodeStep2Desc", R.string.HudgramHowToReceiveCodeStep2Desc),
                 resourceProvider), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
 
-            stepsContainer.addView(createStepRow(context, "٣", 
+            stepsContainer.addView(createStepRow(context, LocaleController.getString("HudgramHowToReceiveCodeStep3Number", R.string.HudgramHowToReceiveCodeStep3Number), 
                 LocaleController.getString("HudgramHowToReceiveCodeStep3Title", R.string.HudgramHowToReceiveCodeStep3Title),
                 LocaleController.getString("HudgramHowToReceiveCodeStep3Desc", R.string.HudgramHowToReceiveCodeStep3Desc),
                 resourceProvider), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 24));

@@ -10891,6 +10891,7 @@
     <string name="HudOfficialChannel">القناة الرسمية</string>
     <string name="HudSettingsCategories">الإعدادات</string>
     <string name="HudAboutAndLinks">حول والروابط</string>
+    <string name="HudToolsTitle">أدوات هُدْ جرام</string>
     <string name="HudQuickReplyTitle">رد سريع</string>
     <string name="HudQuickReplyRow">الردود السريعة</string>
     <string name="HudQuickReplySettingsInfo">إنشاء قائمة الرد السريع :\n• اكتب # في لوحة المفاتيح داخل الدردشة لإظهار قائمة الرد السريع.\n• انقر فوق العنصر لتعديله أو حذفه.</string>
@@ -10978,4 +10979,25 @@
     <string name="HudgramHowToReceiveCodeStep3Desc">انسخ الكود المكون من 5 أرقام، ثم عد إلى هنا وأدخله لتفعيل حساب Hudgram الخاص بك بنجاح.</string>
     <string name="HudgramHowToReceiveCodeButton">موافق، فهمت الخطوات</string>
     <string name="HudgramOpenOfficialTelegram">فتح تيليجرام الرسمي</string>
+    <string name="HudgramHowToReceiveCodeStep1Number">١</string>
+    <string name="HudgramHowToReceiveCodeStep2Number">٢</string>
+    <string name="HudgramHowToReceiveCodeStep3Number">٣</string>
+    <string name="HudDraftsTitle">مسودات هُدْ جرام</string>
+    <string name="HudDraftsEnabled">تم تفعيل مدير المسودات</string>
+    <string name="HudDraftsDisabled">تم تعطيل مدير المسودات</string>
+    <string name="HudDraftsToggle">تفعيل مدير المسودات</string>
+    <string name="HudDraftsTabAll">الكل</string>
+    <string name="HudDraftsTabPrivate">الخاص</string>
+    <string name="HudDraftsTabGroups">الجروبات</string>
+    <string name="HudDraftsTabChannels">القنوات</string>
+    <string name="HudDraftsTabBots">البوتات</string>
+    <string name="HudDraftsEmpty">لا توجد مسودات في هذا القسم.</string>
+    <string name="HudDraftsInfo">تعرض هذه الشاشة جميع الرسائل غير المرسلة (المسودات) في محادثاتك. اضغط على أي محادثة لعرض الخيارات أو فتح المحادثة.</string>
+    <string name="HudDraftsSendInstantly">إرسال فوري</string>
+    <string name="HudDraftsCopyText">نسخ نص المسودة</string>
+    <string name="HudDraftsClearDraft">حذف المسودة</string>
+    <string name="HudDraftsClearAll">حذف الكل في هذا القسم</string>
+    <string name="HudDraftsClearAllConfirm">هل أنت متأكد من رغبتك في حذف جميع المسودات في هذا القسم؟ لا يمكن التراجع عن هذا الإجراء.</string>
+    <string name="HudDraftsClearAllSuccess">تم حذف جميع مسودات القسم بنجاح.</string>
+    <string name="HudDraftsSendSuccess">تم إرسال الرسالة بنجاح!</string>
 </resources>

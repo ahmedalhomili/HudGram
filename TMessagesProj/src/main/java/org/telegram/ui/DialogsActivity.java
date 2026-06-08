@@ -509,6 +509,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private boolean storyHintShown;
     private FragmentFloatingButton floatingButton3;
     private FragmentFloatingButton floatingButtonStories;
+    private FragmentFloatingButton floatingButtonTools;
     private ChatAvatarContainer avatarContainer;
     private int undoViewIndex;
     private UndoView[] undoView = new UndoView[2];
@@ -4693,6 +4694,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         floatingButtonStories.setOnClickListener(v -> openStoriesRecorder());
         contentView.addView(floatingButtonStories, FragmentFloatingButton.createSubButtonLayoutParams());
 
+        floatingButtonTools = new FragmentFloatingButton(context, resourceProvider, true);
+        floatingButtonTools.setImageResource(R.drawable.msg_settings);
+        floatingButtonTools.setOnClickListener(v -> openToolsBottomSheet());
+        contentView.addView(floatingButtonTools, FragmentFloatingButton.createSubButtonLayoutParams());
+
+
         floatingButton3 = new FragmentFloatingButton(context, resourceProvider);
         contentView.addView(floatingButton3, FragmentFloatingButton.createDefaultLayoutParams());
         floatingButton3.setOnClickListener(v -> {
@@ -8703,6 +8710,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (floatingButtonStories != null) {
             floatingButtonStories.setButtonVisible(isVisible, animated);
         }
+        if (floatingButtonTools != null) {
+            floatingButtonTools.setButtonVisible(isVisible, animated);
+        }
     }
 
     private void updateFloatingButtonOffset() {
@@ -8718,6 +8728,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (storyHint != null) {
                 storyHint.setTranslationY(baseTranslationY - dp(52));
             }
+        }
+        if (floatingButtonTools != null) {
+            float toolsOffset = getMessagesController().storiesEnabled() ? dp(104) : dp(52);
+            floatingButtonTools.setTranslationY(baseTranslationY - toolsOffset);
         }
     }
 
@@ -11933,6 +11947,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (floatingButtonStories != null) {
                 floatingButtonStories.updateColors();
             }
+            if (floatingButtonTools != null) {
+                floatingButtonTools.updateColors();
+            }
 
             iBlur3SourceColor.setColor(getThemedColor(Theme.key_windowBackgroundWhite));
             if (topPanelLayout != null) {
@@ -13423,6 +13440,34 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             })
             .open(null, true);
     }
+
+    private void openToolsBottomSheet() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        org.telegram.ui.ActionBar.BottomSheet.Builder builder = new org.telegram.ui.ActionBar.BottomSheet.Builder(getParentActivity(), false, resourceProvider);
+        CharSequence[] items = new CharSequence[]{
+            LocaleController.getString("HudQuickReplyTitle", R.string.HudQuickReplyTitle),
+            LocaleController.getString("HudAutoReplyTitle", R.string.HudAutoReplyTitle),
+            LocaleController.getString("HudDraftsTitle", R.string.HudDraftsTitle)
+        };
+        int[] icons = new int[]{
+            R.drawable.msg_reply_small,
+            R.drawable.msg_mention,
+            R.drawable.msg_edit
+        };
+        builder.setItems(items, icons, (dialogInterface, i) -> {
+            if (i == 0) {
+                presentFragment(new com.hudgram.ui.HudQuickReplyActivity());
+            } else if (i == 1) {
+                presentFragment(new com.hudgram.ui.HudAutoReplyActivity());
+            } else if (i == 2) {
+                presentFragment(new com.hudgram.ui.HudDraftsActivity());
+            }
+        });
+        showDialog(builder.create());
+    }
+
 
     private void checkEmailConfig() {
         final int emailSuggestion = getMessagesController().checkEmailSuggestion();

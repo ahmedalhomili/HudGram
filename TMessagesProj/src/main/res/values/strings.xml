@@ -10928,6 +10928,7 @@
     <string name="HudOfficialChannel">Official Channel</string>
     <string name="HudSettingsCategories">Settings</string>
     <string name="HudAboutAndLinks">About &amp; Links</string>
+    <string name="HudToolsTitle">Hudgram Tools</string>
     <string name="HudQuickReplyTitle">Quick Reply</string>
     <string name="HudQuickReplyRow">Quick Replies</string>
     <string name="HudQuickReplySettingsInfo">Create list of quick replies:\n• Type # in keyboard inside the chat to show quick reply list.\n• Tap on an item to edit or delete it.</string>
@@ -11015,4 +11016,25 @@
     <string name="HudgramHowToReceiveCodeStep3Desc">Copy the 5-digit code, then return here and enter it to successfully activate your Hudgram account.</string>
     <string name="HudgramHowToReceiveCodeButton">Got it, start activation</string>
     <string name="HudgramOpenOfficialTelegram">Open Official Telegram</string>
+    <string name="HudgramHowToReceiveCodeStep1Number">1</string>
+    <string name="HudgramHowToReceiveCodeStep2Number">2</string>
+    <string name="HudgramHowToReceiveCodeStep3Number">3</string>
+    <string name="HudDraftsTitle">Hudgram Drafts</string>
+    <string name="HudDraftsEnabled">Drafts Manager Enabled</string>
+    <string name="HudDraftsDisabled">Drafts Manager Disabled</string>
+    <string name="HudDraftsToggle">Enable Drafts Manager</string>
+    <string name="HudDraftsTabAll">All</string>
+    <string name="HudDraftsTabPrivate">DMs</string>
+    <string name="HudDraftsTabGroups">Groups</string>
+    <string name="HudDraftsTabChannels">Channels</string>
+    <string name="HudDraftsTabBots">Bots</string>
+    <string name="HudDraftsEmpty">No drafts found in this category.</string>
+    <string name="HudDraftsInfo">This screen displays all unsent draft messages across your chats. Tap any item to view options or open the conversation.</string>
+    <string name="HudDraftsSendInstantly">Send Instantly</string>
+    <string name="HudDraftsCopyText">Copy Draft Text</string>
+    <string name="HudDraftsClearDraft">Clear Draft</string>
+    <string name="HudDraftsClearAll">Clear All in Category</string>
+    <string name="HudDraftsClearAllConfirm">Are you sure you want to clear all drafts in this category? This action cannot be undone.</string>
+    <string name="HudDraftsClearAllSuccess">All drafts in this category have been cleared.</string>
+    <string name="HudDraftsSendSuccess">Message sent successfully!</string>
 </resources>

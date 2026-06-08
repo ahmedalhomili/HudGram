@@ -479,6 +479,7 @@ public class ChatActivity extends BaseFragment implements
     private ChatNotificationsPopupWrapper chatNotificationsPopupWrapper;
     // private ChatActivitySideControlsButtonsLayout topButtonsLayout;
     private ChatActivitySideControlsButtonsLayout sideControlsButtonsLayout;
+    private org.telegram.ui.Components.FragmentFloatingButton floatingButtonTools;
     private boolean pagedownButtonShowedByScroll;
     private int reactionsMentionCount;
     private int pollVotesMentionCount;
@@ -7019,7 +7020,92 @@ public class ChatActivity extends BaseFragment implements
         sideControlsButtonsLayout = new ChatActivitySideControlsButtonsLayout(context, resourceProvider, blurredBackgroundColorProvider, glassBackgroundDrawableFactory);
         sideControlsButtonsLayout.setOnClickListener(this::onSideControlButtonOnClick);
         sideControlsButtonsLayout.setOnLongClickListener(this::onSideControlButtonOnLongClick);
-        contentView.addView(sideControlsButtonsLayout, LayoutHelper.createFrame(57, 300, Gravity.RIGHT | Gravity.BOTTOM));
+        contentView.addView(sideControlsButtonsLayout, LayoutHelper.createFrame(57, 360, Gravity.RIGHT | Gravity.BOTTOM));
+
+        boolean showToolsButton = (chatMode == MODE_DEFAULT || chatMode == MODE_SAVED)
+                && !isInPreviewMode();
+
+        if (showToolsButton && currentChat != null) {
+            if (ChatObject.isChannelAndNotMegaGroup(currentChat) || ChatObject.isNotInChat(currentChat)) {
+                showToolsButton = false;
+            }
+        } else if (showToolsButton && currentUser != null) {
+            if (currentUser.id == UserObject.VERIFY || UserObject.isReplyUser(currentUser)) {
+                showToolsButton = false;
+            }
+        }
+
+        if (showToolsButton) {
+            floatingButtonTools = new org.telegram.ui.Components.FragmentFloatingButton(context, resourceProvider);
+            floatingButtonTools.setImageResource(R.drawable.msg_settings);
+            floatingButtonTools.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(24), Theme.getColor(Theme.key_chat_messagePanelSend, resourceProvider)));
+            floatingButtonTools.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(android.view.View view, android.graphics.Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), AndroidUtilities.dp(24));
+                }
+            });
+            floatingButtonTools.imageView.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.getColor(Theme.key_chats_actionIcon, resourceProvider), android.graphics.PorterDuff.Mode.SRC_IN));
+            floatingButtonTools.setOnTouchListener(new View.OnTouchListener() {
+                private float startX, startY;
+                private float startTranslationX, startTranslationY;
+                private boolean isDragging;
+                private final float touchSlop = android.view.ViewConfiguration.get(context).getScaledTouchSlop();
+
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    switch (event.getAction()) {
+                        case MotionEvent.ACTION_DOWN:
+                            startX = event.getRawX();
+                            startY = event.getRawY();
+                            startTranslationX = v.getTranslationX();
+                            startTranslationY = v.getTranslationY();
+                            isDragging = false;
+                            return true;
+                        case MotionEvent.ACTION_MOVE:
+                            float dx = event.getRawX() - startX;
+                            float dy = event.getRawY() - startY;
+                            if (!isDragging && (Math.abs(dx) > touchSlop || Math.abs(dy) > touchSlop)) {
+                                isDragging = true;
+                            }
+                            if (isDragging) {
+                                float newTranslationX = startTranslationX + dx;
+                                float newTranslationY = startTranslationY + dy;
+
+                                View parent = (View) v.getParent();
+                                if (parent != null) {
+                                    float maxTranslationXRight = 0;
+                                    float maxTranslationXLeft = 0;
+                                    if (LocaleController.isRTL) {
+                                        maxTranslationXRight = parent.getWidth() - v.getWidth() - AndroidUtilities.dp(20);
+                                        maxTranslationXLeft = -AndroidUtilities.dp(20);
+                                        newTranslationX = Math.max(maxTranslationXLeft, Math.min(newTranslationX, maxTranslationXRight));
+                                    } else {
+                                        maxTranslationXLeft = -(parent.getWidth() - v.getWidth() - AndroidUtilities.dp(20));
+                                        maxTranslationXRight = AndroidUtilities.dp(20);
+                                        newTranslationX = Math.max(maxTranslationXLeft, Math.min(newTranslationX, maxTranslationXRight));
+                                    }
+
+                                    float maxTranslationYUp = -(parent.getHeight() - v.getHeight() - AndroidUtilities.dp(150));
+                                    float maxTranslationYDown = AndroidUtilities.dp(150);
+                                    newTranslationY = Math.max(maxTranslationYUp, Math.min(newTranslationY, maxTranslationYDown));
+                                }
+
+                                v.setTranslationX(newTranslationX);
+                                v.setTranslationY(newTranslationY);
+                            }
+                            return true;
+                        case MotionEvent.ACTION_UP:
+                            if (!isDragging) {
+                                openToolsBottomSheet();
+                            }
+                            return true;
+                    }
+                    return false;
+                }
+            });
+            contentView.addView(floatingButtonTools, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 150));
+        }
 
         contentView.addView(topPanelLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
 
@@ -12688,6 +12774,33 @@ public class ChatActivity extends BaseFragment implements
             }
         }
         return false;
+    }
+
+    private void openToolsBottomSheet() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        org.telegram.ui.ActionBar.BottomSheet.Builder builder = new org.telegram.ui.ActionBar.BottomSheet.Builder(getParentActivity(), false, getResourceProvider());
+        CharSequence[] items = new CharSequence[]{
+            LocaleController.getString("HudQuickReplyTitle", R.string.HudQuickReplyTitle),
+            LocaleController.getString("HudAutoReplyTitle", R.string.HudAutoReplyTitle),
+            LocaleController.getString("HudDraftsTitle", R.string.HudDraftsTitle)
+        };
+        int[] icons = new int[]{
+            R.drawable.msg_reply_small,
+            R.drawable.msg_mention,
+            R.drawable.msg_edit
+        };
+        builder.setItems(items, icons, (dialogInterface, i) -> {
+            if (i == 0) {
+                presentFragment(new com.hudgram.ui.HudQuickReplyActivity());
+            } else if (i == 1) {
+                presentFragment(new com.hudgram.ui.HudAutoReplyActivity());
+            } else if (i == 2) {
+                presentFragment(new com.hudgram.ui.HudDraftsActivity());
+            }
+        });
+        showDialog(builder.create());
     }
 
     private void openScheduledMessages() {
