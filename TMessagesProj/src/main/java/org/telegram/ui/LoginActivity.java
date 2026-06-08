@@ -153,6 +153,7 @@ import org.telegram.tgnet.tl.TL_account;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
 import org.telegram.ui.Cells.CheckBoxCell;
@@ -3553,6 +3554,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
         private String phone;
         private String phoneHash;
+        private TextView howToReceiveBtn;
         private String requestPhone;
         private String emailPhone;
         private CodeFieldContainer codeFieldContainer;
@@ -3767,6 +3769,27 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 };
 
                 addView(codeFieldContainer, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, 42, Gravity.CENTER_HORIZONTAL, 0, 32, 0, 0));
+            }
+            if (currentType == AUTH_TYPE_MESSAGE) {
+                howToReceiveBtn = new TextView(context);
+                howToReceiveBtn.setText("كيف يمكنني استلام الرمز؟");
+                howToReceiveBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+                howToReceiveBtn.setTypeface(AndroidUtilities.bold());
+                howToReceiveBtn.setGravity(Gravity.CENTER);
+                howToReceiveBtn.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(12), AndroidUtilities.dp(24), AndroidUtilities.dp(12));
+
+                Drawable helpDrawable = context.getResources().getDrawable(R.drawable.msg_help).mutate();
+                helpDrawable.setBounds(0, 0, AndroidUtilities.dp(18), AndroidUtilities.dp(18));
+
+                if (LocaleController.isRTL) {
+                    howToReceiveBtn.setCompoundDrawables(null, null, helpDrawable, null);
+                } else {
+                    howToReceiveBtn.setCompoundDrawables(helpDrawable, null, null, null);
+                }
+                howToReceiveBtn.setCompoundDrawablePadding(AndroidUtilities.dp(8));
+
+                howToReceiveBtn.setOnClickListener(v -> showHowToReceiveCodeBottomSheet());
+                addView(howToReceiveBtn, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 36, 20, 36, 0));
             }
             if (currentType == AUTH_TYPE_FLASH_CALL) {
                 codeFieldContainer.setVisibility(GONE);
@@ -4134,6 +4157,187 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 problemText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
             }
             wrongCode.setTextColor(Theme.getColor(Theme.key_text_RedBold));
+
+            if (howToReceiveBtn != null) {
+                howToReceiveBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
+                int buttonColor = Theme.getColor(Theme.key_featuredStickers_addButton);
+                int pressedColor = Theme.getColor(Theme.key_featuredStickers_addButtonPressed);
+                howToReceiveBtn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(8), buttonColor, pressedColor));
+
+                Drawable[] drawables = howToReceiveBtn.getCompoundDrawables();
+                if (drawables != null) {
+                    for (Drawable d : drawables) {
+                        if (d != null) {
+                            d.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText), PorterDuff.Mode.SRC_IN));
+                        }
+                    }
+                }
+            }
+        }
+
+        private void showHowToReceiveCodeBottomSheet() {
+            Context context = getContext();
+            BottomSheet.Builder b = new BottomSheet.Builder(context, false, resourceProvider);
+            BottomSheet[] sheet = new BottomSheet[1];
+
+            LinearLayout linearLayout = new LinearLayout(context);
+            linearLayout.setOrientation(LinearLayout.VERTICAL);
+            linearLayout.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(24), AndroidUtilities.dp(20), AndroidUtilities.dp(20));
+
+            // Circular Glowing Mascot Header
+            FrameLayout iconContainer = new FrameLayout(context);
+            int accentColor = Theme.getColor(Theme.key_featuredStickers_addButton, resourceProvider);
+            int startColor = accentColor;
+            int endColor = Theme.getColor(Theme.key_chats_actionBackground, resourceProvider);
+            android.graphics.drawable.GradientDrawable iconBg = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                new int[] { startColor, endColor }
+            );
+            iconBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            iconContainer.setBackground(iconBg);
+
+            ImageView iconView = new ImageView(context);
+            try {
+                Drawable mascot = context.getResources().getDrawable(R.drawable.logo_hudgram_wthiout_bg);
+                iconView.setImageDrawable(mascot);
+            } catch (Exception e) {
+                iconView.setImageResource(R.drawable.msg_help);
+                iconView.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
+            }
+            iconContainer.addView(iconView, LayoutHelper.createFrame(38, 38, Gravity.CENTER));
+            linearLayout.addView(iconContainer, LayoutHelper.createLinear(68, 68, Gravity.CENTER, 0, 0, 0, 16));
+
+            // Title
+            TextView titleView = new TextView(context);
+            titleView.setTypeface(AndroidUtilities.bold());
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+            titleView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourceProvider));
+            titleView.setText(LocaleController.getString("HudgramHowToReceiveCodeTitle", R.string.HudgramHowToReceiveCodeTitle));
+            titleView.setGravity(Gravity.CENTER);
+            linearLayout.addView(titleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 0, 0, 12));
+
+            // Intro text
+            TextView introText = new TextView(context);
+            introText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+            introText.setTextColor(Theme.getColor(Theme.key_dialogTextGray, resourceProvider));
+            introText.setGravity(Gravity.CENTER);
+            introText.setText(LocaleController.getString("HudgramHowToReceiveCodeIntro", R.string.HudgramHowToReceiveCodeIntro));
+            introText.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
+            linearLayout.addView(introText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 0, 0, 20));
+
+            // Steps
+            LinearLayout stepsContainer = new LinearLayout(context);
+            stepsContainer.setOrientation(LinearLayout.VERTICAL);
+
+            stepsContainer.addView(createStepRow(context, "١", 
+                LocaleController.getString("HudgramHowToReceiveCodeStep1Title", R.string.HudgramHowToReceiveCodeStep1Title),
+                LocaleController.getString("HudgramHowToReceiveCodeStep1Desc", R.string.HudgramHowToReceiveCodeStep1Desc),
+                resourceProvider), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
+
+            stepsContainer.addView(createStepRow(context, "٢", 
+                LocaleController.getString("HudgramHowToReceiveCodeStep2Title", R.string.HudgramHowToReceiveCodeStep2Title),
+                LocaleController.getString("HudgramHowToReceiveCodeStep2Desc", R.string.HudgramHowToReceiveCodeStep2Desc),
+                resourceProvider), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
+
+            stepsContainer.addView(createStepRow(context, "٣", 
+                LocaleController.getString("HudgramHowToReceiveCodeStep3Title", R.string.HudgramHowToReceiveCodeStep3Title),
+                LocaleController.getString("HudgramHowToReceiveCodeStep3Desc", R.string.HudgramHowToReceiveCodeStep3Desc),
+                resourceProvider), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 24));
+
+            linearLayout.addView(stepsContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+            // Secondary button: Open / Download Official Telegram
+            ButtonWithCounterView openTelegramButton = new ButtonWithCounterView(context, false, resourceProvider);
+            openTelegramButton.setText(LocaleController.getString("HudgramOpenOfficialTelegram", R.string.HudgramOpenOfficialTelegram), false);
+            openTelegramButton.setOnClickListener(v -> {
+                try {
+                    Intent intent = context.getPackageManager().getLaunchIntentForPackage("org.telegram.messenger");
+                    if (intent != null) {
+                        context.startActivity(intent);
+                    } else {
+                        try {
+                            context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=org.telegram.messenger")));
+                        } catch (Exception e2) {
+                            context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=org.telegram.messenger")));
+                        }
+                    }
+                } catch (Exception e) {
+                    // Fallback
+                }
+            });
+            linearLayout.addView(openTelegramButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48, Gravity.FILL_HORIZONTAL, 0, 0, 0, 8));
+
+            // Button
+            ButtonWithCounterView button = new ButtonWithCounterView(context, true, resourceProvider);
+            button.setText(LocaleController.getString("HudgramHowToReceiveCodeButton", R.string.HudgramHowToReceiveCodeButton), false);
+            button.setOnClickListener(v -> sheet[0].dismiss());
+            linearLayout.addView(button, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48, Gravity.FILL_HORIZONTAL, 0, 0, 0, 0));
+
+            b.setCustomView(linearLayout);
+            sheet[0] = b.create();
+            sheet[0].useBackgroundTopPadding = false;
+            sheet[0].fixNavigationBar();
+            sheet[0].show();
+        }
+
+        private LinearLayout createStepRow(Context context, String stepNum, String stepTitle, String stepDesc, Theme.ResourcesProvider resourceProvider) {
+            LinearLayout card = new LinearLayout(context);
+            card.setOrientation(LinearLayout.HORIZONTAL);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+
+            // Translucent rounded rect card background
+            int accentColor = Theme.getColor(Theme.key_featuredStickers_addButton, resourceProvider);
+            int cardBgColor = Theme.multAlpha(accentColor, 0.08f);
+            android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
+            cardBg.setColor(cardBgColor);
+            cardBg.setCornerRadius(AndroidUtilities.dp(12));
+            card.setBackground(cardBg);
+
+            // Number badge container
+            FrameLayout numBadge = new FrameLayout(context);
+            android.graphics.drawable.GradientDrawable badgeBg = new android.graphics.drawable.GradientDrawable();
+            badgeBg.setColor(accentColor);
+            badgeBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            numBadge.setBackground(badgeBg);
+
+            TextView numView = new TextView(context);
+            numView.setText(stepNum);
+            numView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+            numView.setTypeface(AndroidUtilities.bold());
+            numView.setTextColor(Color.WHITE);
+            numView.setGravity(Gravity.CENTER);
+            numBadge.addView(numView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
+
+            // Vertical text layout
+            LinearLayout textBlock = new LinearLayout(context);
+            textBlock.setOrientation(LinearLayout.VERTICAL);
+
+            TextView titleView = new TextView(context);
+            titleView.setText(stepTitle);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+            titleView.setTypeface(AndroidUtilities.bold());
+            titleView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourceProvider));
+            titleView.setGravity((LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL);
+            textBlock.addView(titleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+            TextView descView = new TextView(context);
+            descView.setText(stepDesc);
+            descView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+            descView.setTextColor(Theme.getColor(Theme.key_dialogTextGray, resourceProvider));
+            descView.setGravity((LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL);
+            descView.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
+            textBlock.addView(descView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 0));
+
+            if (LocaleController.isRTL) {
+                card.addView(textBlock, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
+                card.addView(numBadge, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL));
+            } else {
+                card.addView(numBadge, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
+                card.addView(textBlock, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, Gravity.CENTER_VERTICAL));
+            }
+
+            return card;
         }
 
         private void applyLottieColors(RLottieDrawable drawable) {

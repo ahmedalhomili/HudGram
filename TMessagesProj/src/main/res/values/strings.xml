@@ -11005,4 +11005,14 @@
     <string name="HudAutoReplyNoMessages">No messages added yet. Add at least one reply message.</string>
     <string name="HudAutoReplyHelpTitle">About Mention Auto-Reply</string>
     <string name="HudAutoReplyHelpText">This screen allows you to configure and customize automatic replies when someone mentions (@) you in groups.\n\nFeatures and options explained:\n\n1. Reply Mode:\n• Single Message: A static message that is sent every time.\n• Multiple Messages: Write multiple messages, and the app will randomly select one.\n• Smart Reply: Set different reply texts depending on the time of day (Morning, Afternoon, Evening, Night).\n\n2. Cooldown Period &amp; Mode:\n• Cooldown Period: Set the minimum delay between replies to prevent spamming.\n• Per Group Cooldown: Cooldown is applied to the group as a whole. Once a reply is sent, the entire group enters a cooldown.\n• Per Sender Cooldown [Recommended]: Cooldown is tracked for each user independently; mentions from other members will not be blocked.\n\n3. Schedule:\nAllows you to define active hours for the auto-reply feature (e.g., from 11 PM to 8 AM). Auto-replies will only trigger during this scheduled timeframe.\n\n4. Group Filter:\nChoose where auto-reply should work: either in all groups, only in specific groups (Whitelist), or exclude selected groups (Blacklist).\n\n5. Reply Log:\nView details of recent auto-replies sent by the app, displaying the group avatar, sender avatar, reply text, and timestamp.</string>
+    <string name="HudgramHowToReceiveCodeTitle">How to Receive Verification Code</string>
+    <string name="HudgramHowToReceiveCodeIntro">Since you are using Hudgram, Telegram does not send the verification code via SMS to protect your account. Instead, the code is sent as a message inside the official Telegram app.</string>
+    <string name="HudgramHowToReceiveCodeStep1Title">1. Log in on Official Telegram</string>
+    <string name="HudgramHowToReceiveCodeStep1Desc">Log in to your account first using the official Telegram app on any other phone or computer.</string>
+    <string name="HudgramHowToReceiveCodeStep2Title">2. Get the Instant Code</string>
+    <string name="HudgramHowToReceiveCodeStep2Desc">Open the official Telegram app and you will find an instant message from the official Telegram account containing the verification code.</string>
+    <string name="HudgramHowToReceiveCodeStep3Title">3. Activate Hudgram</string>
+    <string name="HudgramHowToReceiveCodeStep3Desc">Copy the 5-digit code, then return here and enter it to successfully activate your Hudgram account.</string>
+    <string name="HudgramHowToReceiveCodeButton">Got it, start activation</string>
+    <string name="HudgramOpenOfficialTelegram">Open Official Telegram</string>
 </resources>
