@@ -801,7 +801,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
             loadTexture(R.drawable.intro_powerful_star, 18);
             loadTexture(R.drawable.intro_private_door, 19);
             loadTexture(R.drawable.intro_private_screw, 20);
-            loadTexture(R.drawable.intro_tg_plane, 21);
+            loadTexture(R.drawable.logo_hudgram_wthiout_bg, 21);
             loadTexture(v -> {
                 Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
                 paint.setColor(ThemeColors.TELEGRAM_COLOR); // It's logo color, it should not be colored by the theme
@@ -916,13 +916,28 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
         private void loadTexture(int resId, int index, int tintColor, boolean rebind) {
             Drawable drawable = getParentActivity().getResources().getDrawable(resId);
+            Bitmap bitmap = null;
+            boolean needRecycle = false;
             if (drawable instanceof BitmapDrawable) {
+                bitmap = ((BitmapDrawable) drawable).getBitmap();
+            } else if (drawable != null) {
+                int w = drawable.getIntrinsicWidth();
+                int h = drawable.getIntrinsicHeight();
+                if (w <= 0) w = AndroidUtilities.dp(150);
+                if (h <= 0) h = AndroidUtilities.dp(150);
+                bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(bitmap);
+                drawable.setBounds(0, 0, w, h);
+                drawable.draw(canvas);
+                needRecycle = true;
+            }
+
+            if (bitmap != null) {
                 if (rebind) {
                     GLES20.glDeleteTextures(1, textures, index);
                     GLES20.glGenTextures(1, textures, index);
                 }
 
-                Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
                 GLES20.glBindTexture(GL10.GL_TEXTURE_2D, textures[index]);
                 GLES20.glTexParameteri(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR);
                 GLES20.glTexParameteri(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
@@ -939,6 +954,9 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
                     tempBitmap.recycle();
                 } else {
                     GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, bitmap, 0);
+                }
+                if (needRecycle) {
+                    bitmap.recycle();
                 }
             }
         }
