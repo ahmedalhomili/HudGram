@@ -486,5 +486,12 @@ public class HudConfig {
         }
         getPrefs().edit().putString("quickRepliesJson", array.toString()).apply();
     }
+
+    // draftsManagerEnabled
+    public static boolean draftsManagerEnabled = getPrefs().getBoolean("draftsManagerEnabled", true);
+    public static void toggleDraftsManagerEnabled() {
+        draftsManagerEnabled = !draftsManagerEnabled;
+        getPrefs().edit().putBoolean("draftsManagerEnabled", draftsManagerEnabled).apply();
+    }
 }
 

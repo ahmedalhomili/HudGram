@@ -595,6 +595,22 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
                 int res = LocaleController.getStringResId("HudAutoReplyCooldown10m");
                 return res != 0 ? LocaleController.getString("HudAutoReplyCooldown10m", res) : "10 minutes";
             }
+            case "HudDraftsTitle": return LocaleController.getString("HudDraftsTitle", R.string.HudDraftsTitle);
+            case "HudDraftsToggle": return LocaleController.getString("HudDraftsToggle", R.string.HudDraftsToggle);
+            case "HudDraftsTabAll": return LocaleController.getString("HudDraftsTabAll", R.string.HudDraftsTabAll);
+            case "HudDraftsTabPrivate": return LocaleController.getString("HudDraftsTabPrivate", R.string.HudDraftsTabPrivate);
+            case "HudDraftsTabGroups": return LocaleController.getString("HudDraftsTabGroups", R.string.HudDraftsTabGroups);
+            case "HudDraftsTabChannels": return LocaleController.getString("HudDraftsTabChannels", R.string.HudDraftsTabChannels);
+            case "HudDraftsTabBots": return LocaleController.getString("HudDraftsTabBots", R.string.HudDraftsTabBots);
+            case "HudDraftsEmpty": return LocaleController.getString("HudDraftsEmpty", R.string.HudDraftsEmpty);
+            case "HudDraftsInfo": return LocaleController.getString("HudDraftsInfo", R.string.HudDraftsInfo);
+            case "HudDraftsSendInstantly": return LocaleController.getString("HudDraftsSendInstantly", R.string.HudDraftsSendInstantly);
+            case "HudDraftsCopyText": return LocaleController.getString("HudDraftsCopyText", R.string.HudDraftsCopyText);
+            case "HudDraftsClearDraft": return LocaleController.getString("HudDraftsClearDraft", R.string.HudDraftsClearDraft);
+            case "HudDraftsClearAll": return LocaleController.getString("HudDraftsClearAll", R.string.HudDraftsClearAll);
+            case "HudDraftsClearAllConfirm": return LocaleController.getString("HudDraftsClearAllConfirm", R.string.HudDraftsClearAllConfirm);
+            case "HudDraftsClearAllSuccess": return LocaleController.getString("HudDraftsClearAllSuccess", R.string.HudDraftsClearAllSuccess);
+            case "HudDraftsSendSuccess": return LocaleController.getString("HudDraftsSendSuccess", R.string.HudDraftsSendSuccess);
         }
         return key;
     }

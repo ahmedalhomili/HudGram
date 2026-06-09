@@ -304,3 +304,7 @@ task checkVisibility {
 }
 
 preBuild.dependsOn checkVisibility
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-Xlint:-options'
+}
