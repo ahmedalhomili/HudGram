@@ -132,7 +132,7 @@ public class TextSettingsCell extends FrameLayout {
             if (imageViewIsColorful) {
                 imageView.measure(MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(28), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(28), MeasureSpec.EXACTLY));
             } else {
-                imageView.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(getMeasuredHeight(), MeasureSpec.AT_MOST));
+                imageView.measure(MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(24), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(24), MeasureSpec.EXACTLY));
             }
             if (betterLayout) width -= imageView.getMeasuredWidth() + AndroidUtilities.dp(8);
         }
@@ -249,6 +249,13 @@ public class TextSettingsCell extends FrameLayout {
             imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon, resourcesProvider), PorterDuff.Mode.MULTIPLY));
             imageView.setBackground(null);
             imageView.setVisibility(VISIBLE);
+            imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            android.view.ViewGroup.LayoutParams lp = imageView.getLayoutParams();
+            if (lp != null) {
+                lp.width = AndroidUtilities.dp(24);
+                lp.height = AndroidUtilities.dp(24);
+                imageView.setLayoutParams(lp);
+            }
             if (LocaleController.isRTL) {
                 params.rightMargin = AndroidUtilities.dp(71);
             } else {
@@ -272,12 +279,23 @@ public class TextSettingsCell extends FrameLayout {
             imageView.setImageResource(resId);
             imageView.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.MULTIPLY));
             imageView.setVisibility(VISIBLE);
+            imageView.setScaleType(ImageView.ScaleType.CENTER);
+            android.view.ViewGroup.LayoutParams lp = imageView.getLayoutParams();
+            if (lp != null) {
+                lp.width = AndroidUtilities.dp(28);
+                lp.height = AndroidUtilities.dp(28);
+                imageView.setLayoutParams(lp);
+            }
             if (LocaleController.isRTL) {
                 params.rightMargin = AndroidUtilities.dp(71);
             } else {
                 params.leftMargin = AndroidUtilities.dp(71);
             }
         }
+    }
+
+    public void setIconColor(int color) {
+        imageView.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.MULTIPLY));
     }
 
     public void setEnabled(boolean value, ArrayList<Animator> animators) {

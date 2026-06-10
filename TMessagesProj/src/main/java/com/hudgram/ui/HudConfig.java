@@ -120,18 +120,19 @@ public class HudConfig {
     }
 
     // showOriginal
-    public static boolean showOriginal = getPrefs().getBoolean("showOriginal", false);
+    public static boolean showOriginal = getPrefs().getBoolean("showOriginal", true);
     public static void toggleShowOriginal() {
         showOriginal = !showOriginal;
         getPrefs().edit().putBoolean("showOriginal", showOriginal).apply();
     }
 
     // autoTranslate
-    public static boolean autoTranslate = getPrefs().getBoolean("autoTranslate", false);
+    public static boolean autoTranslate = getPrefs().getBoolean("autoTranslate", true);
     public static void toggleAutoTranslate() {
         autoTranslate = !autoTranslate;
         getPrefs().edit().putBoolean("autoTranslate", autoTranslate).apply();
     }
+
 
     // translationProvider
     public static String translationProvider = getPrefs().getString("translationProvider", "google");
@@ -492,6 +493,126 @@ public class HudConfig {
     public static void toggleDraftsManagerEnabled() {
         draftsManagerEnabled = !draftsManagerEnabled;
         getPrefs().edit().putBoolean("draftsManagerEnabled", draftsManagerEnabled).apply();
+    }
+
+    // showChatToolsFab
+    public static boolean showChatToolsFab = getPrefs().getBoolean("showChatToolsFab", true);
+    public static void toggleShowChatToolsFab() {
+        showChatToolsFab = !showChatToolsFab;
+        getPrefs().edit().putBoolean("showChatToolsFab", showChatToolsFab).apply();
+    }
+
+    public static String exportBackup() {
+        try {
+            org.json.JSONObject backupJson = new org.json.JSONObject();
+            SharedPreferences prefs = getPrefs();
+            java.util.Map<String, ?> allEntries = prefs.getAll();
+            for (java.util.Map.Entry<String, ?> entry : allEntries.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+                if (value instanceof java.util.Set) {
+                    org.json.JSONArray array = new org.json.JSONArray();
+                    for (String s : (java.util.Set<String>) value) {
+                        array.put(s);
+                    }
+                    backupJson.put(key, array);
+                } else {
+                    backupJson.put(key, value);
+                }
+            }
+            return backupJson.toString();
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+            return null;
+        }
+    }
+
+    public static boolean importBackup(String json) {
+        try {
+            if (android.text.TextUtils.isEmpty(json)) return false;
+            org.json.JSONObject backupJson = new org.json.JSONObject(json);
+            SharedPreferences.Editor editor = getPrefs().edit();
+            editor.clear();
+            java.util.Iterator<String> keys = backupJson.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                Object value = backupJson.get(key);
+                if (value instanceof org.json.JSONArray) {
+                    org.json.JSONArray array = (org.json.JSONArray) value;
+                    java.util.Set<String> set = new java.util.HashSet<>();
+                    for (int i = 0; i < array.length(); i++) {
+                        set.add(array.getString(i));
+                    }
+                    editor.putStringSet(key, set);
+                } else if (value instanceof Boolean) {
+                    editor.putBoolean(key, (Boolean) value);
+                } else if (value instanceof Integer) {
+                    editor.putInt(key, (Integer) value);
+                } else if (value instanceof Long) {
+                    editor.putLong(key, (Long) value);
+                } else if (value instanceof Double) {
+                    editor.putFloat(key, ((Double) value).floatValue());
+                } else if (value instanceof Float) {
+                    editor.putFloat(key, (Float) value);
+                } else if (value instanceof String) {
+                    editor.putString(key, (String) value);
+                }
+            }
+            editor.apply();
+            reloadConfig();
+            return true;
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+            return false;
+        }
+    }
+
+    public static void reloadConfig() {
+        preferIPv6 = getPrefs().getBoolean("preferIPv6", false);
+        hideStoriesBar = getPrefs().getBoolean("hideStoriesBar", true);
+        customDoubleTapAction = getPrefs().getInt("customDoubleTapAction", 0);
+        showAvatarInHeader = getPrefs().getBoolean("showAvatarInHeader", true);
+        showMyNameInHeader = getPrefs().getBoolean("showMyNameInHeader", false);
+        showBioAsSubtitle = getPrefs().getBoolean("showBioAsSubtitle", false);
+        hideSettingsTab = getPrefs().getBoolean("hideSettingsTab", true);
+        hideSearchBar = getPrefs().getBoolean("hideSearchBar", false);
+        hideFolderTabs = getPrefs().getBoolean("hideFolderTabs", false);
+        disableInstantCamera = getPrefs().getBoolean("disableInstantCamera", false);
+        askBeforeCall = getPrefs().getBoolean("askBeforeCall", false);
+        openArchiveOnPull = getPrefs().getBoolean("openArchiveOnPull", false);
+        accentAsNotificationColor = getPrefs().getBoolean("accentAsNotificationColor", false);
+        silenceNonContacts = getPrefs().getBoolean("silenceNonContacts", false);
+        showOriginal = getPrefs().getBoolean("showOriginal", true);
+        autoTranslate = getPrefs().getBoolean("autoTranslate", true);
+        translationProvider = getPrefs().getString("translationProvider", "google");
+        translationTarget = getPrefs().getString("translationTarget", "app");
+        translationEnabled = getPrefs().getBoolean("translationEnabled", true);
+        transType = getPrefs().getInt("transType", TRANS_TYPE_HUD);
+        nameOrder = getPrefs().getInt("nameOrder", 1);
+        idType = getPrefs().getInt("idType", ID_TYPE_API);
+        restrictedLanguagesSet = getPrefs().getStringSet("restrictedLanguages", null);
+        hideNotificationContent = getPrefs().getBoolean("hideNotificationContent", false);
+        confirmStickers = getPrefs().getBoolean("confirmStickers", false);
+        confirmVoiceMessages = getPrefs().getBoolean("confirmVoiceMessages", false);
+        partialCopy = getPrefs().getBoolean("partialCopy", false);
+        quickReplyEnabled = getPrefs().getBoolean("quickReplyEnabled", true);
+        autoReplyMentionEnabled = getPrefs().getBoolean("autoReplyMentionEnabled", false);
+        autoReplyMentionText = getPrefs().getString("autoReplyMentionText", "أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.");
+        autoReplyMentionCooldown = getPrefs().getInt("autoReplyMentionCooldown", 30);
+        autoReplyMode = getPrefs().getInt("autoReplyMode", 0);
+        autoReplyCooldownMode = getPrefs().getInt("autoReplyCooldownMode", 1);
+        autoReplyScheduleEnabled = getPrefs().getBoolean("autoReplyScheduleEnabled", false);
+        autoReplyScheduleStartHour = getPrefs().getInt("autoReplyScheduleStartHour", 23);
+        autoReplyScheduleStartMinute = getPrefs().getInt("autoReplyScheduleStartMinute", 0);
+        autoReplyScheduleEndHour = getPrefs().getInt("autoReplyScheduleEndHour", 8);
+        autoReplyScheduleEndMinute = getPrefs().getInt("autoReplyScheduleEndMinute", 0);
+        autoReplyMorningText = getPrefs().getString("autoReplyMorningText", "صباح الخير، سأرد عليك بعد قليل إن شاء الله.");
+        autoReplyAfternoonText = getPrefs().getString("autoReplyAfternoonText", "أهلاً، سأطلع على رسالتك وأرد عليك قريباً إن شاء الله.");
+        autoReplyEveningText = getPrefs().getString("autoReplyEveningText", "مساء الخير، سأرجع لك بأقرب وقت إن شاء الله.");
+        autoReplyNightText = getPrefs().getString("autoReplyNightText", "شكراً على رسالتك، سأرد عليك صباحاً إن شاء الله.");
+        autoReplyFilterMode = getPrefs().getInt("autoReplyFilterMode", 0);
+        draftsManagerEnabled = getPrefs().getBoolean("draftsManagerEnabled", true);
+        showChatToolsFab = getPrefs().getBoolean("showChatToolsFab", true);
     }
 }
 

@@ -7104,6 +7104,7 @@ public class ChatActivity extends BaseFragment implements
                     return false;
                 }
             });
+            floatingButtonTools.setVisibility(com.hudgram.ui.HudConfig.showChatToolsFab ? View.VISIBLE : View.GONE);
             contentView.addView(floatingButtonTools, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 150));
         }
 
@@ -29255,6 +29256,9 @@ public class ChatActivity extends BaseFragment implements
     @Override
     public void onResume() {
         super.onResume();
+        if (floatingButtonTools != null) {
+            floatingButtonTools.setVisibility(com.hudgram.ui.HudConfig.showChatToolsFab ? View.VISIBLE : View.GONE);
+        }
         checkShowBlur(false);
         activityResumeTime = System.currentTimeMillis();
         if (openImport && getSendMessagesHelper().getImportingHistory(dialog_id) != null) {

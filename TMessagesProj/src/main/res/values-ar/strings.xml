@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">HudGram</string>
-    <string name="AppNameBeta">(Beta) HudGram</string>
+    <string name="AppName">هُدْجرام</string>
+    <string name="AppNameBeta">هُدْجرام بيتا</string>
     <string name="LanguageName">العربية</string>
     <string name="English">الإنجليزية</string>
     <string name="LanguageNameInEnglish">Arabic</string>
@@ -10881,8 +10881,8 @@
     <string name="HudPromoChannelTitle">قناة هُدْ الرسمية</string>
     <string name="HudPromoChannelWelcome">مرحباً بك في هُدْ! انقر لمتابعة قناتنا الرسمية ومعرفة آخر التحديثات.</string>
     <string name="ThemesAndAppearance">المظهر والثيمات</string>
-    <string name="AboutHudgram">حول هُدْ جرام</string>
-    <string name="AboutHudgramText">هُدْ جرام هو نسخة معدلة وراقية من تيليجرام.\nشكرًا لاختيارك تطبيقنا! ❤️</string>
+    <string name="AboutHudgram">حول هُدْجرام</string>
+    <string name="AboutHudgramText">هُدْجرام هو نسخة معدلة وراقية من تيليجرام.\nشكرًا لاختيارك تطبيقنا! ❤️</string>
     <string name="HudSettingsGeneral">عام</string>
     <string name="HudSettingsAppearance">المظهر</string>
     <string name="HudSettingsChat">المحادثة</string>
@@ -11000,4 +11000,29 @@
     <string name="HudDraftsClearAllConfirm">هل أنت متأكد من رغبتك في حذف جميع المسودات في هذا القسم؟ لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="HudDraftsClearAllSuccess">تم حذف جميع مسودات القسم بنجاح.</string>
     <string name="HudDraftsSendSuccess">تم إرسال الرسالة بنجاح!</string>
+    <string name="ShowChatToolsFab">إظهار زر أدوات الدردشة العائم</string>
+    <string name="ShowChatToolsFabAbout">إظهار زر إعدادات عائم في شاشة المحادثة للوصول السريع إلى أدوات الرد التلقائي، المسودات، والردود السريعة.</string>
+    <string name="BackupAndRestore">النسخ الاحتياطي والاستعادة</string>
+    <string name="ExportSettings">تصدير الإعدادات</string>
+    <string name="ImportSettings">استيراد الإعدادات</string>
+    <string name="ExportError">فشل تصدير الإعدادات.</string>
+    <string name="ImportError">فشل استيراد الإعدادات.</string>
+    <string name="ImportSuccess">تم استيراد الإعدادات بنجاح.</string>
+    <string name="AboutHudgramTitle">حول هُدْجرام</string>
+    <string name="AboutHudgramIntro">هُدْجرام هو تطبيق مراسلة متطور وآمن، مبني على منصة تليجرام البرمجية (Telegram API). تم تصميمه ليوفر تجربة تواصل استثنائية تجمع بين السرعة الفائقة والأناقة البصرية الفاخرة.</string>
+    <string name="AboutHudgramWhy">المزايا الأساسية</string>
+    <string name="AboutHudgramFeature1Title">واجهة وتصميم متكامل</string>
+    <string name="AboutHudgramFeature1Desc">واجهة مستخدم احترافية تتميز بتنسيق اللون الذهبي الفاخر مع دعم كامل للوضع الداكن وخلفيات مخصصة ومريحة للعين.</string>
+    <string name="AboutHudgramFeature2Title">أمان وحماية متطورة</string>
+    <string name="AboutHudgramFeature2Desc">نلتزم بتطبيق أحدث بروتوكولات التشفير المتقدمة لحماية المحادثات والبيانات الشخصية وضمان سرية المراسلات.</string>
+    <string name="AboutHudgramFeature3Title">سرعة ومزامنة سحابية فائقة</string>
+    <string name="AboutHudgramFeature3Desc">مزامنة فورية وآمنة للمراسلات والملفات بمختلف الأحجام عبر كافة أجهزتكم وبسرعة استثنائية.</string>
+    <string name="AboutHudgramFeature4Title">أدوات تخصيص وتحكم مرنة</string>
+    <string name="AboutHudgramFeature4Desc">أدوات إضافية وخيارات متقدمة لتخصيص الواجهات وإدارة المحادثات تمنح المستخدم التحكم الكامل في تجربته اليومية.</string>
+    <string name="AboutHudgramSlogan">هُدْجرام.. يحلق برسائلكم بسرعة وأمان، ويضفي لمسة من التميز على تواصلكم اليومي.</string>
+    <string name="AboutHudgramWebsite">الموقع الرسمي</string>
+    <string name="AboutHudgramSupport">مجموعة الدعم</string>
+    <string name="AboutHudgramSource">سورس كود (GitHub)</string>
+    <string name="AboutHudgramLinks">روابط ومصادر</string>
+    <string name="AboutHudgramVersion">الإصدار %1$s (%2$s)</string>
 </resources>

@@ -308,6 +308,22 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
         return actionBar;
     }
 
+    @Override
+    public void onTransitionAnimationEnd(boolean isOpen, boolean backward) {
+        super.onTransitionAnimationEnd(isOpen, backward);
+        if (isOpen && !backward) {
+            android.os.Bundle args = getArguments();
+            if (args != null && args.containsKey("scroll_to")) {
+                String slug = args.getString("scroll_to");
+                scrollToRow(slug, null);
+            }
+        }
+    }
+
+    public void setArguments(android.os.Bundle args) {
+        this.arguments = args;
+    }
+
     protected String getKey() {
         return null;
     }
@@ -667,6 +683,12 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
             } else {
                 textCell.setText(item.text, divider);
             }
+            if (item.iconResId != 0) {
+                textCell.setIcon(item.iconResId);
+                textCell.setIconColor(Theme.getColor(Theme.key_chats_actionBackground, resourcesProvider));
+            } else {
+                textCell.setIcon(0);
+            }
             if (item.red) {
                 textCell.setTextColor(Theme.getColor(Theme.key_text_RedRegular, resourcesProvider));
             } else if (item.accent) {
@@ -685,6 +707,16 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
             item.id = id;
             item.text = title;
             item.textValue = value;
+            return item;
+        }
+
+        public static UItem of(int id, CharSequence title, CharSequence value, int iconResId, int iconColor) {
+            UItem item = UItem.ofFactory(TextSettingsCellFactory.class);
+            item.id = id;
+            item.text = title;
+            item.textValue = value;
+            item.iconResId = iconResId;
+            item.intValue = iconColor;
             return item;
         }
     }
