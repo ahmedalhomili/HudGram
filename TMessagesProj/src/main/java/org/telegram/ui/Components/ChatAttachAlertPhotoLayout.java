@@ -7,6 +7,7 @@
  */
 
 package org.telegram.ui.Components;
+import com.hudgram.core.HudConfig;
 
 import static android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
 
@@ -2396,7 +2397,7 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
     }
 
     public void checkCamera(boolean request) {
-        if (com.hudgram.ui.HudConfig.disableInstantCamera) {
+        if (com.hudgram.core.HudConfig.disableInstantCamera) {
             deviceHasGoodCamera = false;
             if (adapter != null) {
                 adapter.notifyDataSetChanged();

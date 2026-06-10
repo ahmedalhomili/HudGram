@@ -7,6 +7,7 @@
  */
 
 package org.telegram.messenger;
+import com.hudgram.core.HudPromoChannelManager;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.LocaleController.getString;
@@ -6733,10 +6734,10 @@ public class MessagesController extends BaseController implements NotificationCe
     public TLRPC.Chat getChat(Long id) {
         TLRPC.Chat chat = chats.get(id);
         // Guard against circular dependency: only access HudPromoChannelManager if already initialized
-        if (com.hudgram.ui.HudPromoChannelManager.isInitialized(currentAccount)) {
-            long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+        if (com.hudgram.core.HudPromoChannelManager.isInitialized(currentAccount)) {
+            long promoChannelId = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
             if (chat != null && promoChannelId != 0 && id != null && id == promoChannelId && chat.access_hash == 0) {
-                long storedHash = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getStoredAccessHash();
+                long storedHash = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getStoredAccessHash();
                 if (storedHash != 0) {
                     chat.access_hash = storedHash;
                 }

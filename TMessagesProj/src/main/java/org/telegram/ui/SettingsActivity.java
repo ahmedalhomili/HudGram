@@ -59,7 +59,7 @@ import androidx.collection.LongSparseArray;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.RecyclerView;
-import com.hudgram.ui.HudGeneralSettingsActivity;
+import com.hudgram.ui.settings.HudGeneralSettingsActivity;
 
 import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AndroidUtilities;

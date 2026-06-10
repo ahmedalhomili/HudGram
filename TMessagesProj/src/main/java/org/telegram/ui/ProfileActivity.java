@@ -7,6 +7,9 @@
  */
 
 package org.telegram.ui;
+import com.hudgram.core.HudConfig;
+import com.hudgram.core.HudPromoChannelManager;
+import com.hudgram.ui.settings.HudGeneralSettingsActivity;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.dpf2;
@@ -4461,9 +4464,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 processOnClickOrPress(position, view, x, y);
             } else if (position == idRow) {
                 String idText = "";
-                if (com.hudgram.ui.HudConfig.idType == 1) { // API
+                if (com.hudgram.core.HudConfig.idType == 1) { // API
                     idText = String.valueOf(userId != 0 ? userId : chatId);
-                } else if (com.hudgram.ui.HudConfig.idType == 2) { // Bot API
+                } else if (com.hudgram.core.HudConfig.idType == 2) { // Bot API
                     idText = String.valueOf(userId != 0 ? userId : (ChatObject.isChannel(currentChat) && !currentChat.megagroup ? "-100" + chatId : "-" + chatId));
                 }
                 AndroidUtilities.addToClipboard(idText);
@@ -10640,7 +10643,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (user != null && username != null) {
                     usernameRow = rowCount++;
                 }
-                if (com.hudgram.ui.HudConfig.idType != 0) {
+                if (com.hudgram.core.HudConfig.idType != 0) {
                     idRow = rowCount++;
                 }
                 if (userInfo != null) {
@@ -10762,7 +10765,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             }
             usernameRow = rowCount++;
-            if (com.hudgram.ui.HudConfig.idType != 0) {
+            if (com.hudgram.core.HudConfig.idType != 0) {
                 idRow = rowCount++;
             }
             if (actionsView == null) {
@@ -10799,7 +10802,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (ChatObject.isPublic(currentChat)) {
                     usernameRow = rowCount++;
                 }
-                if (com.hudgram.ui.HudConfig.idType != 0) {
+                if (com.hudgram.core.HudConfig.idType != 0) {
                     idRow = rowCount++;
                 }
             }
@@ -11375,8 +11378,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (user.scam || user.fake) {
                         nameTextView[a].setRightDrawable2(getScamDrawable(user.scam ? 0 : 1));
                         nameTextViewRightDrawable2ContentDescription = LocaleController.getString(R.string.ScamMessage);
-                    } else if (user.verified || com.hudgram.ui.HudPromoChannelManager.isOfficialUser(currentAccount, user)) {
-                        boolean isOfficial = com.hudgram.ui.HudPromoChannelManager.isOfficialUser(currentAccount, user);
+                    } else if (user.verified || com.hudgram.core.HudPromoChannelManager.isOfficialUser(currentAccount, user)) {
+                        boolean isOfficial = com.hudgram.core.HudPromoChannelManager.isOfficialUser(currentAccount, user);
                         nameTextView[a].setRightDrawable2(isOfficial ? Theme.dialogs_hudgramOfficialDrawable : getVerifiedCrossfadeDrawable(a));
                         nameTextViewRightDrawable2ContentDescription = LocaleController.getString(R.string.AccDescrVerified);
                     } else if (getMessagesController().isDialogMuted(dialogId != 0 ? dialogId : userId, topicId)) {
@@ -11403,8 +11406,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else if (a == 1) {
                     if (user.scam || user.fake) {
                         nameTextView[a].setRightDrawable2(getScamDrawable(user.scam ? 0 : 1));
-                    } else if (user.verified || com.hudgram.ui.HudPromoChannelManager.isOfficialUser(currentAccount, user)) {
-                        boolean isOfficial = com.hudgram.ui.HudPromoChannelManager.isOfficialUser(currentAccount, user);
+                    } else if (user.verified || com.hudgram.core.HudPromoChannelManager.isOfficialUser(currentAccount, user)) {
+                        boolean isOfficial = com.hudgram.core.HudPromoChannelManager.isOfficialUser(currentAccount, user);
                         nameTextView[a].setRightDrawable2(isOfficial ? Theme.dialogs_hudgramOfficialDrawable : getVerifiedCrossfadeDrawable(a));
                     } else {
                         nameTextView[a].setRightDrawable2(null);
@@ -11696,8 +11699,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (chat.scam || chat.fake) {
                         nameTextView[a].setRightDrawable2(getScamDrawable(chat.scam ? 0 : 1));
                         nameTextViewRightDrawableContentDescription = LocaleController.getString(R.string.ScamMessage);
-                    } else if (chat.verified || com.hudgram.ui.HudPromoChannelManager.isOfficialChannel(currentAccount, chat)) {
-                        boolean isOfficial = com.hudgram.ui.HudPromoChannelManager.isOfficialChannel(currentAccount, chat);
+                    } else if (chat.verified || com.hudgram.core.HudPromoChannelManager.isOfficialChannel(currentAccount, chat)) {
+                        boolean isOfficial = com.hudgram.core.HudPromoChannelManager.isOfficialChannel(currentAccount, chat);
                         nameTextView[a].setRightDrawable2(isOfficial ? Theme.dialogs_hudgramOfficialDrawable : getVerifiedCrossfadeDrawable(a));
                         nameTextViewRightDrawableContentDescription = LocaleController.getString(R.string.AccDescrVerified);
                     } else {
@@ -11726,8 +11729,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else if (!copyFromChatActivity) {
                     if (chat.scam || chat.fake) {
                         nameTextView[a].setRightDrawable2(getScamDrawable(chat.scam ? 0 : 1));
-                    } else if (chat.verified || com.hudgram.ui.HudPromoChannelManager.isOfficialChannel(currentAccount, chat)) {
-                        boolean isOfficial = com.hudgram.ui.HudPromoChannelManager.isOfficialChannel(currentAccount, chat);
+                    } else if (chat.verified || com.hudgram.core.HudPromoChannelManager.isOfficialChannel(currentAccount, chat)) {
+                        boolean isOfficial = com.hudgram.core.HudPromoChannelManager.isOfficialChannel(currentAccount, chat);
                         nameTextView[a].setRightDrawable2(isOfficial ? Theme.dialogs_hudgramOfficialDrawable : getVerifiedCrossfadeDrawable(a));
                     } else if (getMessagesController().isDialogMuted(-chatId, topicId)) {
                         nameTextView[a].setRightDrawable2(getThemedDrawable(Theme.key_drawable_muteIconDrawable));
@@ -13476,9 +13479,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         detailCell.setTextAndValue(text, alsoUsernamesString(username, usernames, value), infoEndRowEmpty == -1 && (isTopic || bizHoursRow != -1 || bizLocationRow != -1) && birthdayRow < 0);
                     } else if (position == idRow) {
                         String idText = "";
-                        if (com.hudgram.ui.HudConfig.idType == 1) { // API
+                        if (com.hudgram.core.HudConfig.idType == 1) { // API
                             idText = String.valueOf(userId != 0 ? userId : chatId);
-                        } else if (com.hudgram.ui.HudConfig.idType == 2) { // Bot API
+                        } else if (com.hudgram.core.HudConfig.idType == 2) { // Bot API
                             idText = String.valueOf(userId != 0 ? userId : (ChatObject.isChannel(currentChat) && !currentChat.megagroup ? "-100" + chatId : "-" + chatId));
                         }
                         detailCell.setTextAndValue(idText, "ID", false);
@@ -14685,8 +14688,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     }).withLink("tg://settings/power-saving/transitions"),
 
                     new SearchResult(400, getString(R.string.Language), R.drawable.msg2_language, () -> f.presentFragment(new LanguageSelectActivity())).withLink("tg://settings/language"),
-                    new SearchResult(405, getString(R.string.ShowTranslateButton), getString(R.string.Language), R.drawable.msg2_language, () -> f.presentFragment(new com.hudgram.ui.HudGeneralSettingsActivity())).withLink("tg://settings/language/show-button"),
-                    MessagesController.getInstance(currentAccount).getTranslateController().isContextTranslateEnabled() ? new SearchResult(406, getString(R.string.DoNotTranslate), getString(R.string.Language), R.drawable.msg2_language, () -> f.presentFragment(new com.hudgram.ui.HudGeneralSettingsActivity())).withLink("tg://settings/language/do-not-translate") : null,
+                    new SearchResult(405, getString(R.string.ShowTranslateButton), getString(R.string.Language), R.drawable.msg2_language, () -> f.presentFragment(new com.hudgram.ui.settings.HudGeneralSettingsActivity())).withLink("tg://settings/language/show-button"),
+                    MessagesController.getInstance(currentAccount).getTranslateController().isContextTranslateEnabled() ? new SearchResult(406, getString(R.string.DoNotTranslate), getString(R.string.Language), R.drawable.msg2_language, () -> f.presentFragment(new com.hudgram.ui.settings.HudGeneralSettingsActivity())).withLink("tg://settings/language/do-not-translate") : null,
 
                     new SearchResult(402, getString(R.string.AskAQuestion), getString(R.string.SettingsHelp), R.drawable.msg2_help, () -> f.showDialog(AlertsCreator.createSupportAlert(f, null))).withLink("tg://settings/ask-question"),
                     new SearchResult(403, getString(R.string.TelegramFAQ), getString(R.string.SettingsHelp), R.drawable.msg2_help, () -> Browser.openUrl(f.getParentActivity(), getString(R.string.TelegramFaqUrl))).withLink("tg://settings/faq"),
@@ -16212,9 +16215,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (textToCopy != null) textToCopy = "@" + textToCopy;
             copyButton = getString(R.string.ProfileCopyUsername);
         } else if (position == idRow) {
-            if (com.hudgram.ui.HudConfig.idType == 1) { // API
+            if (com.hudgram.core.HudConfig.idType == 1) { // API
                 textToCopy = String.valueOf(userId != 0 ? userId : chatId);
-            } else if (com.hudgram.ui.HudConfig.idType == 2) { // Bot API
+            } else if (com.hudgram.core.HudConfig.idType == 2) { // Bot API
                 textToCopy = String.valueOf(userId != 0 ? userId : (ChatObject.isChannel(currentChat) && !currentChat.megagroup ? "-100" + chatId : "-" + chatId));
             }
             copyButton = getString(R.string.Copy);

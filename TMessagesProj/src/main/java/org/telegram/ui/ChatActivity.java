@@ -7,6 +7,10 @@
  */
 
 package org.telegram.ui;
+import com.hudgram.core.HudConfig;
+import com.hudgram.ui.autoreply.HudAutoReplyActivity;
+import com.hudgram.ui.drafts.HudDraftsActivity;
+import com.hudgram.ui.quickreply.HudQuickReplyActivity;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.lerp;
@@ -1815,7 +1819,7 @@ public class ChatActivity extends BaseFragment implements
         public boolean hasDoubleTap(View view, int position) {
             if (chatMode == MODE_QUICK_REPLIES) return false;
             
-            if (com.hudgram.ui.HudConfig.customDoubleTapAction != 0) {
+            if (com.hudgram.core.HudConfig.customDoubleTapAction != 0) {
                 MessageObject messageObject;
                 if (view instanceof ChatMessageCell) {
                     messageObject = ((ChatMessageCell) view).getPrimaryMessageObject();
@@ -1867,7 +1871,7 @@ public class ChatActivity extends BaseFragment implements
                 return;
             }
             
-            int customAction = com.hudgram.ui.HudConfig.customDoubleTapAction;
+            int customAction = com.hudgram.core.HudConfig.customDoubleTapAction;
             if (customAction != 0) {
                 if (customAction == 1) { // Translate
                     CharSequence finalMessageText = messageObject.messageText;
@@ -7104,7 +7108,7 @@ public class ChatActivity extends BaseFragment implements
                     return false;
                 }
             });
-            floatingButtonTools.setVisibility(com.hudgram.ui.HudConfig.showChatToolsFab ? View.VISIBLE : View.GONE);
+            floatingButtonTools.setVisibility(com.hudgram.core.HudConfig.showChatToolsFab ? View.VISIBLE : View.GONE);
             contentView.addView(floatingButtonTools, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 150));
         }
 
@@ -7241,8 +7245,8 @@ public class ChatActivity extends BaseFragment implements
             Object object = mentionContainer.getAdapter().getItem(position);
             int start = mentionContainer.getAdapter().getResultStartPosition();
             int len = mentionContainer.getAdapter().getResultLength();
-            if (object instanceof com.hudgram.ui.HudConfig.QuickReplyItem) {
-                chatActivityEnterView.replaceWithText(start, len, ((com.hudgram.ui.HudConfig.QuickReplyItem) object).value, false);
+            if (object instanceof com.hudgram.core.HudConfig.QuickReplyItem) {
+                chatActivityEnterView.replaceWithText(start, len, ((com.hudgram.core.HudConfig.QuickReplyItem) object).value, false);
                 return;
             }
             if (mentionContainer.getAdapter().isLocalHashtagHint(position)) {
@@ -12785,20 +12789,29 @@ public class ChatActivity extends BaseFragment implements
         CharSequence[] items = new CharSequence[]{
             LocaleController.getString("HudQuickReplyTitle", R.string.HudQuickReplyTitle),
             LocaleController.getString("HudAutoReplyTitle", R.string.HudAutoReplyTitle),
-            LocaleController.getString("HudDraftsTitle", R.string.HudDraftsTitle)
+            LocaleController.getString("HudDraftsTitle", R.string.HudDraftsTitle),
+            LocaleController.getString("HudMessageByNumber", R.string.HudMessageByNumber)
         };
         int[] icons = new int[]{
             R.drawable.msg_reply_small,
             R.drawable.msg_mention,
-            R.drawable.msg_edit
+            R.drawable.msg_edit,
+            R.drawable.msg_contacts
         };
         builder.setItems(items, icons, (dialogInterface, i) -> {
             if (i == 0) {
-                presentFragment(new com.hudgram.ui.HudQuickReplyActivity());
+                presentFragment(new com.hudgram.ui.quickreply.HudQuickReplyActivity());
             } else if (i == 1) {
-                presentFragment(new com.hudgram.ui.HudAutoReplyActivity());
+                presentFragment(new com.hudgram.ui.autoreply.HudAutoReplyActivity());
             } else if (i == 2) {
-                presentFragment(new com.hudgram.ui.HudDraftsActivity());
+                presentFragment(new com.hudgram.ui.drafts.HudDraftsActivity());
+            } else if (i == 3) {
+                com.hudgram.ui.utils.ContactSearchUiHelper.showSearchDialog(
+                    getParentActivity(),
+                    currentAccount,
+                    getResourceProvider(),
+                    parentLayout
+                );
             }
         });
         showDialog(builder.create());
@@ -29257,7 +29270,7 @@ public class ChatActivity extends BaseFragment implements
     public void onResume() {
         super.onResume();
         if (floatingButtonTools != null) {
-            floatingButtonTools.setVisibility(com.hudgram.ui.HudConfig.showChatToolsFab ? View.VISIBLE : View.GONE);
+            floatingButtonTools.setVisibility(com.hudgram.core.HudConfig.showChatToolsFab ? View.VISIBLE : View.GONE);
         }
         checkShowBlur(false);
         activityResumeTime = System.currentTimeMillis();
@@ -44928,7 +44941,7 @@ public class ChatActivity extends BaseFragment implements
                 items.add(LocaleController.getString(R.string.Copy));
                 options.add(OPTION_COPY);
                 icons.add(R.drawable.msg_copy);
-                if (com.hudgram.ui.HudConfig.partialCopy) {
+                if (com.hudgram.core.HudConfig.partialCopy) {
                     items.add(LocaleController.getString("PartialCopy", R.string.PartialCopy));
                     options.add(OPTION_PARTIAL_COPY);
                     icons.add(R.drawable.msg_copy);
@@ -45021,7 +45034,7 @@ public class ChatActivity extends BaseFragment implements
                 items.add(LocaleController.getString(R.string.Copy));
                 options.add(OPTION_COPY);
                 icons.add(R.drawable.msg_copy);
-                if (com.hudgram.ui.HudConfig.partialCopy) {
+                if (com.hudgram.core.HudConfig.partialCopy) {
                     items.add(LocaleController.getString("PartialCopy", R.string.PartialCopy));
                     options.add(OPTION_PARTIAL_COPY);
                     icons.add(R.drawable.msg_copy);
@@ -45057,7 +45070,7 @@ public class ChatActivity extends BaseFragment implements
                     items.add(LocaleController.getString(R.string.Copy));
                     options.add(OPTION_COPY);
                     icons.add(R.drawable.msg_copy);
-                    if (com.hudgram.ui.HudConfig.partialCopy) {
+                    if (com.hudgram.core.HudConfig.partialCopy) {
                         items.add(LocaleController.getString("PartialCopy", R.string.PartialCopy));
                         options.add(OPTION_PARTIAL_COPY);
                         icons.add(R.drawable.msg_copy);
@@ -45357,7 +45370,7 @@ public class ChatActivity extends BaseFragment implements
                     items.add(LocaleController.getString(R.string.Copy));
                     options.add(OPTION_COPY);
                     icons.add(R.drawable.msg_copy);
-                    if (com.hudgram.ui.HudConfig.partialCopy) {
+                    if (com.hudgram.core.HudConfig.partialCopy) {
                         items.add(LocaleController.getString("PartialCopy", R.string.PartialCopy));
                         options.add(OPTION_PARTIAL_COPY);
                         icons.add(R.drawable.msg_copy);

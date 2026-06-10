@@ -1,4 +1,6 @@
-package com.hudgram.ui;
+package com.hudgram.ui.settings;
+import com.hudgram.core.HudConfig;
+import com.hudgram.ui.utils.TranslationUiHelper;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -154,20 +156,20 @@ public class HudLanguagesSelectActivity extends BaseHudSettingsActivity {
     }
 
     private String getCurrentTargetLanguage() {
-        String language = Translator.getCurrentTargetLanguage();
+        String language = TranslationUiHelper.getCurrentTargetLanguage();
         if (currentType == TYPE_RESTRICTED) {
-            language = Translator.stripLanguageCode(language);
+            language = TranslationUiHelper.stripLanguageCode(language);
         }
         return language;
     }
 
     private void fillLanguages() {
         if (currentType == TYPE_RESTRICTED) {
-            restrictedLanguages = Translator.getRestrictedLanguages();
+            restrictedLanguages = TranslationUiHelper.getRestrictedLanguages();
         }
         allLanguages.clear();
         Locale localeEn = Locale.forLanguageTag("en");
-        for (String languageCode : currentType == TYPE_RESTRICTED ? RESTRICTED_LIST : Translator.getCurrentTargetLanguages()) {
+        for (String languageCode : currentType == TYPE_RESTRICTED ? RESTRICTED_LIST : TranslationUiHelper.getCurrentTargetLanguages()) {
             LocaleInfo localeInfo = new LocaleInfo(languageCode);
             Locale locale = Locale.forLanguageTag(languageCode);
             if (!TextUtils.isEmpty(locale.getScript())) {
@@ -259,7 +261,7 @@ public class HudLanguagesSelectActivity extends BaseHudSettingsActivity {
                 } else {
                     restrictedLanguages.add(localeInfo.langCode);
                 }
-                Translator.saveRestrictedLanguages(restrictedLanguages);
+                TranslationUiHelper.saveRestrictedLanguages(restrictedLanguages);
                 item.setChecked(!remove);
                 cell.setChecked(!remove);
                 getMessagesController().getTranslateController().checkRestrictedLanguagesUpdate();
@@ -274,13 +276,13 @@ public class HudLanguagesSelectActivity extends BaseHudSettingsActivity {
         if (language == null) {
             return false;
         }
-        ArrayList<String> restrictedLanguages = Translator.getRestrictedLanguages();
+        ArrayList<String> restrictedLanguages = TranslationUiHelper.getRestrictedLanguages();
         if (!doNotTranslate) {
             restrictedLanguages.remove(language);
         } else {
             restrictedLanguages.add(language);
         }
-        Translator.saveRestrictedLanguages(restrictedLanguages);
+        TranslationUiHelper.saveRestrictedLanguages(restrictedLanguages);
         TranslateController.invalidateSuggestedLanguageCodes();
         return true;
     }

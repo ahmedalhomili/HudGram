@@ -7,6 +7,7 @@
  */
 
 package org.telegram.ui.Cells;
+import com.hudgram.core.HudPromoChannelManager;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.dpf2;
@@ -1262,7 +1263,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     }
                 }
             } else {
-                boolean isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
+                boolean isOfficialChannel = com.hudgram.core.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
                 if (isOfficialChannel) {
                     drawHudgramOfficialBadge = !forbidVerified;
                     drawVerified = false;
@@ -1383,7 +1384,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     long dialogBotVerificationIcon = 0;
                     if (chat != null) {
                         dialogBotVerificationIcon = DialogObject.getBotVerificationIcon(chat);
-                        boolean isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
+                        boolean isOfficialChannel = com.hudgram.core.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
                         if (isOfficialChannel) {
                             drawHudgramOfficialBadge = !forbidVerified;
                             drawVerified = false;
@@ -1406,7 +1407,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         }
                     } else if (user != null) {
                         dialogBotVerificationIcon = DialogObject.getBotVerificationIcon(user);
-                        boolean isOfficial = com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
+                        boolean isOfficial = com.hudgram.core.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
                         if (isOfficial) {
                             drawHudgramOfficialBadge = !forbidVerified;
                             drawVerified = false;
@@ -3147,9 +3148,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             readOutboxMaxId = -1;
             if (isDialogCell) {
                 TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(currentDialogId);
-                isHudPromoCell = com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
+                isHudPromoCell = com.hudgram.core.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId);
                 if (dialog == null && isHudPromoCell) {
-                    dialog = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoDialog();
+                    dialog = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getPromoDialog();
                 }
                 if (dialog != null) {
                     readOutboxMaxId = dialog.read_outbox_max_id;
@@ -3160,8 +3161,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         message = groupMessages != null && groupMessages.size() > 0 ? groupMessages.get(0) : null;
                         lastUnreadState = message != null && message.isUnread();
                         TLRPC.Chat localChat = MessagesController.getInstance(currentAccount).getChat(-dialog.id);
-                        if (localChat == null && com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, dialog.id)) {
-                            localChat = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
+                        if (localChat == null && com.hudgram.core.HudPromoChannelManager.isOfficialDialog(currentAccount, dialog.id)) {
+                            localChat = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
                         }
                         boolean isForumCell = localChat != null && localChat.forum && !isTopic;
                         if (localChat != null && (localChat.forum || localChat.monoforum && ChatObject.canManageMonoForum(currentAccount, localChat))) {
@@ -3331,8 +3332,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     }
                     if (isDialogCell) {
                         TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(currentDialogId);
-                        if (dialog == null && com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId)) {
-                            dialog = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoDialog();
+                        if (dialog == null && com.hudgram.core.HudPromoChannelManager.isOfficialDialog(currentAccount, currentDialogId)) {
+                            dialog = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getPromoDialog();
                         }
                         int newCount;
                         int newMentionCount;
@@ -3340,8 +3341,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         int newPollVotesCount = 0;
 
                         TLRPC.Chat localChat = dialog == null ? null : MessagesController.getInstance(currentAccount).getChat(-dialog.id);
-                        if (localChat == null && dialog != null && com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, dialog.id)) {
-                            localChat = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
+                        if (localChat == null && dialog != null && com.hudgram.core.HudPromoChannelManager.isOfficialDialog(currentAccount, dialog.id)) {
+                            localChat = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
                         }
                         if (localChat != null && (localChat.forum || localChat.monoforum && ChatObject.canManageMonoForum(currentAccount, localChat))) {
                             int[] counts = MessagesController.getInstance(currentAccount).getTopicsController().getForumUnreadCount(localChat.id);
@@ -3433,8 +3434,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     user = MessagesController.getInstance(currentAccount).getUser(dialogId);
                 } else {
                     chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
-                    if (chat == null && com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, dialogId)) {
-                        chat = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
+                    if (chat == null && com.hudgram.core.HudPromoChannelManager.isOfficialDialog(currentAccount, dialogId)) {
+                        chat = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getPromoChat();
                     }
                     if (!isDialogCell && chat != null && chat.migrated_to != null) {
                         TLRPC.Chat chat2 = MessagesController.getInstance(currentAccount).getChat(chat.migrated_to.channel_id);

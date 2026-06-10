@@ -1,4 +1,5 @@
 package org.telegram.ui;
+import com.hudgram.core.HudConfig;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.lerp;
@@ -104,10 +105,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         activeTabs.add(INDEX_UPDATES);
         activeTabs.add(INDEX_CALLS);
         activeTabs.add(INDEX_CONTACTS);
-        if (!com.hudgram.ui.HudConfig.hideSettingsTab) {
+        if (!com.hudgram.core.HudConfig.hideSettingsTab) {
             activeTabs.add(INDEX_SETTINGS);
         }
-        if (!com.hudgram.ui.HudConfig.showAvatarInHeader) {
+        if (!com.hudgram.core.HudConfig.showAvatarInHeader) {
             activeTabs.add(INDEX_PROFILE);
         }
     }
@@ -1048,7 +1049,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     private void checkUi_callTabVisible(boolean callTabsVisible, boolean animated) {
         if (tabsView != null) {
-            boolean showSettings = !com.hudgram.ui.HudConfig.hideSettingsTab;
+            boolean showSettings = !com.hudgram.core.HudConfig.hideSettingsTab;
             tabsView.setViewVisible(tabs[INDEX_SETTINGS], showSettings, animated);
             tabsView.setViewVisible(tabs[INDEX_CALLS], true, animated);
         }
@@ -1057,7 +1058,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     public void checkUi_profileTabVisible(boolean animated) {
         if (tabsView != null && tabs != null && tabs[INDEX_PROFILE] != null) {
-            tabsView.setViewVisible(tabs[INDEX_PROFILE], !com.hudgram.ui.HudConfig.showAvatarInHeader, animated);
+            tabsView.setViewVisible(tabs[INDEX_PROFILE], !com.hudgram.core.HudConfig.showAvatarInHeader, animated);
         }
         updateViewPagerTabs();
     }

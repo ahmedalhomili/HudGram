@@ -1,4 +1,5 @@
 package org.telegram.messenger;
+import com.hudgram.core.HudConfig;
 
 import static org.telegram.messenger.LocaleController.getString;
 
@@ -90,14 +91,14 @@ public class TranslateController extends BaseController {
     }
 
     public boolean isFeatureAvailable() {
-        if (!com.hudgram.ui.HudConfig.translationEnabled) {
+        if (!com.hudgram.core.HudConfig.translationEnabled) {
             return false;
         }
         return isChatTranslateEnabled();
     }
 
     public boolean isFeatureAvailable(long dialogId) {
-        if (!com.hudgram.ui.HudConfig.translationEnabled) {
+        if (!com.hudgram.core.HudConfig.translationEnabled) {
             return false;
         }
         if (!isChatTranslateEnabled()) {
@@ -110,7 +111,7 @@ public class TranslateController extends BaseController {
     private Boolean contextTranslateEnabled;
 
     public boolean isChatTranslateEnabled() {
-        if (!com.hudgram.ui.HudConfig.translationEnabled) {
+        if (!com.hudgram.core.HudConfig.translationEnabled) {
             return false;
         }
         if (chatTranslateEnabled == null) {
@@ -120,7 +121,7 @@ public class TranslateController extends BaseController {
     }
 
     public boolean isContextTranslateEnabled() {
-        if (!com.hudgram.ui.HudConfig.translationEnabled) {
+        if (!com.hudgram.core.HudConfig.translationEnabled) {
             return false;
         }
         if (contextTranslateEnabled == null) {
@@ -197,7 +198,7 @@ public class TranslateController extends BaseController {
         if (detected != null && !UNKNOWN_LANGUAGE.equals(detected)) {
             return !isLanguageRestricted(detected);
         }
-        if (com.hudgram.ui.HudConfig.autoTranslate) {
+        if (com.hudgram.core.HudConfig.autoTranslate) {
             return true;
         }
         if (translatingDialogs.indexOfKey(dialogId) >= 0) {
@@ -225,7 +226,7 @@ public class TranslateController extends BaseController {
     }
 
     private boolean isChatAutoTranslated(long dialogId) {
-        if (com.hudgram.ui.HudConfig.autoTranslate) {
+        if (com.hudgram.core.HudConfig.autoTranslate) {
             return !DialogObject.isEncryptedDialog(dialogId) && getUserConfig().getClientUserId() != dialogId;
         }
         if (!isDialogTranslatable(dialogId)) {
@@ -271,7 +272,7 @@ public class TranslateController extends BaseController {
             cancelTranslations(dialogId);
         }
         synchronized (this) {
-            if (com.hudgram.ui.HudConfig.autoTranslate) {
+            if (com.hudgram.core.HudConfig.autoTranslate) {
                 translatingDialogs.remove(dialogId);
             } else {
                 translatingDialogs.put(dialogId, false);
@@ -299,7 +300,7 @@ public class TranslateController extends BaseController {
     }
 
     public String getDialogTranslateTo(long dialogId) {
-        String globalTarget = com.hudgram.ui.HudConfig.translationTarget;
+        String globalTarget = com.hudgram.core.HudConfig.translationTarget;
         if (!"app".equals(globalTarget) && !android.text.TextUtils.isEmpty(globalTarget)) {
             String lang = globalTarget;
             if ("nb".equals(lang)) {
@@ -1144,7 +1145,7 @@ public class TranslateController extends BaseController {
                     texts = new ArrayList<>(pendingTranslation1.messageTexts);
                 }
 
-                if ("telegram".equals(com.hudgram.ui.HudConfig.translationProvider)) {
+                if ("telegram".equals(com.hudgram.core.HudConfig.translationProvider)) {
                     final String method = getMessagesController().translationsAutoEnabled;
                     if ("alternative".equals(method) || "system".equals(method)) {
                         for (int i = 0; i < ids.size(); ++i) {
@@ -1164,7 +1165,6 @@ public class TranslateController extends BaseController {
                         }
                         return;
                     }
-
                     final TLRPC.TL_messages_translateText req = new TLRPC.TL_messages_translateText();
                     if (isTranscription) {
                         req.flags |= 2;
@@ -1940,7 +1940,7 @@ public class TranslateController extends BaseController {
             text.entities = new ArrayList<>();
         }
         final long start = System.currentTimeMillis();
-        if ("telegram".equals(com.hudgram.ui.HudConfig.translationProvider)) {
+        if ("telegram".equals(com.hudgram.core.HudConfig.translationProvider)) {
             final TLRPC.TL_messages_translateText req = new TLRPC.TL_messages_translateText();
             req.flags |= 2;
             req.text.add(text);

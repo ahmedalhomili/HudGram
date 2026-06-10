@@ -7,6 +7,7 @@
  */
 
 package org.telegram.ui.Adapters;
+import com.hudgram.core.HudConfig;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.ui.PremiumPreviewFragment.applyNewSpan;
@@ -112,7 +113,7 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
     private ArrayList<String> searchResultCommandsHelp;
     private String quickRepliesQuery;
     private ArrayList<QuickRepliesController.QuickReply> quickReplies;
-    private ArrayList<com.hudgram.ui.HudConfig.QuickReplyItem> hudQuickReplies;
+    private ArrayList<com.hudgram.core.HudConfig.QuickReplyItem> hudQuickReplies;
     private ArrayList<MediaDataController.KeywordResult> searchResultSuggestions;
     private String[] lastSearchKeyboardLanguage;
     private ArrayList<TLRPC.User> searchResultCommandsUsers;
@@ -1528,11 +1529,11 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
             }
         } else if (foundType == 1) {
             String hashtagString = result.toString().toLowerCase();
-            ArrayList<com.hudgram.ui.HudConfig.QuickReplyItem> allQuickReplies = com.hudgram.ui.HudConfig.quickReplyEnabled ? com.hudgram.ui.HudConfig.getQuickReplies() : null;
+            ArrayList<com.hudgram.core.HudConfig.QuickReplyItem> allQuickReplies = com.hudgram.core.HudConfig.quickReplyEnabled ? com.hudgram.core.HudConfig.getQuickReplies() : null;
             if (allQuickReplies != null && !allQuickReplies.isEmpty()) {
-                ArrayList<com.hudgram.ui.HudConfig.QuickReplyItem> matched = new ArrayList<>();
+                ArrayList<com.hudgram.core.HudConfig.QuickReplyItem> matched = new ArrayList<>();
                 String query = hashtagString.startsWith("#") ? hashtagString.substring(1) : hashtagString;
-                for (com.hudgram.ui.HudConfig.QuickReplyItem item : allQuickReplies) {
+                for (com.hudgram.core.HudConfig.QuickReplyItem item : allQuickReplies) {
                     if (query.isEmpty() || item.label.toLowerCase().startsWith(query)) {
                         matched.add(item);
                     }
@@ -2033,7 +2034,7 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
                     cell.setChat((TLRPC.Chat) object);
                 }
             } else if (hudQuickReplies != null && position >= 0 && position < hudQuickReplies.size()) {
-                com.hudgram.ui.HudConfig.QuickReplyItem item = hudQuickReplies.get(position);
+                com.hudgram.core.HudConfig.QuickReplyItem item = hudQuickReplies.get(position);
                 cell.setQuickReply(item.label, item.value);
             } else if (searchResultHashtags != null && position >= 0 && position < searchResultHashtags.size()) {
                 cell.setText(searchResultHashtags.get(position));

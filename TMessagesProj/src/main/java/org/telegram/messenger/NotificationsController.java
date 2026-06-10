@@ -7,6 +7,7 @@
  */
 
 package org.telegram.messenger;
+import com.hudgram.core.HudConfig;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -1216,31 +1217,31 @@ public class NotificationsController extends BaseController {
                     }
                     dialogId = messageObject.getFromChatId();
 
-                    if (com.hudgram.ui.HudConfig.autoReplyMentionEnabled &&
+                    if (com.hudgram.core.HudConfig.autoReplyMentionEnabled &&
                             !messageObject.isOutOwner() &&
                             messageObject.getDialogId() < 0 &&
                             messageObject.getSenderId() != UserConfig.getInstance(currentAccount).getClientUserId()) {
 
                         // --- Group filter check ---
                         long groupDialogId = messageObject.getDialogId();
-                        int filterMode = com.hudgram.ui.HudConfig.autoReplyFilterMode;
+                        int filterMode = com.hudgram.core.HudConfig.autoReplyFilterMode;
                         boolean passesFilter = true;
                         if (filterMode == 1) {
                             // Whitelist: only selected groups
-                            passesFilter = com.hudgram.ui.HudConfig.isGroupInAutoReplyFilter(groupDialogId);
+                            passesFilter = com.hudgram.core.HudConfig.isGroupInAutoReplyFilter(groupDialogId);
                         } else if (filterMode == 2) {
                             // Blacklist: all except selected groups
-                            passesFilter = !com.hudgram.ui.HudConfig.isGroupInAutoReplyFilter(groupDialogId);
+                            passesFilter = !com.hudgram.core.HudConfig.isGroupInAutoReplyFilter(groupDialogId);
                         }
 
                         if (passesFilter) {
                             // --- Schedule check ---
                             boolean passesSchedule = true;
-                            if (com.hudgram.ui.HudConfig.autoReplyScheduleEnabled) {
+                            if (com.hudgram.core.HudConfig.autoReplyScheduleEnabled) {
                                 java.util.Calendar cal = java.util.Calendar.getInstance();
                                 int nowMinutes = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
-                                int startMinutes = com.hudgram.ui.HudConfig.autoReplyScheduleStartHour * 60 + com.hudgram.ui.HudConfig.autoReplyScheduleStartMinute;
-                                int endMinutes = com.hudgram.ui.HudConfig.autoReplyScheduleEndHour * 60 + com.hudgram.ui.HudConfig.autoReplyScheduleEndMinute;
+                                int startMinutes = com.hudgram.core.HudConfig.autoReplyScheduleStartHour * 60 + com.hudgram.core.HudConfig.autoReplyScheduleStartMinute;
+                                int endMinutes = com.hudgram.core.HudConfig.autoReplyScheduleEndHour * 60 + com.hudgram.core.HudConfig.autoReplyScheduleEndMinute;
                                 if (startMinutes <= endMinutes) {
                                     passesSchedule = nowMinutes >= startMinutes && nowMinutes <= endMinutes;
                                 } else {
@@ -1256,7 +1257,7 @@ public class NotificationsController extends BaseController {
 
                                     // --- Cooldown check (per-group or per-sender) ---
                                     long cooldownKey;
-                                    if (com.hudgram.ui.HudConfig.autoReplyCooldownMode == 1) {
+                                    if (com.hudgram.core.HudConfig.autoReplyCooldownMode == 1) {
                                         // Per sender: combine dialogId + senderId
                                         cooldownKey = groupDialogId * 31 + messageObject.getSenderId();
                                     } else {
@@ -1264,16 +1265,16 @@ public class NotificationsController extends BaseController {
                                         cooldownKey = groupDialogId;
                                     }
                                     Long lastTime = lastAutoReplyTimeMap.get(cooldownKey);
-                                    long cooldownMs = com.hudgram.ui.HudConfig.autoReplyMentionCooldown * 1000L;
+                                    long cooldownMs = com.hudgram.core.HudConfig.autoReplyMentionCooldown * 1000L;
                                     if (lastTime == null || (currentTime - lastTime) >= cooldownMs) {
                                         lastAutoReplyTimeMap.put(cooldownKey, currentTime);
 
                                         // --- Select reply text based on mode ---
                                         String replyText = null;
-                                        int mode = com.hudgram.ui.HudConfig.autoReplyMode;
+                                        int mode = com.hudgram.core.HudConfig.autoReplyMode;
                                         if (mode == 1) {
                                             // Multiple messages: random selection
-                                            java.util.ArrayList<String> msgs = com.hudgram.ui.HudConfig.getAutoReplyMessages();
+                                            java.util.ArrayList<String> msgs = com.hudgram.core.HudConfig.getAutoReplyMessages();
                                             if (msgs != null && !msgs.isEmpty()) {
                                                 replyText = msgs.get(new java.util.Random().nextInt(msgs.size()));
                                             }
@@ -1282,17 +1283,17 @@ public class NotificationsController extends BaseController {
                                             java.util.Calendar cal = java.util.Calendar.getInstance();
                                             int hour = cal.get(java.util.Calendar.HOUR_OF_DAY);
                                             if (hour >= 6 && hour < 12) {
-                                                replyText = com.hudgram.ui.HudConfig.autoReplyMorningText;
+                                                replyText = com.hudgram.core.HudConfig.autoReplyMorningText;
                                             } else if (hour >= 12 && hour < 18) {
-                                                replyText = com.hudgram.ui.HudConfig.autoReplyAfternoonText;
+                                                replyText = com.hudgram.core.HudConfig.autoReplyAfternoonText;
                                             } else if (hour >= 18 && hour < 23) {
-                                                replyText = com.hudgram.ui.HudConfig.autoReplyEveningText;
+                                                replyText = com.hudgram.core.HudConfig.autoReplyEveningText;
                                             } else {
-                                                replyText = com.hudgram.ui.HudConfig.autoReplyNightText;
+                                                replyText = com.hudgram.core.HudConfig.autoReplyNightText;
                                             }
                                         } else {
                                             // Single message (default)
-                                            replyText = com.hudgram.ui.HudConfig.autoReplyMentionText;
+                                            replyText = com.hudgram.core.HudConfig.autoReplyMentionText;
                                         }
 
                                         if (!TextUtils.isEmpty(replyText)) {
@@ -1308,7 +1309,7 @@ public class NotificationsController extends BaseController {
                                             long logGroupId = chat.id;
                                             long logSenderId = sender != null ? sender.id : 0;
                                             int logMessageId = messageObject.getId();
-                                            com.hudgram.ui.HudConfig.addAutoReplyLogEntry(chatTitle, senderName, finalReplyText, logGroupId, logSenderId, logMessageId);
+                                            com.hudgram.core.HudConfig.addAutoReplyLogEntry(chatTitle, senderName, finalReplyText, logGroupId, logSenderId, logMessageId);
 
                                             // --- Send reply as quote ---
                                             AndroidUtilities.runOnUIThread(() -> {
@@ -1364,7 +1365,7 @@ public class NotificationsController extends BaseController {
                     settingsCache.put(dialogId, value);
                 }
 
-                if (value && com.hudgram.ui.HudConfig.silenceNonContacts && dialogId >= 0 && dialogId != UserConfig.getInstance(currentAccount).getClientUserId()) {
+                if (value && com.hudgram.core.HudConfig.silenceNonContacts && dialogId >= 0 && dialogId != UserConfig.getInstance(currentAccount).getClientUserId()) {
                     if (!ContactsController.getInstance(currentAccount).isContact(dialogId)) {
                         value = false;
                     }
@@ -1928,7 +1929,7 @@ public class NotificationsController extends BaseController {
     }
 
     private String getShortStringForMessage(MessageObject messageObject, String[] userName, boolean[] preview) {
-        if (com.hudgram.ui.HudConfig.hideNotificationContent && !(messageObject.messageOwner instanceof TLRPC.TL_messageService) && !AndroidUtilities.needShowPasscode() && !SharedConfig.isWaitingForPasscodeEnter) {
+        if (com.hudgram.core.HudConfig.hideNotificationContent && !(messageObject.messageOwner instanceof TLRPC.TL_messageService) && !AndroidUtilities.needShowPasscode() && !SharedConfig.isWaitingForPasscodeEnter) {
             long dialogId = messageObject.messageOwner.dialog_id;
             if (DialogObject.isEncryptedDialog(dialogId)) {
                 if (userName != null) {
@@ -2688,7 +2689,7 @@ public class NotificationsController extends BaseController {
     }
 
     private String getStringForMessage(MessageObject messageObject, boolean shortMessage, boolean[] text, boolean[] preview) {
-        if (com.hudgram.ui.HudConfig.hideNotificationContent && !(messageObject.messageOwner instanceof TLRPC.TL_messageService) && !AndroidUtilities.needShowPasscode() && !SharedConfig.isWaitingForPasscodeEnter) {
+        if (com.hudgram.core.HudConfig.hideNotificationContent && !(messageObject.messageOwner instanceof TLRPC.TL_messageService) && !AndroidUtilities.needShowPasscode() && !SharedConfig.isWaitingForPasscodeEnter) {
             long dialogId = messageObject.messageOwner.dialog_id;
             if (DialogObject.isEncryptedDialog(dialogId)) {
                 return LocaleController.getString(R.string.YouHaveNewMessage);
@@ -4842,7 +4843,7 @@ public class NotificationsController extends BaseController {
                     .setGroupSummary(true)
                     .setShowWhen(true)
                     .setWhen(((long) lastMessageObject.messageOwner.date) * 1000)
-                    .setColor(com.hudgram.ui.HudConfig.accentAsNotificationColor ? org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_actionBarDefault) : color_notification);
+                    .setColor(com.hudgram.core.HudConfig.accentAsNotificationColor ? org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_actionBarDefault) : color_notification);
 
             long[] vibrationPattern = null;
             Uri sound = null;
@@ -5816,7 +5817,7 @@ public class NotificationsController extends BaseController {
                     .setContentText(text.toString())
                     .setAutoCancel(true)
                     .setNumber(dialogKey.story ? storyPushMessages.size() : messageObjects.size())
-                    .setColor(com.hudgram.ui.HudConfig.accentAsNotificationColor ? org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_actionBarDefault) : color_notification)
+                    .setColor(com.hudgram.core.HudConfig.accentAsNotificationColor ? org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_actionBarDefault) : color_notification)
                     .setGroupSummary(false)
                     .setWhen(date)
                     .setShowWhen(true)

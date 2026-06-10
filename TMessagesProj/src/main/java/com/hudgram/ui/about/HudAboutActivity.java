@@ -1,4 +1,4 @@
-package com.hudgram.ui;
+package com.hudgram.ui.about;
 
 import android.content.Context;
 import android.graphics.Typeface;

@@ -1,4 +1,6 @@
-package com.hudgram.ui;
+package com.hudgram.ui.settings;
+import com.hudgram.ui.about.HudAboutActivity;
+import com.hudgram.core.HudConfig;
 
 import android.content.Context;
 import android.content.pm.PackageInfo;

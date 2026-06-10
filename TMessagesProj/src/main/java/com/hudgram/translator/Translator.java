@@ -1,4 +1,5 @@
 package com.hudgram.translator;
+import com.hudgram.core.HudConfig;
 
 import android.text.TextUtils;
 import org.telegram.messenger.AndroidUtilities;
@@ -87,7 +88,7 @@ public class Translator {
         final String fromLang = normalizeLanguageCode(fl, "auto");
         final String toLang = "app".equalsIgnoreCase(tl) ? normalizeLanguageCode(defaultLocale, "en") : normalizeLanguageCode(tl, defaultLocale);
 
-        if ("telegram".equals(com.hudgram.ui.HudConfig.translationProvider)) {
+        if ("telegram".equals(com.hudgram.core.HudConfig.translationProvider)) {
             int currentAccount = org.telegram.messenger.UserConfig.selectedAccount;
             TLRPC.TL_messages_translateText req = new TLRPC.TL_messages_translateText();
             req.flags |= 2;

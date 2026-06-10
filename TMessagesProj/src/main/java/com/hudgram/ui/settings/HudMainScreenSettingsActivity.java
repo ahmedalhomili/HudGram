@@ -1,4 +1,5 @@
-package com.hudgram.ui;
+package com.hudgram.ui.settings;
+import com.hudgram.core.HudConfig;
 
 import android.view.View;
 import java.util.ArrayList;

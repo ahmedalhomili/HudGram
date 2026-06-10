@@ -1,4 +1,5 @@
 package com.hudgram.translator;
+import com.hudgram.core.HudConfig;
 
 import java.util.ArrayList;
 import org.telegram.tgnet.TLRPC;
@@ -8,7 +9,7 @@ public class TranslatorHelper {
     public static final String LEGACY_DIVIDER = "\n\n--------------------\n\n";
 
     public static TLRPC.TL_textWithEntities preprocessShowOriginal(TLRPC.TL_textWithEntities source, TLRPC.TL_textWithEntities received) {
-        if (com.hudgram.ui.HudConfig.showOriginal && source != null && source.text != null && received != null && received.text != null) {
+        if (com.hudgram.core.HudConfig.showOriginal && source != null && source.text != null && received != null && received.text != null) {
             TLRPC.TL_textWithEntities merged = new TLRPC.TL_textWithEntities();
             merged.text = received.text + DIVIDER + source.text;
             merged.entities = new ArrayList<>(received.entities);

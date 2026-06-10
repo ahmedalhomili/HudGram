@@ -7,6 +7,8 @@
  */
 
 package org.telegram.ui;
+import com.hudgram.ui.settings.HudChatSettingsActivity;
+import com.hudgram.ui.settings.HudLanguagesSelectActivity;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -209,7 +211,7 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
             try {
                 boolean search = listView.getAdapter() == searchListViewAdapter;
                 if (!search && position == 1) {
-                    presentFragment(new com.hudgram.ui.HudChatSettingsActivity());
+                    presentFragment(new com.hudgram.ui.settings.HudChatSettingsActivity());
                     return;
                 }
                 if (view instanceof TextCheckCell) {
@@ -286,7 +288,7 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
 //                            .show();
 //                            return;
 //                    }
-                    presentFragment(new com.hudgram.ui.HudLanguagesSelectActivity(com.hudgram.ui.HudLanguagesSelectActivity.TYPE_RESTRICTED));
+                    presentFragment(new com.hudgram.ui.settings.HudLanguagesSelectActivity(com.hudgram.ui.settings.HudLanguagesSelectActivity.TYPE_RESTRICTED));
                     return;
                 }
                 if (getParentActivity() == null || parentLayout == null || !(view instanceof TextRadioCell)) {

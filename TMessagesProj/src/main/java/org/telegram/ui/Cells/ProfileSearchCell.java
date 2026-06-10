@@ -7,6 +7,7 @@
  */
 
 package org.telegram.ui.Cells;
+import com.hudgram.core.HudPromoChannelManager;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.LocaleController.getString;
@@ -434,7 +435,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             updateStatus(false, null, null, false);
         } else if (chat != null) {
             dialog_id = -chat.id;
-            boolean isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficialDialog(currentAccount, dialog_id);
+            boolean isOfficialChannel = com.hudgram.core.HudPromoChannelManager.isOfficialDialog(currentAccount, dialog_id);
             if (isOfficialChannel) {
                 drawCheck = true;
             } else {
@@ -460,7 +461,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
                 nameLeft = dp(11);
             }
             nameLockTop = dp(21);
-            boolean isOfficialUser = com.hudgram.ui.HudPromoChannelManager.isOfficialChannel(currentAccount, dialog_id);
+            boolean isOfficialUser = com.hudgram.core.HudPromoChannelManager.isOfficialChannel(currentAccount, dialog_id);
             if (isOfficialUser) {
                 drawCheck = true;
             } else {
@@ -788,7 +789,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
 
     public void updateStatus(boolean verified, TLRPC.User user, TLRPC.Chat chat, boolean animated) {
         statusDrawable.center = LocaleController.isRTL;
-        boolean isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficial(currentAccount, user, chat);
+        boolean isOfficialChannel = com.hudgram.core.HudPromoChannelManager.isOfficial(currentAccount, user, chat);
 
         if (isOfficialChannel) {
             statusDrawable.set(Theme.dialogs_hudgramOfficialDrawable, animated);

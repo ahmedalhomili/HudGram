@@ -7,6 +7,7 @@
  */
 
 package org.telegram.ui.Components;
+import com.hudgram.core.HudPromoChannelManager;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.dpf2;
@@ -898,7 +899,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
         if (parentFragment != null) {
             TLRPC.Chat chat = parentFragment.getCurrentChat();
             TLRPC.User user = parentFragment.getCurrentUser();
-            if (com.hudgram.ui.HudPromoChannelManager.isOfficial(currentAccount, user, chat)) {
+            if (com.hudgram.core.HudPromoChannelManager.isOfficial(currentAccount, user, chat)) {
                 verified = true;
             }
         }
@@ -920,7 +921,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
             if (parentFragment != null) {
                 TLRPC.Chat chat = parentFragment.getCurrentChat();
                 TLRPC.User user = parentFragment.getCurrentUser();
-                isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficial(currentAccount, user, chat);
+                isOfficialChannel = com.hudgram.core.HudPromoChannelManager.isOfficial(currentAccount, user, chat);
             }
             if (isOfficialChannel) {
                 Theme.dialogs_hudgramOfficialDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_profile_verifiedBackground), PorterDuff.Mode.MULTIPLY));

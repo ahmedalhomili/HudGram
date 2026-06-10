@@ -1,4 +1,7 @@
 package com.hudgram.ui;
+import com.hudgram.core.HudConfig;
+import com.hudgram.ui.settings.HudGeneralSettingsActivity;
+import com.hudgram.ui.utils.HudUiHelper;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.LocaleController.getString;
@@ -249,7 +252,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             actionBar.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         }
 
-        headerAvatarView = com.hudgram.ui.HudUiHelper.createHeaderAvatarView(context, parentLayout);
+        headerAvatarView = com.hudgram.ui.utils.HudUiHelper.createHeaderAvatarView(context, parentLayout);
         actionBar.addView(headerAvatarView, LayoutHelper.createFrame(36, 36, Gravity.LEFT | Gravity.CENTER_VERTICAL, 14, 0, 0, 0));
 
         actionBar.setActionBarMenuOnItemClick(new org.telegram.ui.ActionBar.ActionBar.ActionBarMenuOnItemClick() {
@@ -286,7 +289,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
                     args.putInt("type", MediaActivity.TYPE_STORIES);
                     presentFragment(new MediaActivity(args, null));
                 } else if (id == 5) { // Hudgram Settings
-                    presentFragment(new com.hudgram.ui.HudGeneralSettingsActivity());
+                    presentFragment(new com.hudgram.ui.settings.HudGeneralSettingsActivity());
                 } else if (id == 101) { // Mute
                     toggleMuteSelectedChannels();
                 } else if (id == 102) { // Archive
@@ -374,7 +377,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         themeToggleItem = menu.addItem(21, isDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24);
         themeToggleItem.setContentDescription(LocaleController.getString(isDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight));
         themeToggleItem.setOnClickListener(v -> {
-            com.hudgram.ui.HudUiHelper.toggleTheme(this, this::switchTheme);
+            com.hudgram.ui.utils.HudUiHelper.toggleTheme(this, this::switchTheme);
         });
 
         // 3. Three-dots icon
@@ -1033,14 +1036,14 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         if (headerAvatarView == null || actionBar == null) {
             return;
         }
-        boolean show = com.hudgram.ui.HudConfig.showAvatarInHeader && !searching && !inSelectionMode;
+        boolean show = com.hudgram.core.HudConfig.showAvatarInHeader && !searching && !inSelectionMode;
 
-        if (com.hudgram.ui.HudConfig.showMyNameInHeader) {
+        if (com.hudgram.core.HudConfig.showMyNameInHeader) {
             TLRPC.User currentUser = getUserConfig().getCurrentUser();
             if (currentUser != null) {
                 updateEmojiStatus(currentUser, false);
                 actionBar.setTitle(org.telegram.messenger.UserObject.getUserName(currentUser), statusDrawable);
-                if (com.hudgram.ui.HudConfig.showBioAsSubtitle) {
+                if (com.hudgram.core.HudConfig.showBioAsSubtitle) {
                     TLRPC.UserFull userFull = getMessagesController().getUserFull(getUserConfig().getClientUserId());
                     if (userFull != null) {
                         if (!android.text.TextUtils.isEmpty(userFull.about)) {
@@ -1066,7 +1069,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             actionBar.setSubtitle(null);
         }
 
-        com.hudgram.ui.HudUiHelper.updateHeaderAvatar(headerAvatarView, actionBar, show, getUserConfig().getCurrentUser());
+        com.hudgram.ui.utils.HudUiHelper.updateHeaderAvatar(headerAvatarView, actionBar, show, getUserConfig().getCurrentUser());
         actionBar.requestLayout();
     }
 

@@ -1,4 +1,5 @@
 package org.telegram.ui.Components;
+import com.hudgram.core.HudPromoChannelManager;
 
 import android.graphics.drawable.Drawable;
 import android.view.View;
@@ -33,7 +34,7 @@ public class StatusBadgeComponent {
     }
 
     public Drawable updateDrawable(TLRPC.User user, TLRPC.Chat chat, int colorFilter, boolean animated) {
-        boolean isOfficialChannel = com.hudgram.ui.HudPromoChannelManager.isOfficial(org.telegram.messenger.UserConfig.selectedAccount, user, chat);
+        boolean isOfficialChannel = com.hudgram.core.HudPromoChannelManager.isOfficial(org.telegram.messenger.UserConfig.selectedAccount, user, chat);
 
         if (isOfficialChannel) {
             statusDrawable.set(Theme.dialogs_hudgramOfficialDrawable, animated);

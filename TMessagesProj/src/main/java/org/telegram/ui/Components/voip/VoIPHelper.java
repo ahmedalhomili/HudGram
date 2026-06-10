@@ -1,4 +1,5 @@
 package org.telegram.ui.Components.voip;
+import com.hudgram.core.HudConfig;
 
 import android.Manifest;
 import android.annotation.TargetApi;
@@ -78,7 +79,7 @@ public class VoIPHelper {
 	}
 
 	public static void startCall(TLRPC.User user, boolean videoCall, boolean canVideoCall, final Activity activity, TLRPC.UserFull userFull, AccountInstance accountInstance, boolean bypassAsk) {
-		if (!bypassAsk && com.hudgram.ui.HudConfig.askBeforeCall && activity != null) {
+		if (!bypassAsk && com.hudgram.core.HudConfig.askBeforeCall && activity != null) {
 			String name = ContactsController.formatName(user.first_name, user.last_name);
 			String message = LocaleController.formatString("ConfirmCallMessage", R.string.ConfirmCallMessage, name);
 			new AlertDialog.Builder(activity)

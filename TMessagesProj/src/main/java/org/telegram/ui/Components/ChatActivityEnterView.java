@@ -7,6 +7,7 @@
  */
 
 package org.telegram.ui.Components;
+import com.hudgram.core.HudConfig;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.dpf2;
@@ -2909,7 +2910,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     });
                                     return true;
                                 }
-                                if (com.hudgram.ui.HudConfig.confirmVoiceMessages && !isInVideoMode()) {
+                                if (com.hudgram.core.HudConfig.confirmVoiceMessages && !isInVideoMode()) {
                                     MediaController.getInstance().stopRecording(2, true, 0, voiceOnce, 0);
                                 } else {
                                     MediaController.getInstance().stopRecording(isInScheduleMode() ? 3 : 1, true, 0, voiceOnce, 0);
@@ -3032,7 +3033,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), (notify, scheduleDate, scheduleRepeatPeriod) -> MediaController.getInstance().stopRecording(1, notify, scheduleDate, false, 0), () -> MediaController.getInstance().stopRecording(0, false, 0, false, 0), resourcesProvider);
                                 }
                                 delegate.needStartRecordAudio(0);
-                                if (com.hudgram.ui.HudConfig.confirmVoiceMessages && !isInVideoMode()) {
+                                if (com.hudgram.core.HudConfig.confirmVoiceMessages && !isInVideoMode()) {
                                     MediaController.getInstance().stopRecording(2, true, 0, voiceOnce, 0);
                                 } else {
                                     MediaController.getInstance().stopRecording(isInScheduleMode() ? 3 : 1, true, 0, voiceOnce, 0);
@@ -11699,7 +11700,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                                 delegate.onMessageSend(null, notify, scheduleDate, 0, 0);
                             }
                         };
-                        if (com.hudgram.ui.HudConfig.confirmStickers) {
+                        if (com.hudgram.core.HudConfig.confirmStickers) {
                             showStickerConfirmationDialog((TLRPC.Document) (gif instanceof TLRPC.Document ? gif : ((TLRPC.BotInlineResult) gif).document), true, () -> {
                                 if (!showConfirmAlert(runnable)) {
                                     runnable.run();
@@ -12025,7 +12026,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             parentFragment.showQuoteMessageUpdate();
             return;
         }
-        if (com.hudgram.ui.HudConfig.confirmStickers) {
+        if (com.hudgram.core.HudConfig.confirmStickers) {
             showStickerConfirmationDialog(sticker, false, () -> sendStickerInternal(sticker, query, parent, sendAnimationData, clearsInputField, notify, scheduleDate, scheduleRepeatPeriod));
         } else {
             sendStickerInternal(sticker, query, parent, sendAnimationData, clearsInputField, notify, scheduleDate, scheduleRepeatPeriod);

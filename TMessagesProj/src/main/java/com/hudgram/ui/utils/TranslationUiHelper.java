@@ -1,4 +1,5 @@
-package com.hudgram.ui;
+package com.hudgram.ui.utils;
+import com.hudgram.core.HudConfig;
 
 import android.app.Activity;
 import android.util.Pair;
@@ -8,7 +9,7 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 
-public class Translator {
+public class TranslationUiHelper {
 
     public interface OnProviderSelectedListener {
         void onSelected(boolean changed);

@@ -7,6 +7,8 @@
  */
 
 package org.telegram.ui;
+import com.hudgram.ui.views.Hud3DDrawerLayout;
+import com.hudgram.ui.views.HudSideMenuView;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.LocaleController.formatPluralString;
@@ -300,8 +302,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     private FireworksOverlay fireworksOverlay;
     private BottomSheetTabsOverlay bottomSheetTabsOverlay;
     public DrawerLayoutContainer drawerLayoutContainer;
-    public com.hudgram.ui.Hud3DDrawerLayout hud3DDrawerLayout;
-    public com.hudgram.ui.HudSideMenuView hudSideMenuView;
+    public com.hudgram.ui.views.Hud3DDrawerLayout hud3DDrawerLayout;
+    public com.hudgram.ui.views.HudSideMenuView hudSideMenuView;
     private PasscodeViewDialog passcodeDialog;
     private List<PasscodeView> overlayPasscodeViews = new ArrayList<>();
     private TermsOfServiceView termsOfServiceView;
@@ -525,8 +527,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         drawerLayoutContainer.setClipToPadding(false);
         drawerLayoutContainer.setBehindKeyboardColor(Theme.getColor(Theme.key_windowBackgroundWhite));
 
-        hud3DDrawerLayout = new com.hudgram.ui.Hud3DDrawerLayout(this);
-        hudSideMenuView = new com.hudgram.ui.HudSideMenuView(this);
+        hud3DDrawerLayout = new com.hudgram.ui.views.Hud3DDrawerLayout(this);
+        hudSideMenuView = new com.hudgram.ui.views.HudSideMenuView(this);
         hud3DDrawerLayout.setDrawerView(hudSideMenuView);
         hud3DDrawerLayout.setContentView(drawerLayoutContainer);
         frameLayout.addView(hud3DDrawerLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));

@@ -1,4 +1,4 @@
-package com.hudgram.ui;
+package com.hudgram.ui.utils;
 
 import android.content.Context;
 import android.view.Gravity;

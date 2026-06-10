@@ -7,6 +7,13 @@
  */
 
 package org.telegram.ui;
+import com.hudgram.core.HudConfig;
+import com.hudgram.core.HudPromoChannelManager;
+import com.hudgram.ui.autoreply.HudAutoReplyActivity;
+import com.hudgram.ui.drafts.HudDraftsActivity;
+import com.hudgram.ui.settings.HudGeneralSettingsActivity;
+import com.hudgram.ui.quickreply.HudQuickReplyActivity;
+import com.hudgram.ui.utils.HudUiHelper;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.dpf2;
@@ -851,7 +858,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 h += storiesHeight * (1f - searchAnimationProgress) * (1f - rightSlidingProgress) * (1f - progressToActionMode);
             }
             h += storiesOverscroll;
-            if (!com.hudgram.ui.HudConfig.hideSearchBar) {
+            if (!com.hudgram.core.HudConfig.hideSearchBar) {
                 h += dp(SEARCH_FIELD_HEIGHT) * (1f - progressToActionMode) * (1f - searchAnimationProgress) * (1f - rightSlidingProgress);
             }
 
@@ -1293,7 +1300,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     childTop = 0;
                 } else if (child == topPanelLayout || child == topBubblesFadeView || child == filterTabsView) {
                     childTop += actionBar.getMeasuredHeight();
-                    if (!com.hudgram.ui.HudConfig.hideSearchBar) {
+                    if (!com.hudgram.core.HudConfig.hideSearchBar) {
                         childTop += dp(SEARCH_FIELD_HEIGHT);
                     }
                 } else if (dialogStoriesCell != null && dialogStoriesCell.getPremiumHint() == child) {
@@ -2033,7 +2040,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (hasStories && !actionModeFullyShowed) {
                 t += dp(DialogStoriesCell.HEIGHT_IN_DP);
             }
-            if (!actionModeFullyShowed && !com.hudgram.ui.HudConfig.hideSearchBar) {
+            if (!actionModeFullyShowed && !com.hudgram.core.HudConfig.hideSearchBar) {
                 t += dp(SEARCH_FIELD_HEIGHT);
             }
             additionalPadding = 0;
@@ -2404,7 +2411,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         currentDialogsType = parentPage.dialogsAdapter.getDialogsType();
                     } catch (Exception ignore) {
                     }
-                    long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+                    long promoChannelId = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
                     if (promoChannelId != 0 && dialogId == -promoChannelId) {
                         return 0;
                     }
@@ -3142,7 +3149,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
 
         if (initialDialogsType == DIALOGS_TYPE_DEFAULT) {
-            headerAvatarView = com.hudgram.ui.HudUiHelper.createHeaderAvatarView(context, parentLayout);
+            headerAvatarView = com.hudgram.ui.utils.HudUiHelper.createHeaderAvatarView(context, parentLayout);
             actionBar.addView(headerAvatarView, LayoutHelper.createFrame(36, 36, Gravity.LEFT | Gravity.CENTER_VERTICAL, 14, 0, 0, 0));
             updateHeaderAvatar();
         }
@@ -3404,7 +3411,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             themeToggleItem = menu.addItem(5, isDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24);
             themeToggleItem.setContentDescription(getString(isDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight));
             themeToggleItem.setOnClickListener(v -> {
-                com.hudgram.ui.HudUiHelper.toggleTheme(this, this::switchTheme);
+                com.hudgram.ui.utils.HudUiHelper.toggleTheme(this, this::switchTheme);
             });
 
             optionsItem = menu.addItem(4, R.drawable.ic_ab_other);
@@ -5671,7 +5678,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private int getMaxScrollYOffset() {
-        final int searchH = com.hudgram.ui.HudConfig.hideSearchBar ? 0 : dp(SEARCH_FIELD_HEIGHT);
+        final int searchH = com.hudgram.core.HudConfig.hideSearchBar ? 0 : dp(SEARCH_FIELD_HEIGHT);
         if (hasStories) {
             return dp(DialogStoriesCell.HEIGHT_IN_DP) + searchH;
         } else {
@@ -7917,10 +7924,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
             }
         } else {
-            long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+            long promoChannelId = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
             if (dialogId == -promoChannelId) {
                 TLRPC.Chat chat = getMessagesController().getChat(promoChannelId);
-                long accessHash = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getStoredAccessHash();
+                long accessHash = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getStoredAccessHash();
                 if (accessHash == 0 || chat == null || chat.access_hash == 0) {
                     org.telegram.ui.ActionBar.AlertDialog progressDialog = new org.telegram.ui.ActionBar.AlertDialog(getParentActivity(), 3);
                     progressDialog.setCanCancel(false);
@@ -7929,7 +7936,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         progressDialog.dismiss();
                         if (peerId != null && peerId < 0) {
                             long resolvedId = -peerId;
-                            com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).resolveChannel();
+                            com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).resolveChannel();
                             Bundle args = new Bundle();
                             args.putLong("chat_id", resolvedId);
                             presentFragment(new ChatActivity(args));
@@ -8288,7 +8295,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             updateSelectedCount();
             return true;
         } else {
-            long promoChannelId = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
+            long promoChannelId = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).getPromoChannelId();
             if (promoChannelId != 0 && dialog.id == -promoChannelId) {
                 return true;
             }
@@ -8760,7 +8767,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     public boolean hasHiddenArchive() {
-        return !onlySelect && initialDialogsType == DIALOGS_TYPE_DEFAULT && folderId == 0 && getMessagesController().hasHiddenArchive() && !com.hudgram.ui.HudConfig.openArchiveOnPull;
+        return !onlySelect && initialDialogsType == DIALOGS_TYPE_DEFAULT && folderId == 0 && getMessagesController().hasHiddenArchive() && !com.hudgram.core.HudConfig.openArchiveOnPull;
     }
 
     private boolean waitingForDialogsAnimationEnd(ViewPage viewPage) {
@@ -10691,14 +10698,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (headerAvatarView == null || actionBar == null) {
             return;
         }
-        boolean show = com.hudgram.ui.HudConfig.showAvatarInHeader && folderId == 0 && !actionBar.isSearchFieldVisible() && !actionBar.isActionModeShowed() && !onlySelect;
+        boolean show = com.hudgram.core.HudConfig.showAvatarInHeader && folderId == 0 && !actionBar.isSearchFieldVisible() && !actionBar.isActionModeShowed() && !onlySelect;
 
         if (folderId == 0) {
-            if (com.hudgram.ui.HudConfig.showMyNameInHeader) {
+            if (com.hudgram.core.HudConfig.showMyNameInHeader) {
                 TLRPC.User currentUser = getUserConfig().getCurrentUser();
                 if (currentUser != null) {
                     actionBar.setTitle(org.telegram.messenger.UserObject.getUserName(currentUser), statusDrawable);
-                    if (com.hudgram.ui.HudConfig.showBioAsSubtitle) {
+                    if (com.hudgram.core.HudConfig.showBioAsSubtitle) {
                         TLRPC.UserFull userFull = getMessagesController().getUserFull(getUserConfig().getClientUserId());
                         if (userFull != null) {
                             if (!android.text.TextUtils.isEmpty(userFull.about)) {
@@ -10723,7 +10730,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         }
 
-        com.hudgram.ui.HudUiHelper.updateHeaderAvatar(headerAvatarView, actionBar, show, getUserConfig().getCurrentUser());
+        com.hudgram.ui.utils.HudUiHelper.updateHeaderAvatar(headerAvatarView, actionBar, show, getUserConfig().getCurrentUser());
         actionBar.requestLayout();
     }
 
@@ -10856,7 +10863,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (dialogsType == DIALOGS_TYPE_DEFAULT) {
             ArrayList<TLRPC.Dialog> dialogs = messagesController.getDialogs(folderId);
             if (folderId == 0) {
-                dialogs = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).injectPromoIfNeeded(dialogs);
+                dialogs = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).injectPromoIfNeeded(dialogs);
             }
             return dialogs;
         } else if (dialogsType == DIALOGS_TYPE_WIDGET || dialogsType == DIALOGS_TYPE_IMPORT_HISTORY) {
@@ -10907,7 +10914,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 dialogs = dialogFilter.dialogs;
             }
             if (folderId == 0) {
-                dialogs = com.hudgram.ui.HudPromoChannelManager.getInstance(currentAccount).injectPromoIfNeeded(dialogs);
+                dialogs = com.hudgram.core.HudPromoChannelManager.getInstance(currentAccount).injectPromoIfNeeded(dialogs);
             }
             return dialogs;
         } else if (dialogsType == DIALOGS_TYPE_BLOCK) {
@@ -12622,7 +12629,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             onlySelfStories = getStoriesController().hasOnlySelfStories();
         }
 
-        if (com.hudgram.ui.HudConfig.hideStoriesBar) {
+        if (com.hudgram.core.HudConfig.hideStoriesBar) {
             onlySelfStories = false;
             newVisibility = false;
         }
@@ -13449,20 +13456,29 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         CharSequence[] items = new CharSequence[]{
             LocaleController.getString("HudQuickReplyTitle", R.string.HudQuickReplyTitle),
             LocaleController.getString("HudAutoReplyTitle", R.string.HudAutoReplyTitle),
-            LocaleController.getString("HudDraftsTitle", R.string.HudDraftsTitle)
+            LocaleController.getString("HudDraftsTitle", R.string.HudDraftsTitle),
+            LocaleController.getString("HudMessageByNumber", R.string.HudMessageByNumber)
         };
         int[] icons = new int[]{
             R.drawable.msg_reply_small,
             R.drawable.msg_mention,
-            R.drawable.msg_edit
+            R.drawable.msg_edit,
+            R.drawable.msg_contacts
         };
         builder.setItems(items, icons, (dialogInterface, i) -> {
             if (i == 0) {
-                presentFragment(new com.hudgram.ui.HudQuickReplyActivity());
+                presentFragment(new com.hudgram.ui.quickreply.HudQuickReplyActivity());
             } else if (i == 1) {
-                presentFragment(new com.hudgram.ui.HudAutoReplyActivity());
+                presentFragment(new com.hudgram.ui.autoreply.HudAutoReplyActivity());
             } else if (i == 2) {
-                presentFragment(new com.hudgram.ui.HudDraftsActivity());
+                presentFragment(new com.hudgram.ui.drafts.HudDraftsActivity());
+            } else if (i == 3) {
+                com.hudgram.ui.utils.ContactSearchUiHelper.showSearchDialog(
+                    getParentActivity(),
+                    currentAccount,
+                    resourceProvider,
+                    parentLayout
+                );
             }
         });
         showDialog(builder.create());
@@ -13543,9 +13559,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 presentFragment(new ChatActivity(args));
             });
             io.add(R.drawable.msg_customize, LocaleController.getString("HudgramSettings", R.string.HudgramSettings), () -> {
-                presentFragment(new com.hudgram.ui.HudGeneralSettingsActivity());
+                presentFragment(new com.hudgram.ui.settings.HudGeneralSettingsActivity());
             });
-            if (com.hudgram.ui.HudConfig.hideSettingsTab) {
+            if (com.hudgram.core.HudConfig.hideSettingsTab) {
                 io.add(R.drawable.msg_settings, org.telegram.messenger.LocaleController.getString(R.string.Settings), () -> {
                     presentFragment(new org.telegram.ui.SettingsActivity());
                 });
@@ -13799,7 +13815,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private float getFilterTabsVisibilityFactor(boolean includeSearch) {
-        if (com.hudgram.ui.HudConfig.hideFolderTabs) {
+        if (com.hudgram.core.HudConfig.hideFolderTabs) {
             return 0f;
         }
         final float factor1 = includeSearch ? (1f - animatorSearchVisible.getFloatValue()) : 1f;
@@ -13846,7 +13862,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         final float factor0 = isSupportSearch() ? 1 : 0;
         final float factor1 = (1f - actionModeVisible) * (1f - animatorDoneButtonVisible.getFloatValue());
-        final float factor2 = Math.max(searchFieldVisible, com.hudgram.ui.HudConfig.hideSearchBar ? 0 : (alphaByScrollOffset * (1f - getRightSlidingProgress())));
+        final float factor2 = Math.max(searchFieldVisible, com.hudgram.core.HudConfig.hideSearchBar ? 0 : (alphaByScrollOffset * (1f - getRightSlidingProgress())));
 
         final float alpha = factor0 * factor1 * factor2;
 

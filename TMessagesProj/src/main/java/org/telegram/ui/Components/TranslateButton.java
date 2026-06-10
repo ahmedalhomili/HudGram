@@ -31,7 +31,7 @@ import android.widget.TextView;
 
 //import com.google.mlkit.nl.translate.TranslateLanguage;
 
-import com.hudgram.ui.HudLanguagesSelectActivity;
+import com.hudgram.ui.settings.HudLanguagesSelectActivity;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.BuildVars;

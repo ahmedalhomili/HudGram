@@ -1,4 +1,4 @@
-package com.hudgram.ui;
+package com.hudgram.ui.views;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;

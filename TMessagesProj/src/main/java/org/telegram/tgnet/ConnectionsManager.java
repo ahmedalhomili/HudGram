@@ -1,4 +1,5 @@
 package org.telegram.tgnet;
+import com.hudgram.core.HudConfig;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -1087,7 +1088,7 @@ public class ConnectionsManager extends BaseController {
                 }
             }
             if (hasIpv6) {
-                if (forceTryIpV6 || com.hudgram.ui.HudConfig.preferIPv6) {
+                if (forceTryIpV6 || com.hudgram.core.HudConfig.preferIPv6) {
                     return USE_IPV6_ONLY;
                 }
                 if (hasStrangeIpv4) {

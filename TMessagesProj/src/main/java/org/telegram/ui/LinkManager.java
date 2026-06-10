@@ -1,4 +1,17 @@
 package org.telegram.ui;
+import com.hudgram.ui.settings.BaseHudSettingsActivity;
+import com.hudgram.ui.autoreply.HudAutoReplyActivity;
+import com.hudgram.ui.autoreply.HudAutoReplyGroupFilterActivity;
+import com.hudgram.ui.autoreply.HudAutoReplyLogActivity;
+import com.hudgram.ui.autoreply.HudAutoReplyMessagesActivity;
+import com.hudgram.ui.settings.HudChatSettingsActivity;
+import com.hudgram.ui.settings.HudCommonSettingsActivity;
+import com.hudgram.ui.drafts.HudDraftsActivity;
+import com.hudgram.ui.settings.HudGeneralSettingsActivity;
+import com.hudgram.ui.settings.HudMainScreenSettingsActivity;
+import com.hudgram.ui.settings.HudNotificationsSettingsActivity;
+import com.hudgram.ui.settings.HudOtherSettingsActivity;
+import com.hudgram.ui.quickreply.HudQuickReplyActivity;
 
 import static org.telegram.messenger.LocaleController.formatString;
 import static org.telegram.messenger.LocaleController.getString;
@@ -10,7 +23,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 
-import com.hudgram.ui.HudLanguagesSelectActivity;
+import com.hudgram.ui.settings.HudLanguagesSelectActivity;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -152,29 +165,29 @@ public class LinkManager {
     private boolean handleHudSettings(String key, String slug) {
         BaseFragment fragment = null;
         if ("m".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudMainScreenSettingsActivity();
+            fragment = new com.hudgram.ui.settings.HudMainScreenSettingsActivity();
         } else if ("ts".equalsIgnoreCase(key) || "chat".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudChatSettingsActivity();
+            fragment = new com.hudgram.ui.settings.HudChatSettingsActivity();
         } else if ("c".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudCommonSettingsActivity();
+            fragment = new com.hudgram.ui.settings.HudCommonSettingsActivity();
         } else if ("g".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudGeneralSettingsActivity();
+            fragment = new com.hudgram.ui.settings.HudGeneralSettingsActivity();
         } else if ("n".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudNotificationsSettingsActivity();
+            fragment = new com.hudgram.ui.settings.HudNotificationsSettingsActivity();
         } else if ("o".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudOtherSettingsActivity();
+            fragment = new com.hudgram.ui.settings.HudOtherSettingsActivity();
         } else if ("ar".equalsIgnoreCase(key) || "autoReply".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudAutoReplyActivity();
+            fragment = new com.hudgram.ui.autoreply.HudAutoReplyActivity();
         } else if ("argf".equalsIgnoreCase(key) || "autoReplyFilter".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudAutoReplyGroupFilterActivity();
+            fragment = new com.hudgram.ui.autoreply.HudAutoReplyGroupFilterActivity();
         } else if ("arl".equalsIgnoreCase(key) || "autoReplyLog".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudAutoReplyLogActivity();
+            fragment = new com.hudgram.ui.autoreply.HudAutoReplyLogActivity();
         } else if ("arm".equalsIgnoreCase(key) || "autoReplyMessages".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudAutoReplyMessagesActivity();
+            fragment = new com.hudgram.ui.autoreply.HudAutoReplyMessagesActivity();
         } else if ("quickReply".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudQuickReplyActivity();
+            fragment = new com.hudgram.ui.quickreply.HudQuickReplyActivity();
         } else if ("drafts".equalsIgnoreCase(key)) {
-            fragment = new com.hudgram.ui.HudDraftsActivity();
+            fragment = new com.hudgram.ui.drafts.HudDraftsActivity();
         } else if ("update".equalsIgnoreCase(key)) {
             AndroidUtilities.runOnUIThread(() -> {
                 org.telegram.messenger.ApplicationLoader.applicationLoaderInstance.checkUpdate(true, null);
@@ -183,7 +196,7 @@ public class LinkManager {
         }
 
         if (fragment != null) {
-            final com.hudgram.ui.BaseHudSettingsActivity f = (com.hudgram.ui.BaseHudSettingsActivity) fragment;
+            final com.hudgram.ui.settings.BaseHudSettingsActivity f = (com.hudgram.ui.settings.BaseHudSettingsActivity) fragment;
             if (!TextUtils.isEmpty(slug)) {
                 Bundle args = new Bundle();
                 args.putString("scroll_to", slug);
@@ -428,7 +441,7 @@ public class LinkManager {
                 return true;
             }
             if ("show-button".equalsIgnoreCase(second) || "translate-chats".equalsIgnoreCase(second)) {
-                presentFragment(new com.hudgram.ui.HudGeneralSettingsActivity());
+                presentFragment(new com.hudgram.ui.settings.HudGeneralSettingsActivity());
                 return true;
             }
             presentFragment(new LanguageSelectActivity());

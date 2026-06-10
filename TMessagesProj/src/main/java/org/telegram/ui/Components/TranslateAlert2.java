@@ -1,4 +1,5 @@
 package org.telegram.ui.Components;
+import com.hudgram.core.HudConfig;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.dpf2;
@@ -1764,7 +1765,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     }
 
     public static String getToLanguage() {
-        String target = com.hudgram.ui.HudConfig.translationTarget;
+        String target = com.hudgram.core.HudConfig.translationTarget;
         if ("app".equals(target) || android.text.TextUtils.isEmpty(target)) {
             return org.telegram.messenger.LocaleController.getInstance().getCurrentLocale().getLanguage();
         }
@@ -1772,10 +1773,10 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     }
 
     public static void setToLanguage(String toLang) {
-        com.hudgram.ui.HudConfig.setTranslationTarget(toLang);
+        com.hudgram.core.HudConfig.setTranslationTarget(toLang);
     }
 
     public static void resetToLanguage() {
-        com.hudgram.ui.HudConfig.setTranslationTarget("app");
+        com.hudgram.core.HudConfig.setTranslationTarget("app");
     }
 }

@@ -1,4 +1,6 @@
-package com.hudgram.ui;
+package com.hudgram.ui.drafts;
+import com.hudgram.ui.settings.BaseHudSettingsActivity;
+import com.hudgram.core.HudConfig;
 
 import android.content.Context;
 import android.graphics.Typeface;

@@ -1,4 +1,8 @@
-package com.hudgram.ui;
+package com.hudgram.ui.settings;
+import com.hudgram.ui.autoreply.HudAutoReplyActivity;
+import com.hudgram.ui.quickreply.HudQuickReplyActivity;
+import com.hudgram.core.HudConfig;
+import com.hudgram.ui.utils.TranslationUiHelper;
 
 import android.text.TextUtils;
 import android.view.View;
@@ -209,7 +213,7 @@ public class HudChatSettingsActivity extends BaseHudSettingsActivity {
             }
             listView.adapter.update(true);
         } else if (id == translationProviderRow) {
-            Translator.showTranslationProviderSelector(getParentActivity(), view, param -> {
+            TranslationUiHelper.showTranslationProviderSelector(getParentActivity(), view, param -> {
                 item.textValue = getTranslationProvider();
                 listView.adapter.notifyItemChanged(position, PARTIAL);
             }, resourcesProvider);

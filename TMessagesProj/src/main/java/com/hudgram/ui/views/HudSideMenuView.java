@@ -1,4 +1,5 @@
-package com.hudgram.ui;
+package com.hudgram.ui.views;
+import com.hudgram.ui.settings.HudGeneralSettingsActivity;
 
 import static org.telegram.ui.Components.Premium.LimitReachedBottomSheet.TYPE_ACCOUNTS;
 
@@ -47,6 +48,8 @@ import org.telegram.ui.Components.MediaActivity;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.MainTabsActivity;
 import org.telegram.ui.ProfileActivity;
+
+import com.hudgram.ui.utils.ContactSearchUiHelper;
 
 public class HudSideMenuView extends FrameLayout
         implements org.telegram.messenger.NotificationCenter.NotificationCenterDelegate {
@@ -279,8 +282,6 @@ public class HudSideMenuView extends FrameLayout
         android.animation.LayoutTransition lt = new android.animation.LayoutTransition();
         lt.enableTransitionType(android.animation.LayoutTransition.CHANGING);
         lt.setDuration(260);
-        lt.setInterpolator(android.animation.LayoutTransition.CHANGING,
-                new org.telegram.ui.Components.CubicBezierInterpolator(0.25f, 1f, 0.5f, 1f));
         scrollContent.setLayoutTransition(lt);
         scrollView.addView(scrollContent, new ScrollView.LayoutParams(
                 ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT));
@@ -304,7 +305,7 @@ public class HudSideMenuView extends FrameLayout
     //  MENU ITEMS
     // ──────────────────────────────────────────────────────────
     private void buildMenuItems(Context context) {
-        menuViews = new View[7];
+        menuViews = new View[8];
 
         menuViews[0] = makeItem(R.drawable.msg_discussion,
                 LocaleController.getString("Chats", R.string.Chats),
@@ -350,7 +351,19 @@ public class HudSideMenuView extends FrameLayout
 
         addDivider();
 
-        menuViews[6] = makeItem(R.drawable.msg_info,
+        menuViews[6] = makeItem(R.drawable.msg_contacts,
+                LocaleController.getString("HudMessageByNumber", R.string.HudMessageByNumber),
+                () -> {
+                    close();
+                    ContactSearchUiHelper.showSearchDialog(
+                        LaunchActivity.instance,
+                        UserConfig.selectedAccount,
+                        null,
+                        LaunchActivity.instance.actionBarLayout
+                    );
+                });
+
+        menuViews[7] = makeItem(R.drawable.msg_info,
                 LocaleController.getString("AboutHudgram", R.string.AboutHudgram),
                 () -> {
                     close();

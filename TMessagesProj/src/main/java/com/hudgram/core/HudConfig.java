@@ -1,4 +1,4 @@
-package com.hudgram.ui;
+package com.hudgram.core;
 
 import android.app.Activity;
 import android.content.Context;
