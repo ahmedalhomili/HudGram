@@ -413,6 +413,11 @@ public class HudQuickReplyActivity extends BaseHudSettingsActivity {
         return getString("HudQuickReplyTitle");
     }
 
+    @Override
+    protected String getKey() {
+        return "quickReply";
+    }
+
     // === Custom cell factory for quick reply items ===
     // Shows label prominently with value truncated to 3 lines, with divider support
 

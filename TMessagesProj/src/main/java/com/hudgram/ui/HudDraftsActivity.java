@@ -346,6 +346,11 @@ public class HudDraftsActivity extends BaseHudSettingsActivity {
         return getString("HudDraftsTitle");
     }
 
+    @Override
+    protected String getKey() {
+        return "drafts";
+    }
+
     // Custom cell factory for dialog cells
     protected static class DraftDialogCellFactory extends UItem.UItemFactory<DialogCell> {
         static {

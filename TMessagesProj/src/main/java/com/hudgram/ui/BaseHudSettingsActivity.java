@@ -146,11 +146,11 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
                         .setScrimViewBackground(listView.getClipBackground(view))
                         .add(R.drawable.msg_copy, getString("CopyLink"), () -> {
                             if ("copyReportId".equals(slug)) {
-                                AndroidUtilities.addToClipboard(String.format(Locale.getDefault(), "https://%s/hudsettings/%s", getMessagesController().linkPrefix, "reportId"));
+                                AndroidUtilities.addToClipboard(String.format(Locale.getDefault(), "https://%s/hudsettings?k=%s", getMessagesController().linkPrefix, "reportId"));
                             } else if ("checkUpdate".equals(slug)) {
-                                AndroidUtilities.addToClipboard(String.format(Locale.getDefault(), "https://%s/hudsettings/%s", getMessagesController().linkPrefix, "update"));
+                                AndroidUtilities.addToClipboard(String.format(Locale.getDefault(), "https://%s/hudsettings?k=%s", getMessagesController().linkPrefix, "update"));
                             } else {
-                                AndroidUtilities.addToClipboard(String.format(Locale.getDefault(), "https://%s/hudsettings/%s?r=%s", getMessagesController().linkPrefix, key, slug));
+                                AndroidUtilities.addToClipboard(String.format(Locale.getDefault(), "https://%s/hudsettings?k=%s&r=%s", getMessagesController().linkPrefix, key, slug));
                             }
                             BulletinFactory.of(this).createCopyLinkBulletin().show();
                         })
@@ -395,13 +395,15 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
         if (listView == null) return;
         int position = listView.findPositionByItemSlug(key);
         if (position != -1) {
-            listView.highlightRow(() -> {
-                LinearLayoutManager layoutManager = (LinearLayoutManager) listView.getLayoutManager();
+            LinearLayoutManager layoutManager = (LinearLayoutManager) listView.getLayoutManager();
+            if (layoutManager != null) {
                 layoutManager.scrollToPositionWithOffset(position, AndroidUtilities.dp(60));
-                return position;
-            });
+            }
+            listView.highlightRow(() -> position);
         } else {
-            unknown.run();
+            if (unknown != null) {
+                unknown.run();
+            }
         }
     }
 

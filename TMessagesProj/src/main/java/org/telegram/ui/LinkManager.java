@@ -124,7 +124,11 @@ public class LinkManager {
         final String second = segments.size() > 1 ? segments.get(1) : null;
 
         if ("hudsettings".equalsIgnoreCase(first)) {
-            return handleHudSettings(second, uri.getQueryParameter("r"));
+            String k = uri.getQueryParameter("k");
+            if (k == null) {
+                k = second;
+            }
+            return handleHudSettings(k, uri.getQueryParameter("r"));
         }
 
         if ("$".equalsIgnoreCase(first))
@@ -149,27 +153,69 @@ public class LinkManager {
         BaseFragment fragment = null;
         if ("m".equalsIgnoreCase(key)) {
             fragment = new com.hudgram.ui.HudMainScreenSettingsActivity();
-        } else if ("ts".equalsIgnoreCase(key)) {
+        } else if ("ts".equalsIgnoreCase(key) || "chat".equalsIgnoreCase(key)) {
             fragment = new com.hudgram.ui.HudChatSettingsActivity();
         } else if ("c".equalsIgnoreCase(key)) {
             fragment = new com.hudgram.ui.HudCommonSettingsActivity();
         } else if ("g".equalsIgnoreCase(key)) {
             fragment = new com.hudgram.ui.HudGeneralSettingsActivity();
+        } else if ("n".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudNotificationsSettingsActivity();
+        } else if ("o".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudOtherSettingsActivity();
+        } else if ("ar".equalsIgnoreCase(key) || "autoReply".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudAutoReplyActivity();
+        } else if ("argf".equalsIgnoreCase(key) || "autoReplyFilter".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudAutoReplyGroupFilterActivity();
+        } else if ("arl".equalsIgnoreCase(key) || "autoReplyLog".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudAutoReplyLogActivity();
+        } else if ("arm".equalsIgnoreCase(key) || "autoReplyMessages".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudAutoReplyMessagesActivity();
+        } else if ("quickReply".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudQuickReplyActivity();
+        } else if ("drafts".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.HudDraftsActivity();
+        } else if ("update".equalsIgnoreCase(key)) {
+            AndroidUtilities.runOnUIThread(() -> {
+                org.telegram.messenger.ApplicationLoader.applicationLoaderInstance.checkUpdate(true, null);
+            });
+            return true;
         }
 
         if (fragment != null) {
             final com.hudgram.ui.BaseHudSettingsActivity f = (com.hudgram.ui.BaseHudSettingsActivity) fragment;
+            if (!TextUtils.isEmpty(slug)) {
+                Bundle args = new Bundle();
+                args.putString("scroll_to", slug);
+                f.setArguments(args);
+            }
             presentFragment(f);
             if (!TextUtils.isEmpty(slug)) {
                 AndroidUtilities.runOnUIThread(() -> f.scrollToRow(slug, () -> {
-                    Browser.openUrl(activity, "https://t.me/hudgram");
-                }), 350);
+                    openSettingsChannel();
+                }), 400);
             }
             return true;
         }
 
-        Browser.openUrl(activity, "https://t.me/hudgram");
+        openSettingsChannel();
         return true;
+    }
+
+    private void openSettingsChannel() {
+        try {
+            MessagesController.getInstance(currentAccount).getUserNameResolver().resolve("hudsettings", peerId -> {
+                if (peerId != null) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        Bundle args = new Bundle();
+                        args.putLong("chat_id", -peerId);
+                        presentFragment(new ChatActivity(args));
+                    });
+                }
+            });
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
     }
 
     private Uri normalizeTgUri(Uri uri) {
@@ -204,7 +250,11 @@ public class LinkManager {
             return handleNewBot(uri.getQueryParameter("manager"), uri.getQueryParameter("username"), uri.getQueryParameter("name"));
 
         if ("hudsettings".equalsIgnoreCase(first)) {
-            return handleHudSettings(second, uri.getQueryParameter("r"));
+            String k = uri.getQueryParameter("k");
+            if (k == null) {
+                k = second;
+            }
+            return handleHudSettings(k, uri.getQueryParameter("r"));
         }
 
         if ("resolve".equalsIgnoreCase(first))
@@ -313,6 +363,11 @@ public class LinkManager {
 
         final String domain = uri.getQueryParameter("domain");
         final String startapp = uri.getQueryParameter("startapp");
+
+        if ("hudsettings".equalsIgnoreCase(domain)) {
+            String k = uri.getQueryParameter("k");
+            return handleHudSettings(k, uri.getQueryParameter("r"));
+        }
 
         if ("oauth".equalsIgnoreCase(domain) && !isEmpty(startapp))
             return handleOAuth(uri, startapp);
