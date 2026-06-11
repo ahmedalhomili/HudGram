@@ -569,6 +569,16 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         checkPlayAnimation(false);
     }
 
+    public void setStaticIcon(int resId) {
+        tabAnimation = null;
+        tabAnimationBot = null;
+        lastIconAnimationRaw = 0;
+        lastBotIconId = 0;
+        imageView.clearAnimationDrawable();
+        imageView.setImageResource(resId);
+        updateColors();
+    }
+
     public void setText(CharSequence text) {
         textView.setText(text);
     }

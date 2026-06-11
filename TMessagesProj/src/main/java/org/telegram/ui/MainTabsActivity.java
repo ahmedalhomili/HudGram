@@ -356,7 +356,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         tabs = new GlassTabView[6];
         tabs[INDEX_CHATS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CHATS, R.string.MainTabsChats);
-        tabs[INDEX_UPDATES] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.GALLERY, R.string.MainTabsUpdates);
+        tabs[INDEX_UPDATES] = GlassTabView.createMainTab(context, resourceProvider, null, R.string.MainTabsUpdates);
+        tabs[INDEX_UPDATES].setStaticIcon(R.drawable.logo_hudgram_wthiout_bg);
         tabs[INDEX_CALLS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CALLS, R.string.MainTabsCalls);
         tabs[INDEX_CONTACTS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CONTACTS, R.string.MainTabsContacts);
         tabs[INDEX_SETTINGS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.SETTINGS, R.string.Settings);
