@@ -66,6 +66,7 @@ public class HudSideMenuView extends FrameLayout
     private View            footerDivider;
     private ImageView       arrowView;
     private LinearLayout    accountsContainer;
+    private FrameLayout     drawerContent;
 
     private boolean isAccountsExpanded = false;
     private long    currentUserId      = 0;
@@ -103,10 +104,19 @@ public class HudSideMenuView extends FrameLayout
     }
 
     private void buildUI(Context context) {
+        if (android.os.Build.VERSION.SDK_INT >= 17) {
+            setLayoutDirection(isRTL() ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
+        }
         setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));
 
+        setPadding(0, 0, 0, 0);
+
+        drawerContent = new FrameLayout(context);
         int edgeGap = AndroidUtilities.dp(36);
-        setPadding(isRTL() ? edgeGap : 0, 0, isRTL() ? 0 : edgeGap, 0);
+        drawerContent.setPadding(isRTL() ? edgeGap : 0, 0, isRTL() ? 0 : edgeGap, 0);
+
+        FrameLayout.LayoutParams lp = LayoutHelper.createFrame(280, LayoutHelper.MATCH_PARENT, (isRTL() ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP);
+        addView(drawerContent, lp);
 
         buildHeader(context);
         buildScrollArea(context);
@@ -128,7 +138,7 @@ public class HudSideMenuView extends FrameLayout
             }
         });
         headerCard.setClipToOutline(true);
-        addView(headerCard, LayoutHelper.createFrame(
+        drawerContent.addView(headerCard, LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, 88, Gravity.TOP,
                 12, 36, 12, 0));
 
@@ -147,10 +157,12 @@ public class HudSideMenuView extends FrameLayout
                 int e = ColorUtils.blendARGB(base, ColorUtils.blendARGB(accentColor, Color.BLACK, 0.3f), 0.75f);
                 gPaint.setShader(new LinearGradient(0, 0, w, h, s, e, Shader.TileMode.CLAMP));
                 canvas.drawRect(0, 0, w, h, gPaint);
+                
+                double lum = ColorUtils.calculateLuminance(s);
                 cPaint.setStyle(Paint.Style.FILL);
-                cPaint.setColor(ColorUtils.setAlphaComponent(Color.WHITE, 18));
+                cPaint.setColor(ColorUtils.setAlphaComponent(lum > 0.6 ? accentColor : Color.WHITE, lum > 0.6 ? 12 : 18));
                 canvas.drawCircle(w * 0.88f, -AndroidUtilities.dp(12), AndroidUtilities.dp(56), cPaint);
-                cPaint.setColor(ColorUtils.setAlphaComponent(Color.WHITE, 10));
+                cPaint.setColor(ColorUtils.setAlphaComponent(lum > 0.6 ? accentColor : Color.WHITE, lum > 0.6 ? 6 : 10));
                 canvas.drawCircle(-AndroidUtilities.dp(8), h + AndroidUtilities.dp(8), AndroidUtilities.dp(44), cPaint);
             }
         };
@@ -165,7 +177,15 @@ public class HudSideMenuView extends FrameLayout
             protected void dispatchDraw(Canvas canvas) {
                 ringP.setStyle(Paint.Style.STROKE);
                 ringP.setStrokeWidth(AndroidUtilities.dp(2f));
-                ringP.setColor(ColorUtils.setAlphaComponent(Color.WHITE, 90));
+                
+                int base = Theme.getColor(Theme.key_chats_menuTopBackground);
+                if ((base >>> 24) < 10) base = Theme.getColor(Theme.key_chats_menuBackground);
+                int accentColor = Theme.getColor(Theme.key_actionBarDefault);
+                int s = ColorUtils.blendARGB(base, accentColor, 0.60f);
+                double lum = ColorUtils.calculateLuminance(s);
+                
+                ringP.setColor(lum > 0.6 ? ColorUtils.setAlphaComponent(accentColor, 120) : ColorUtils.setAlphaComponent(Color.WHITE, 90));
+                
                 float r = getMeasuredWidth() / 2f;
                 canvas.drawCircle(r, r, r - AndroidUtilities.dp(1.2f), ringP);
                 super.dispatchDraw(canvas);
@@ -216,8 +236,10 @@ public class HudSideMenuView extends FrameLayout
         nameTextView.setTypeface(AndroidUtilities.bold());
         nameTextView.setSingleLine(true);
         nameTextView.setEllipsize(TextUtils.TruncateAt.END);
-        // Fix: no gravity change based on RTL — keep consistent alignment
-        nameTextView.setGravity(Gravity.CENTER_VERTICAL | (isRTL() ? Gravity.RIGHT : Gravity.LEFT));
+        nameTextView.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        if (android.os.Build.VERSION.SDK_INT >= 17) {
+            nameTextView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+        }
         nameTextView.setShadowLayer(AndroidUtilities.dp(1f), 0, AndroidUtilities.dp(1f),
                 ColorUtils.setAlphaComponent(Color.BLACK, 55));
         infoCol.addView(nameTextView, LayoutHelper.createLinear(
@@ -228,27 +250,27 @@ public class HudSideMenuView extends FrameLayout
         phoneTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
         phoneTextView.setSingleLine(true);
         phoneTextView.setEllipsize(TextUtils.TruncateAt.END);
-        // Fix: consistent gravity, no RTL displacement
-        phoneTextView.setGravity(Gravity.CENTER_VERTICAL | (isRTL() ? Gravity.RIGHT : Gravity.LEFT));
+        phoneTextView.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        if (android.os.Build.VERSION.SDK_INT >= 17) {
+            phoneTextView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+        }
         LinearLayout.LayoutParams phoneLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         phoneLp.topMargin = AndroidUtilities.dp(2);
         infoCol.addView(phoneTextView, phoneLp);
 
-        // infoCol: fixed margins to avoid displacement in both languages
-        // avatar=58dp+16dp margin = 74dp start
-        // arrow=36dp+10dp margin = 46dp end
-        // Add extra space for arrow: move it inward
-        int infoStart = isRTL() ? 52 : 82;
-        int infoEnd   = isRTL() ? 82 : 52;
+        // infoCol: margins calculated so it fits beautifully between avatar and arrow icon
+        int infoStart = 80;
+        int infoEnd   = 64;
+        int infoLeft  = isRTL() ? infoEnd : infoStart;
+        int infoRight = isRTL() ? infoStart : infoEnd;
         headerCard.addView(infoCol, LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
                 Gravity.CENTER_VERTICAL,
-                infoStart, 0, infoEnd, 0));
+                infoLeft, 0, infoRight, 0));
 
-        // ── Arrow — moved INWARD from edge ───────────────────
-        // Fix #1: position arrow closer to center, not at the extreme edge
+        // ── Arrow — positioned at the edge since the drawer card is now bounded and not cut off ──
         arrowView = new ImageView(context);
         arrowView.setImageResource(R.drawable.msg_expand);
         arrowView.setColorFilter(new PorterDuffColorFilter(
@@ -256,11 +278,10 @@ public class HudSideMenuView extends FrameLayout
         arrowView.setScaleType(ImageView.ScaleType.CENTER);
         arrowView.setBackground(makeRippleCircle(0x28ffffff));
         arrowView.setOnClickListener(v -> toggleAccounts());
-        // Place arrow with margin from edge so it won't be cut off
         headerCard.addView(arrowView, LayoutHelper.createFrame(
                 40, 40,
                 (isRTL() ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL,
-                isRTL() ? 70 : 0, 0, isRTL() ? 0 : 70, 0));
+                isRTL() ? 12 : 0, 0, isRTL() ? 0 : 12, 0));
 
         headerCard.setOnClickListener(v -> toggleAccounts());
     }
@@ -273,7 +294,7 @@ public class HudSideMenuView extends FrameLayout
         scrollView.setVerticalScrollBarEnabled(false);
         scrollView.setFillViewport(true);
         scrollView.setOverScrollMode(OVER_SCROLL_NEVER);
-        addView(scrollView, LayoutHelper.createFrame(
+        drawerContent.addView(scrollView, LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT,
                 Gravity.TOP, 0, 136, 0, 56));
 
@@ -367,12 +388,7 @@ public class HudSideMenuView extends FrameLayout
                 LocaleController.getString("AboutHudgram", R.string.AboutHudgram),
                 () -> {
                     close();
-                    org.telegram.ui.ActionBar.AlertDialog.Builder b =
-                            new org.telegram.ui.ActionBar.AlertDialog.Builder(getContext());
-                    b.setTitle(LocaleController.getString("AboutHudgram", R.string.AboutHudgram));
-                    b.setMessage(LocaleController.getString("AboutHudgramText", R.string.AboutHudgramText));
-                    b.setPositiveButton(LocaleController.getString("OK", R.string.OK), null);
-                    b.show();
+                    presentFragment(new com.hudgram.ui.about.HudAboutActivity());
                 });
     }
 
@@ -473,12 +489,12 @@ public class HudSideMenuView extends FrameLayout
         footerLayout.setPadding(
                 AndroidUtilities.dp(20), 0,
                 AndroidUtilities.dp(20), 0);
-        addView(footerLayout, LayoutHelper.createFrame(
+        drawerContent.addView(footerLayout, LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, 56, Gravity.BOTTOM));
 
         footerDivider = new View(context);
         footerDivider.setBackgroundColor(Theme.getColor(Theme.key_divider));
-        addView(footerDivider, LayoutHelper.createFrame(
+        drawerContent.addView(footerDivider, LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, 1, Gravity.BOTTOM, 0, 0, 0, 56));
 
         LinearLayout footRow = new LinearLayout(context);
@@ -637,6 +653,10 @@ public class HudSideMenuView extends FrameLayout
             name.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             name.setSingleLine(true);
             name.setEllipsize(TextUtils.TruncateAt.END);
+            name.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+            if (android.os.Build.VERSION.SDK_INT >= 17) {
+                name.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+            }
             name.setText(UserObject.getUserName(fu));
             info.addView(name, LayoutHelper.createLinear(
                     LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
@@ -652,6 +672,10 @@ public class HudSideMenuView extends FrameLayout
                 subTv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11.5f);
                 subTv.setSingleLine(true);
                 subTv.setEllipsize(TextUtils.TruncateAt.END);
+                subTv.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+                if (android.os.Build.VERSION.SDK_INT >= 17) {
+                    subTv.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+                }
                 LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -659,12 +683,14 @@ public class HudSideMenuView extends FrameLayout
                 info.addView(subTv, subLp);
             }
 
-            int infoS = isRTL() ? 16 : 68;
-            int infoE = isRTL() ? 68 : 16;
+            int accInfoStart = 68;
+            int accInfoEnd   = 56;
+            int accInfoLeft  = isRTL() ? accInfoEnd : accInfoStart;
+            int accInfoRight = isRTL() ? accInfoStart : accInfoEnd;
             row.addView(info, LayoutHelper.createFrame(
                     LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
                     (isRTL() ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL,
-                    infoS, 0, infoE, 0));
+                    accInfoLeft, 0, accInfoRight, 0));
 
             ImageView switchIc = new ImageView(ctx);
             switchIc.setImageResource(R.drawable.msg_photo_switch2);
@@ -867,6 +893,35 @@ public class HudSideMenuView extends FrameLayout
         setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));
         if (headerBgLayer != null) headerBgLayer.invalidate();
 
+        // Calculate dynamic text/icon/ripple colors for the header card based on gradient luminance
+        int base = Theme.getColor(Theme.key_chats_menuTopBackground);
+        if ((base >>> 24) < 10) base = Theme.getColor(Theme.key_chats_menuBackground);
+        int accentColor = Theme.getColor(Theme.key_actionBarDefault);
+        int s = ColorUtils.blendARGB(base, accentColor, 0.60f);
+        double lum = ColorUtils.calculateLuminance(s);
+
+        int nameColor, phoneColor, arrowColor;
+        if (lum > 0.6) {
+            nameColor = Theme.getColor(Theme.key_chats_menuItemText);
+            phoneColor = ColorUtils.setAlphaComponent(nameColor, 185);
+            arrowColor = Theme.getColor(Theme.key_chats_menuItemIcon);
+        } else {
+            nameColor = Color.WHITE;
+            phoneColor = ColorUtils.setAlphaComponent(Color.WHITE, 185);
+            arrowColor = ColorUtils.setAlphaComponent(Color.WHITE, 200);
+        }
+
+        if (nameTextView != null) {
+            nameTextView.setTextColor(nameColor);
+        }
+        if (phoneTextView != null) {
+            phoneTextView.setTextColor(phoneColor);
+        }
+        if (arrowView != null) {
+            arrowView.setColorFilter(new PorterDuffColorFilter(arrowColor, PorterDuff.Mode.SRC_IN));
+            arrowView.setBackground(makeRippleCircle(lum > 0.6 ? 0x1f000000 : 0x28ffffff));
+        }
+
         for (int i = 0; i < itemsContainer.getChildCount(); i++) {
             View c = itemsContainer.getChildAt(i);
             if (!(c instanceof FrameLayout)) {
@@ -933,6 +988,8 @@ public class HudSideMenuView extends FrameLayout
                 .addObserver(this, org.telegram.messenger.NotificationCenter.didSetNewTheme);
         org.telegram.messenger.NotificationCenter.getGlobalInstance()
                 .addObserver(this, org.telegram.messenger.NotificationCenter.needSetDayNightTheme);
+        org.telegram.messenger.NotificationCenter.getGlobalInstance()
+                .addObserver(this, org.telegram.messenger.NotificationCenter.reloadInterface);
     }
 
     @Override
@@ -948,6 +1005,8 @@ public class HudSideMenuView extends FrameLayout
                 .removeObserver(this, org.telegram.messenger.NotificationCenter.didSetNewTheme);
         org.telegram.messenger.NotificationCenter.getGlobalInstance()
                 .removeObserver(this, org.telegram.messenger.NotificationCenter.needSetDayNightTheme);
+        org.telegram.messenger.NotificationCenter.getGlobalInstance()
+                .removeObserver(this, org.telegram.messenger.NotificationCenter.reloadInterface);
         storyParams.onDetachFromWindow();
     }
 
@@ -960,6 +1019,8 @@ public class HudSideMenuView extends FrameLayout
         } else if (id == org.telegram.messenger.NotificationCenter.didSetNewTheme
                 || id == org.telegram.messenger.NotificationCenter.needSetDayNightTheme) {
             updateThemeColors();
+        } else if (id == org.telegram.messenger.NotificationCenter.reloadInterface) {
+            rebuildUI();
         }
     }
 
@@ -1001,6 +1062,15 @@ public class HudSideMenuView extends FrameLayout
     // ══════════════════════════════════════════════════════════
     //  UTILITY
     // ══════════════════════════════════════════════════════════
+    public void rebuildUI() {
+        isAccountsExpanded = false;
+        removeAllViews();
+        buildUI(getContext());
+        if (getParent() instanceof Hud3DDrawerLayout) {
+            ((Hud3DDrawerLayout) getParent()).onLanguageChanged();
+        }
+    }
+
     private boolean isRTL() { return LocaleController.isRTL; }
 
     private String str(String ar, String en) {

@@ -42,6 +42,7 @@ public class Hud3DDrawerLayout extends FrameLayout {
     private final Paint shadowPaint = new Paint();
     private final android.graphics.RectF shadowRect = new android.graphics.RectF();
     private int lastShadowWidth = 0;
+    private Boolean lastIsRTL = null;
 
     private boolean isOpen = false;
     private boolean isDragging = false;
@@ -172,14 +173,16 @@ public class Hud3DDrawerLayout extends FrameLayout {
     private void updateDrawerProgress(float progress) {
         this.drawerProgress = progress;
 
-        // Enable Hardware Acceleration for the main screen when 3D effect is active
-        // This offloads the heavy 3D rendering and chat list drawing completely to the GPU, eliminating lag.
-        if (contentWrapper != null) {
-            if (progress > 0) {
+        if (progress > 0) {
+            setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));
+            if (contentWrapper != null) {
                 if (contentWrapper.getLayerType() != View.LAYER_TYPE_HARDWARE) {
                     contentWrapper.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 }
-            } else {
+            }
+        } else {
+            setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            if (contentWrapper != null) {
                 if (contentWrapper.getLayerType() != View.LAYER_TYPE_NONE) {
                     contentWrapper.setLayerType(View.LAYER_TYPE_NONE, null);
                 }
@@ -244,6 +247,10 @@ public class Hud3DDrawerLayout extends FrameLayout {
         invalidate();
     }
 
+    public void onLanguageChanged() {
+        updateDrawerProgress(drawerProgress);
+    }
+
     @Override
     protected void dispatchDraw(Canvas canvas) {
         super.dispatchDraw(canvas);
@@ -257,7 +264,8 @@ public class Hud3DDrawerLayout extends FrameLayout {
 
             // Dynamic 3D Lighting Effect (Ambient Occlusion)
             // Creates a gradient shadow that is darker deeper into the screen
-            if (shadowPaint.getShader() == null || lastShadowWidth != contentWrapper.getWidth()) {
+            if (shadowPaint.getShader() == null || lastShadowWidth != contentWrapper.getWidth() || lastIsRTL == null || lastIsRTL != LocaleController.isRTL) {
+                lastIsRTL = LocaleController.isRTL;
                 lastShadowWidth = contentWrapper.getWidth();
                 int darkColor = Color.argb((int)(CONTENT_SHADOW_MAX_ALPHA * 255), 0, 0, 0);
                 int lightColor = Color.argb(10, 0, 0, 0); // Almost transparent
