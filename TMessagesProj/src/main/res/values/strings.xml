@@ -10912,6 +10912,8 @@
     <string name="HideSearchBarAbout">Hide the search bar in the chats list but keep the search icon in the action bar</string>
     <string name="HideFolderTabs">Hide Folder Tabs</string>
     <string name="HideFolderTabsAbout">Hide folder and tab capsules under the title bar</string>
+    <string name="HudSettingsShowDefaultTabs">Default Category Tabs</string>
+    <string name="HudSettingsShowDefaultTabsAbout">Enable default category tabs (Contacts, Groups, Channels, Bots...) in the main screen</string>
     <string name="HideNotificationContent">Hide Notification Content</string>
     <string name="HideNotificationContentAbout">Do not show message preview in notifications and show \'Hidden content\' instead</string>
     <string name="SelectCopyText">Select &amp; Copy Text</string>

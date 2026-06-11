@@ -10875,6 +10875,8 @@
     <string name="HideSearchBarAbout">إخفاء شريط البحث في قائمة المحادثات مع إبقاء أيقونة البحث في الأعلى</string>
     <string name="HideFolderTabs">إخفاء شريط المجلدات</string>
     <string name="HideFolderTabsAbout">إخفاء شريط التبويبات والمجلدات أسفل شريط العنوان</string>
+    <string name="HudSettingsShowDefaultTabs">تبويبات الفئات التلقائية</string>
+    <string name="HudSettingsShowDefaultTabsAbout">تفعيل تبويبات الفئات التلقائية (جهات الاتصال، المجموعات، القنوات، البوتات...) في الشاشة الرئيسية</string>
     <string name="HideNotificationContent">إخفاء محتوى الإشعارات</string>
     <string name="HideNotificationContentAbout">عدم عرض نص الرسالة في الإشعار واستبداله بـ «محتوى مخفي»</string>
     <string name="SelectCopyText">تحديد ونسخ النص</string>

@@ -2197,6 +2197,9 @@ public class MessagesController extends BaseController implements NotificationCe
                     putUsers(users, true);
                     putChats(chats, true);
                     dialogFiltersLoaded = true;
+                    if (remote == 1 || remote == 2) {
+                        checkAndCreateDefaultDialogFilters(false);
+                    }
                     getNotificationCenter().postNotificationName(NotificationCenter.dialogFiltersUpdated);
                     if (remote == 0) {
                         loadRemoteFilters(false);
@@ -2378,6 +2381,160 @@ public class MessagesController extends BaseController implements NotificationCe
             }
             getNotificationCenter().postNotificationName(NotificationCenter.suggestedFiltersLoaded);
         }));
+    }
+
+    public void deleteDefaultDialogFilters() {
+        ArrayList<DialogFilter> toDelete = new ArrayList<>();
+        for (int i = 0; i < dialogFilters.size(); i++) {
+            DialogFilter filter = dialogFilters.get(i);
+            if (!filter.isDefault()) {
+                if (filter.flags == DIALOG_FILTER_FLAG_CONTACTS ||
+                    filter.flags == DIALOG_FILTER_FLAG_NON_CONTACTS ||
+                    filter.flags == DIALOG_FILTER_FLAG_GROUPS ||
+                    filter.flags == DIALOG_FILTER_FLAG_CHANNELS ||
+                    filter.flags == DIALOG_FILTER_FLAG_BOTS) {
+                    if (filter.alwaysShow.isEmpty() && filter.neverShow.isEmpty() && filter.pinnedDialogs.size() == 0) {
+                        toDelete.add(filter);
+                    }
+                }
+            }
+        }
+
+        for (DialogFilter filter : toDelete) {
+            removeFilter(filter);
+            getMessagesStorage().deleteDialogFilter(filter);
+
+            // Send delete request to Telegram cloud
+            TLRPC.TL_messages_updateDialogFilter req = new TLRPC.TL_messages_updateDialogFilter();
+            req.id = filter.id;
+            getConnectionsManager().sendRequest(req, null);
+        }
+
+        // Save order and sync it
+        TLRPC.TL_messages_updateDialogFiltersOrder reqOrder = new TLRPC.TL_messages_updateDialogFiltersOrder();
+        for (int a = 0, N = dialogFilters.size(); a < N; a++) {
+            reqOrder.order.add(dialogFilters.get(a).id);
+        }
+        getConnectionsManager().sendRequest(reqOrder, null);
+
+        // Refresh UI
+        getNotificationCenter().postNotificationName(NotificationCenter.dialogFiltersUpdated);
+    }
+
+    public void checkAndCreateDefaultDialogFilters(boolean force) {
+        if (!getUserConfig().isClientActivated()) {
+            return;
+        }
+        if (mainPreferences == null) {
+            return;
+        }
+        if (!com.hudgram.core.HudConfig.showDefaultTabs) {
+            return;
+        }
+        boolean created = mainPreferences.getBoolean("default_folders_created_v2", false);
+        if (created && !force) {
+            return;
+        }
+
+        // We check if the folders already exist (by flags) so we don't recreate duplicates
+        boolean hasContacts = false;
+        boolean hasNonContacts = false;
+        boolean hasGroups = false;
+        boolean hasChannels = false;
+        boolean hasBots = false;
+
+        for (int i = 0; i < dialogFilters.size(); i++) {
+            DialogFilter filter = dialogFilters.get(i);
+            if (filter.flags == DIALOG_FILTER_FLAG_CONTACTS) hasContacts = true;
+            else if (filter.flags == DIALOG_FILTER_FLAG_NON_CONTACTS) hasNonContacts = true;
+            else if (filter.flags == DIALOG_FILTER_FLAG_GROUPS) hasGroups = true;
+            else if (filter.flags == DIALOG_FILTER_FLAG_CHANNELS) hasChannels = true;
+            else if (filter.flags == DIALOG_FILTER_FLAG_BOTS) hasBots = true;
+        }
+
+        boolean addedAny = false;
+        if (!hasContacts) {
+            createDefaultFilter(DIALOG_FILTER_FLAG_CONTACTS, "FilterContacts", R.string.FilterContacts, 0);
+            addedAny = true;
+        }
+        if (!hasNonContacts) {
+            createDefaultFilter(DIALOG_FILTER_FLAG_NON_CONTACTS, "FilterNonContacts", R.string.FilterNonContacts, 1);
+            addedAny = true;
+        }
+        if (!hasGroups) {
+            createDefaultFilter(DIALOG_FILTER_FLAG_GROUPS, "FilterGroups", R.string.FilterGroups, 2);
+            addedAny = true;
+        }
+        if (!hasChannels) {
+            createDefaultFilter(DIALOG_FILTER_FLAG_CHANNELS, "FilterChannels", R.string.FilterChannels, 3);
+            addedAny = true;
+        }
+        if (!hasBots) {
+            createDefaultFilter(DIALOG_FILTER_FLAG_BOTS, "FilterBots", R.string.FilterBots, 4);
+            addedAny = true;
+        }
+
+        if (addedAny) {
+            // Save order and sync it to server
+            TLRPC.TL_messages_updateDialogFiltersOrder reqOrder = new TLRPC.TL_messages_updateDialogFiltersOrder();
+            for (int a = 0, N = dialogFilters.size(); a < N; a++) {
+                reqOrder.order.add(dialogFilters.get(a).id);
+            }
+            getConnectionsManager().sendRequest(reqOrder, null);
+
+            // Refresh UI
+            getNotificationCenter().postNotificationName(NotificationCenter.dialogFiltersUpdated);
+        }
+
+        // Mark as initialized
+        mainPreferences.edit().putBoolean("default_folders_created_v2", true).apply();
+    }
+
+    private void createDefaultFilter(int flags, String nameKey, int defaultResId, int color) {
+        DialogFilter filter = new DialogFilter();
+        
+        // Find the next unused ID starting from 2
+        int filterId = 2;
+        while (dialogFiltersById.get(filterId) != null) {
+            filterId++;
+        }
+        filter.id = filterId;
+        filter.name = LocaleController.getString(nameKey, defaultResId);
+        filter.flags = flags;
+        filter.color = color;
+        filter.order = dialogFilters.size();
+
+        dialogFilters.add(filter);
+        dialogFiltersById.put(filter.id, filter);
+
+        // Save in local SQLite DB
+        getMessagesStorage().saveDialogFilter(filter, false, true);
+
+        // Send create/update request to Telegram cloud server
+        TLRPC.TL_messages_updateDialogFilter req = new TLRPC.TL_messages_updateDialogFilter();
+        req.id = filter.id;
+        req.flags |= 1;
+        req.filter = new TLRPC.TL_dialogFilter();
+        req.filter.id = filter.id;
+        req.filter.contacts = (flags & DIALOG_FILTER_FLAG_CONTACTS) != 0;
+        req.filter.non_contacts = (flags & DIALOG_FILTER_FLAG_NON_CONTACTS) != 0;
+        req.filter.groups = (flags & DIALOG_FILTER_FLAG_GROUPS) != 0;
+        req.filter.broadcasts = (flags & DIALOG_FILTER_FLAG_CHANNELS) != 0;
+        req.filter.bots = (flags & DIALOG_FILTER_FLAG_BOTS) != 0;
+        req.filter.title = new TLRPC.TL_textWithEntities();
+        req.filter.title.text = filter.name;
+        req.filter.title.entities = new ArrayList<>();
+        req.filter.title_noanimate = false;
+        
+        if (filter.color < 0) {
+            req.filter.flags &= ~134217728;
+            req.filter.color = 0;
+        } else {
+            req.filter.flags |= 134217728;
+            req.filter.color = filter.color;
+        }
+
+        getConnectionsManager().sendRequest(req, null);
     }
 
     private Utilities.Callback<Boolean> onLoadedRemoteFilters;

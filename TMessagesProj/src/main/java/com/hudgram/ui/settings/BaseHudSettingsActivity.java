@@ -480,6 +480,8 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
             case "TranslationExceptionsAbout": return LocaleController.getString("TranslationExceptionsAbout", R.string.TranslationExceptionsAbout);
             case "TranslationSettingsInfo": return LocaleController.getString("TranslationSettingsInfo", R.string.TranslationSettingsInfo);
             case "MainScreen": return LocaleController.getString("MainScreen", R.string.MainScreen);
+            case "ShowDefaultTabs": return LocaleController.getString("HudSettingsShowDefaultTabs", R.string.HudSettingsShowDefaultTabs);
+            case "ShowDefaultTabsAbout": return LocaleController.getString("HudSettingsShowDefaultTabsAbout", R.string.HudSettingsShowDefaultTabsAbout);
             case "HideStoriesBar": return LocaleController.getString("HideStoriesBar", R.string.HideStoriesBar);
             case "HideStoriesBarAbout": return LocaleController.getString("HideStoriesBarAbout", R.string.HideStoriesBarAbout);
             case "MainScreenSettings": return LocaleController.getString("MainScreenSettings", R.string.MainScreenSettings);

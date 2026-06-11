@@ -82,6 +82,13 @@ public class HudConfig {
         getPrefs().edit().putBoolean("hideFolderTabs", hideFolderTabs).apply();
     }
 
+    // showDefaultTabs
+    public static boolean showDefaultTabs = getPrefs().getBoolean("showDefaultTabs", true);
+    public static void toggleShowDefaultTabs() {
+        showDefaultTabs = !showDefaultTabs;
+        getPrefs().edit().putBoolean("showDefaultTabs", showDefaultTabs).apply();
+    }
+
     // disableInstantCamera
     public static boolean disableInstantCamera = getPrefs().getBoolean("disableInstantCamera", false);
     public static void toggleDisabledInstantCamera() {
@@ -575,6 +582,7 @@ public class HudConfig {
         hideSettingsTab = getPrefs().getBoolean("hideSettingsTab", true);
         hideSearchBar = getPrefs().getBoolean("hideSearchBar", false);
         hideFolderTabs = getPrefs().getBoolean("hideFolderTabs", false);
+        showDefaultTabs = getPrefs().getBoolean("showDefaultTabs", true);
         disableInstantCamera = getPrefs().getBoolean("disableInstantCamera", false);
         askBeforeCall = getPrefs().getBoolean("askBeforeCall", false);
         openArchiveOnPull = getPrefs().getBoolean("openArchiveOnPull", false);
