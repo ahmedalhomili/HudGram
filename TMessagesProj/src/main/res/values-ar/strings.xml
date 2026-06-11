@@ -11025,4 +11025,21 @@
     <string name="AboutHudgramSource">سورس كود (GitHub)</string>
     <string name="AboutHudgramLinks">روابط ومصادر</string>
     <string name="AboutHudgramVersion">الإصدار %1$s (%2$s)</string>
+    <string name="HudMessageByNumber">مراسلة/اتصال برقم أو معرف</string>
+    <string name="HudMessageByNumberHint">رقم الهاتف (+...)، اسم المستخدم (@...)، أو معرف المستخدم</string>
+    <string name="HudMessageByNumberVerify">جاري البحث...</string>
+    <string name="HudMessageByNumberNotFound">المستخدم غير موجود أو غير متاح.</string>
+    <string name="HudMessageByNumberInvalid">إدخال غير صالح. يرجى التأكد من الرقم أو المعرف.</string>
+    <string name="HudMessageOpenChat">فتح المحادثة</string>
+    <string name="HudMessageVoiceCall">اتصال صوتي</string>
+    <string name="HudSearchTabId">المعرف</string>
+    <string name="HudSearchTabPhone">رقم الهاتف</string>
+    <string name="HudSearchTabUsername">اسم المستخدم</string>
+    <string name="HudSearchVerifyBtn">بحث</string>
+    <string name="HudSearchGuidelinesTitle">إرشادات الاستخدام:</string>
+    <string name="HudSearchGuidelineId">• يجب أن يكون المعرف رقمياً بالكامل (مثال: 1234567).</string>
+    <string name="HudSearchGuidelinePhone">• يجب إدخال رقم الهاتف مع رمز الدولة.</string>
+    <string name="HudSearchGuidelineUsername">• اسم المستخدم يتكون من أحرف وأرقام.</string>
+    <string name="HudSearchVerifyStatusReady">ابحث عن المستخدم لتفعيل خيارات التواصل.</string>
+    <string name="HudSearchVerifyStatusNotFound">المستخدم غير موجود أو غير متاح حالياً.</string>
 </resources>

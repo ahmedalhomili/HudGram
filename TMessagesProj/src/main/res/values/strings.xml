@@ -11062,4 +11062,21 @@
     <string name="AboutHudgramSource">Source Code (GitHub)</string>
     <string name="AboutHudgramLinks">Links &amp; Resources</string>
     <string name="AboutHudgramVersion">Version %1$s (%2$s)</string>
+    <string name="HudMessageByNumber">Message/Call by Identifier</string>
+    <string name="HudMessageByNumberHint">Phone number (+...), username (@...), or user ID</string>
+    <string name="HudMessageByNumberVerify">Searching...</string>
+    <string name="HudMessageByNumberNotFound">User not found or unavailable.</string>
+    <string name="HudMessageByNumberInvalid">Invalid input. Please check the identifier.</string>
+    <string name="HudMessageOpenChat">Open Chat</string>
+    <string name="HudMessageVoiceCall">Voice Call</string>
+    <string name="HudSearchTabId">User ID</string>
+    <string name="HudSearchTabPhone">Phone Number</string>
+    <string name="HudSearchTabUsername">Username</string>
+    <string name="HudSearchVerifyBtn">Search</string>
+    <string name="HudSearchGuidelinesTitle">Usage Guidelines:</string>
+    <string name="HudSearchGuidelineId">• User ID must be a numeric ID (e.g. 1234567).</string>
+    <string name="HudSearchGuidelinePhone">• Phone number requires country code.</string>
+    <string name="HudSearchGuidelineUsername">• Username consists of alphanumeric characters.</string>
+    <string name="HudSearchVerifyStatusReady">Search for user to enable communication icons.</string>
+    <string name="HudSearchVerifyStatusNotFound">User not found or unavailable currently.</string>
 </resources>

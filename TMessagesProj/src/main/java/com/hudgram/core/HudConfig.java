@@ -1,10 +1,8 @@
 package com.hudgram.core;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.telegram.messenger.ApplicationLoader;
