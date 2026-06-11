@@ -232,6 +232,13 @@ public class HudConfig {
         getPrefs().edit().putBoolean("quickReplyEnabled", quickReplyEnabled).apply();
     }
 
+    // scheduledMessagesEnabled
+    public static boolean scheduledMessagesEnabled = getPrefs().getBoolean("scheduledMessagesEnabled", true);
+    public static void toggleScheduledMessagesEnabled() {
+        scheduledMessagesEnabled = !scheduledMessagesEnabled;
+        getPrefs().edit().putBoolean("scheduledMessagesEnabled", scheduledMessagesEnabled).apply();
+    }
+
     // autoReplyMentionEnabled
     public static boolean autoReplyMentionEnabled = getPrefs().getBoolean("autoReplyMentionEnabled", false);
     public static void toggleAutoReplyMentionEnabled() {
@@ -602,6 +609,7 @@ public class HudConfig {
         confirmVoiceMessages = getPrefs().getBoolean("confirmVoiceMessages", false);
         partialCopy = getPrefs().getBoolean("partialCopy", false);
         quickReplyEnabled = getPrefs().getBoolean("quickReplyEnabled", true);
+        scheduledMessagesEnabled = getPrefs().getBoolean("scheduledMessagesEnabled", true);
         autoReplyMentionEnabled = getPrefs().getBoolean("autoReplyMentionEnabled", false);
         autoReplyMentionText = getPrefs().getString("autoReplyMentionText", "أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.");
         autoReplyMentionCooldown = getPrefs().getInt("autoReplyMentionCooldown", 30);

@@ -28,6 +28,7 @@ public class HudChatSettingsActivity extends BaseHudSettingsActivity {
     private final int partialCopyRow = rowId++;
     private final int quickReplyRow = rowId++;
     private final int autoReplyRow = rowId++;
+    private final int scheduledMessagesRow = rowId++;
     private final int customDoubleTapActionRow = rowId++;
     private final int chatToolsFabRow = rowId++;
 
@@ -124,6 +125,7 @@ public class HudChatSettingsActivity extends BaseHudSettingsActivity {
 
         items.add(TextSettingsCellFactory.of(quickReplyRow, getString("HudQuickReplyRow")).slug("quickReply"));
         items.add(TextSettingsCellFactory.of(autoReplyRow, getString("HudAutoReplyRow")).slug("autoReply"));
+        items.add(TextSettingsCellFactory.of(scheduledMessagesRow, getString("HudScheduledMessagesRow")).slug("scheduledMessages"));
         items.add(UItem.asCheck(chatToolsFabRow, getString("ShowChatToolsFab")).slug("chatToolsFab").setChecked(HudConfig.showChatToolsFab));
         items.add(UItem.asShadow(getString("ShowChatToolsFabAbout")));
         items.add(UItem.asShadow(null));
@@ -201,6 +203,8 @@ public class HudChatSettingsActivity extends BaseHudSettingsActivity {
             presentFragment(new HudQuickReplyActivity());
         } else if (id == autoReplyRow) {
             presentFragment(new HudAutoReplyActivity());
+        } else if (id == scheduledMessagesRow) {
+            presentFragment(new com.hudgram.ui.scheduledmessages.HudScheduledMessagesActivity());
         } else if (id == chatToolsFabRow) {
             HudConfig.toggleShowChatToolsFab();
             if (view instanceof TextCheckCell) {

@@ -1587,6 +1587,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         boolean showDialogsList = false;
         boolean showPlayer = false;
         boolean showLocations = false;
+        boolean showScheduledMessagesLog = false;
         boolean showGroupVoip = false;
         boolean showCallLog = false;
         boolean audioCallUser = false;
@@ -2966,6 +2967,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                     showPlayer = true;
                 } else if (intent.getAction().equals("org.tmessages.openlocations")) {
                     showLocations = true;
+                } else if (intent.getAction().equals("com.hudgram.open_scheduled_messages_log")) {
+                    showScheduledMessagesLog = true;
                 } else if (action.equals("voip_chat")) {
                     showGroupVoip = true;
                 }
@@ -3099,6 +3102,12 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                         locationActivity.setDelegate((location, live, notify, scheduleDate, payStars) -> SendMessagesHelper.getInstance(intentAccount[0]).sendMessage(SendMessagesHelper.SendMessageParams.of(location, dialog_id, null, null, null, null, notify, scheduleDate, 0)));
                         presentFragment(locationActivity);
                     }, null));
+                }
+                pushOpened = false;
+            } else if (showScheduledMessagesLog) {
+                if (!actionBarLayout.getFragmentStack().isEmpty()) {
+                    switchToAccount(intentAccount[0], true);
+                    presentFragment(new com.hudgram.ui.scheduledmessages.HudScheduledMessagesLogActivity());
                 }
                 pushOpened = false;
             } else if (exportingChatUri != null) {
