@@ -3772,7 +3772,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             }
             if (currentType == AUTH_TYPE_MESSAGE) {
                 howToReceiveBtn = new TextView(context);
-                howToReceiveBtn.setText("كيف يمكنني استلام الرمز؟");
+                howToReceiveBtn.setText(LocaleController.getString("HudgramHowToReceiveCodeBtn", R.string.HudgramHowToReceiveCodeBtn));
                 howToReceiveBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
                 howToReceiveBtn.setTypeface(AndroidUtilities.bold());
                 howToReceiveBtn.setGravity(Gravity.CENTER);

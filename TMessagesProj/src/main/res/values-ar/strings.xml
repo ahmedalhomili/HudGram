@@ -10980,6 +10980,7 @@
     <string name="HudgramHowToReceiveCodeStep3Title">تفعيل تطبيق Hudgram</string>
     <string name="HudgramHowToReceiveCodeStep3Desc">انسخ الكود المكون من 5 أرقام، ثم عد إلى هنا وأدخله لتفعيل حساب Hudgram الخاص بك بنجاح.</string>
     <string name="HudgramHowToReceiveCodeButton">موافق، فهمت الخطوات</string>
+    <string name="HudgramHowToReceiveCodeBtn">كيف يمكنني استلام الرمز؟</string>
     <string name="HudgramOpenOfficialTelegram">فتح تيليجرام الرسمي</string>
     <string name="HudgramHowToReceiveCodeStep1Number">١</string>
     <string name="HudgramHowToReceiveCodeStep2Number">٢</string>

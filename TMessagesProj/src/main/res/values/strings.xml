@@ -11017,6 +11017,7 @@
     <string name="HudgramHowToReceiveCodeStep3Title">3. Activate Hudgram</string>
     <string name="HudgramHowToReceiveCodeStep3Desc">Copy the 5-digit code, then return here and enter it to successfully activate your Hudgram account.</string>
     <string name="HudgramHowToReceiveCodeButton">Got it, start activation</string>
+    <string name="HudgramHowToReceiveCodeBtn">How can I receive the code?</string>
     <string name="HudgramOpenOfficialTelegram">Open Official Telegram</string>
     <string name="HudgramHowToReceiveCodeStep1Number">1</string>
     <string name="HudgramHowToReceiveCodeStep2Number">2</string>
