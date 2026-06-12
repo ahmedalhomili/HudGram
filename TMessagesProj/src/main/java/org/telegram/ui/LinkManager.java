@@ -12,6 +12,7 @@ import com.hudgram.ui.settings.HudMainScreenSettingsActivity;
 import com.hudgram.ui.settings.HudNotificationsSettingsActivity;
 import com.hudgram.ui.settings.HudOtherSettingsActivity;
 import com.hudgram.ui.quickreply.HudQuickReplyActivity;
+import com.hudgram.ui.scheduledmessages.HudScheduledMessagesActivity;
 
 import static org.telegram.messenger.LocaleController.formatString;
 import static org.telegram.messenger.LocaleController.getString;
@@ -188,6 +189,8 @@ public class LinkManager {
             fragment = new com.hudgram.ui.quickreply.HudQuickReplyActivity();
         } else if ("drafts".equalsIgnoreCase(key)) {
             fragment = new com.hudgram.ui.drafts.HudDraftsActivity();
+        } else if ("scheduledMessages".equalsIgnoreCase(key)) {
+            fragment = new com.hudgram.ui.scheduledmessages.HudScheduledMessagesActivity();
         } else if ("update".equalsIgnoreCase(key)) {
             AndroidUtilities.runOnUIThread(() -> {
                 org.telegram.messenger.ApplicationLoader.applicationLoaderInstance.checkUpdate(true, null);

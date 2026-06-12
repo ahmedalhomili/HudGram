@@ -152,7 +152,7 @@ public class HudScheduledMessagesActivity extends BaseHudSettingsActivity {
         fab.addView(fabIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
 
         FrameLayout.LayoutParams lp = LayoutHelper.createFrame(56, 56, 
-                Gravity.BOTTOM | Gravity.END, 
+                Gravity.BOTTOM | (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT), 
                 16, 0, 16, 16);
         contentView.addView(fab, lp);
 

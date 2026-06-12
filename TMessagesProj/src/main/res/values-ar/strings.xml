@@ -11097,4 +11097,7 @@
     <string name="HudScheduledMessagesRepeatCustomFormatted">%1$s (كل %2$d ساعة)</string>
     <string name="HudScheduledMessagesNotificationTitle">تم إرسال الرسالة المجدولة</string>
     <string name="HudScheduledMessagesNotificationBody">تم الإرسال إلى: %s</string>
+    <string name="HudScheduledMessagesNoRecipients">لم يتم تحديد مستلمين</string>
+    <string name="HudScheduledMessagesSelectChatsSubtitle">انقر هنا لاختيار جهات الاتصال أو المجموعات</string>
+    <string name="HudScheduledMessagesTapToEdit">اضغط للتعديل</string>
 </resources>

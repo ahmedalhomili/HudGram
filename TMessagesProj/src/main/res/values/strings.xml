@@ -11131,4 +11131,7 @@
     <string name="HudScheduledMessagesRepeatCustomFormatted">%1$s (Every %2$d hours)</string>
     <string name="HudScheduledMessagesNotificationTitle">Scheduled Message Sent</string>
     <string name="HudScheduledMessagesNotificationBody">Sent to: %s</string>
+    <string name="HudScheduledMessagesNoRecipients">No recipients selected</string>
+    <string name="HudScheduledMessagesSelectChatsSubtitle">Tap here to select contacts or groups</string>
+    <string name="HudScheduledMessagesTapToEdit">Tap to edit</string>
 </resources>

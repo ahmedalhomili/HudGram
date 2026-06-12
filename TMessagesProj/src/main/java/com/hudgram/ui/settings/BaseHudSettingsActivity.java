@@ -677,6 +677,9 @@ public abstract class BaseHudSettingsActivity extends BaseFragment {
             case "HudScheduledMessagesTemplateUse": return LocaleController.getString("HudScheduledMessagesTemplateUse", R.string.HudScheduledMessagesTemplateUse);
             case "HudScheduledMessagesTemplateDelete": return LocaleController.getString("HudScheduledMessagesTemplateDelete", R.string.HudScheduledMessagesTemplateDelete);
             case "HudScheduledMessagesRepeatCustomFormatted": return LocaleController.getString("HudScheduledMessagesRepeatCustomFormatted", R.string.HudScheduledMessagesRepeatCustomFormatted);
+            case "HudScheduledMessagesNoRecipients": return LocaleController.getString("HudScheduledMessagesNoRecipients", R.string.HudScheduledMessagesNoRecipients);
+            case "HudScheduledMessagesSelectChatsSubtitle": return LocaleController.getString("HudScheduledMessagesSelectChatsSubtitle", R.string.HudScheduledMessagesSelectChatsSubtitle);
+            case "HudScheduledMessagesTapToEdit": return LocaleController.getString("HudScheduledMessagesTapToEdit", R.string.HudScheduledMessagesTapToEdit);
         }
         return key;
     }

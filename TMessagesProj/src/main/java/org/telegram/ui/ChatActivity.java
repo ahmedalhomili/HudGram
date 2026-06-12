@@ -12790,12 +12790,14 @@ public class ChatActivity extends BaseFragment implements
             LocaleController.getString("HudQuickReplyTitle", R.string.HudQuickReplyTitle),
             LocaleController.getString("HudAutoReplyTitle", R.string.HudAutoReplyTitle),
             LocaleController.getString("HudDraftsTitle", R.string.HudDraftsTitle),
+            LocaleController.getString("HudScheduledMessagesTitle", R.string.HudScheduledMessagesTitle),
             LocaleController.getString("HudMessageByNumber", R.string.HudMessageByNumber)
         };
         int[] icons = new int[]{
             R.drawable.msg_reply_small,
             R.drawable.msg_mention,
             R.drawable.msg_edit,
+            R.drawable.msg_calendar2,
             R.drawable.msg_contacts
         };
         builder.setItems(items, icons, (dialogInterface, i) -> {
@@ -12806,6 +12808,8 @@ public class ChatActivity extends BaseFragment implements
             } else if (i == 2) {
                 presentFragment(new com.hudgram.ui.drafts.HudDraftsActivity());
             } else if (i == 3) {
+                presentFragment(new com.hudgram.ui.scheduledmessages.HudScheduledMessagesActivity());
+            } else if (i == 4) {
                 com.hudgram.ui.utils.ContactSearchUiHelper.showSearchDialog(
                     getParentActivity(),
                     currentAccount,
