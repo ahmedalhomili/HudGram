@@ -1221,6 +1221,7 @@ public class NotificationsController extends BaseController {
                     if (com.hudgram.core.HudConfig.isAutoReplyMentionEnabled(currentAccount) &&
                             !messageObject.isOutOwner() &&
                             messageObject.getDialogId() < 0 &&
+                            !(messageObject.messageOwner instanceof TLRPC.TL_messageService) &&
                             messageObject.getSenderId() != UserConfig.getInstance(currentAccount).getClientUserId()) {
 
                         // --- Group filter check ---
@@ -1341,7 +1342,7 @@ public class NotificationsController extends BaseController {
                 }
 
                 // --- Hudgram: Auto-Reply DM Pro ---
-                if (com.hudgram.core.HudConfig.isAutoReplyDMEnabled(currentAccount) && !messageObject.isOutOwner() && !isChannel) {
+                if (com.hudgram.core.HudConfig.isAutoReplyDMEnabled(currentAccount) && !messageObject.isOutOwner() && !isChannel && !(messageObject.messageOwner instanceof TLRPC.TL_messageService)) {
                     long senderId = messageObject.getSenderId();
                     if (senderId != UserConfig.getInstance(currentAccount).getClientUserId()) {
                         boolean isGroup = DialogObject.isChatDialog(dialogId);
