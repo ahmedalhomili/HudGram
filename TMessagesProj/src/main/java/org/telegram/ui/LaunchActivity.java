@@ -422,6 +422,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         ApplicationLoader.postInitApplication();
         AndroidUtilities.checkDisplaySize(this, getResources().getConfiguration());
         currentAccount = UserConfig.selectedAccount;
+        com.hudgram.core.HudConfig.switchAccount(currentAccount);
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (!UserConfig.getInstance(currentAccount).isClientActivated()) {
             Intent intent = getIntent();
@@ -1220,6 +1221,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         ConnectionsManager.getInstance(currentAccount).setAppPaused(true, false);
         UserConfig.selectedAccount = account;
         UserConfig.getInstance(0).saveConfig(false);
+
+        // Hudgram: switch per-account settings
+        com.hudgram.core.HudConfig.switchAccount(account);
 
         checkCurrentAccount();
         if (AndroidUtilities.isTablet()) {

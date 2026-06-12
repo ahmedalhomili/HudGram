@@ -56,12 +56,28 @@ public class HudScheduledMessagesManager {
     }
 
     private static SharedPreferences getPrefs() {
+        int account = HudConfig.getCurrentAccount();
+        String name = account == 0 ? PREFS_NAME : PREFS_NAME + "_" + account;
+        return ApplicationLoader.applicationContext.getSharedPreferences(name, Context.MODE_PRIVATE);
+    }
+
+    private static SharedPreferences getPrefs(int account) {
+        String name = account == 0 ? PREFS_NAME : PREFS_NAME + "_" + account;
+        return ApplicationLoader.applicationContext.getSharedPreferences(name, Context.MODE_PRIVATE);
+    }
+
+    // Global prefs for shared data like templates
+    private static SharedPreferences getGlobalPrefs() {
         return ApplicationLoader.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     }
 
     public static ArrayList<ScheduledMessage> getScheduledMessages() {
+        return getScheduledMessages(HudConfig.getCurrentAccount());
+    }
+
+    public static ArrayList<ScheduledMessage> getScheduledMessages(int account) {
         ArrayList<ScheduledMessage> list = new ArrayList<>();
-        String json = getPrefs().getString(KEY_MESSAGES, "[]");
+        String json = getPrefs(account).getString(KEY_MESSAGES, "[]");
         try {
             JSONArray array = new JSONArray(json);
             for (int i = 0; i < array.length(); i++) {
@@ -89,6 +105,10 @@ public class HudScheduledMessagesManager {
     }
 
     public static void saveScheduledMessages(ArrayList<ScheduledMessage> list) {
+        saveScheduledMessages(HudConfig.getCurrentAccount(), list);
+    }
+
+    public static void saveScheduledMessages(int account, ArrayList<ScheduledMessage> list) {
         JSONArray array = new JSONArray();
         try {
             for (ScheduledMessage msg : list) {
@@ -110,64 +130,74 @@ public class HudScheduledMessagesManager {
         } catch (Exception e) {
             FileLog.e(e);
         }
-        getPrefs().edit().putString(KEY_MESSAGES, array.toString()).apply();
+        getPrefs(account).edit().putString(KEY_MESSAGES, array.toString()).apply();
     }
 
     public static void addScheduledMessage(Context context, ScheduledMessage message) {
         if (message == null) return;
-        ArrayList<ScheduledMessage> list = getScheduledMessages();
+        ArrayList<ScheduledMessage> list = getScheduledMessages(message.accountId);
         list.add(message);
-        saveScheduledMessages(list);
+        saveScheduledMessages(message.accountId, list);
         scheduleAlarm(context, message);
     }
 
     public static void deleteScheduledMessage(Context context, String id) {
         if (TextUtils.isEmpty(id)) return;
-        ArrayList<ScheduledMessage> list = getScheduledMessages();
-        ScheduledMessage target = null;
-        for (ScheduledMessage msg : list) {
-            if (id.equals(msg.id)) {
-                target = msg;
+        for (int account = 0; account < 4; account++) {
+            ArrayList<ScheduledMessage> list = getScheduledMessages(account);
+            ScheduledMessage target = null;
+            for (ScheduledMessage msg : list) {
+                if (id.equals(msg.id)) {
+                    target = msg;
+                    break;
+                }
+            }
+            if (target != null) {
+                cancelAlarm(context, target);
+                list.remove(target);
+                saveScheduledMessages(account, list);
                 break;
             }
-        }
-        if (target != null) {
-            cancelAlarm(context, target);
-            list.remove(target);
-            saveScheduledMessages(list);
         }
     }
 
     public static void rescheduleAllAlarms(Context context) {
-        ArrayList<ScheduledMessage> list = getScheduledMessages();
-        long now = System.currentTimeMillis();
-        ArrayList<ScheduledMessage> toRemove = new ArrayList<>();
-        
-        for (ScheduledMessage msg : list) {
-            if (msg.timestamp > now) {
-                scheduleAlarm(context, msg);
-            } else {
-                if (msg.repeatType != 0) {
-                    // Update repeating message to future occurrence
-                    long nextTime = calculateNextOccurrence(msg.timestamp, msg.repeatType, msg.repeatInterval);
-                    msg.timestamp = nextTime;
+        for (int account = 0; account < 4; account++) {
+            ArrayList<ScheduledMessage> list = getScheduledMessages(account);
+            long now = System.currentTimeMillis();
+            ArrayList<ScheduledMessage> toRemove = new ArrayList<>();
+            
+            for (ScheduledMessage msg : list) {
+                if (msg.timestamp > now) {
                     scheduleAlarm(context, msg);
                 } else {
-                    // Discard old one-time messages
-                    toRemove.add(msg);
+                    if (msg.repeatType != 0) {
+                        // Update repeating message to future occurrence
+                        long nextTime = calculateNextOccurrence(msg.timestamp, msg.repeatType, msg.repeatInterval);
+                        msg.timestamp = nextTime;
+                        scheduleAlarm(context, msg);
+                    } else {
+                        // Discard old one-time messages
+                        toRemove.add(msg);
+                    }
                 }
             }
-        }
-        
-        if (!toRemove.isEmpty()) {
-            list.removeAll(toRemove);
-            saveScheduledMessages(list);
+            
+            if (!toRemove.isEmpty()) {
+                list.removeAll(toRemove);
+                saveScheduledMessages(account, list);
+            }
         }
     }
 
+    @Deprecated
     public static void sendMessage(Context context, String messageId) {
+        sendMessage(context, HudConfig.getCurrentAccount(), messageId);
+    }
+
+    public static void sendMessage(Context context, int accountId, String messageId) {
         if (TextUtils.isEmpty(messageId)) return;
-        ArrayList<ScheduledMessage> list = getScheduledMessages();
+        ArrayList<ScheduledMessage> list = getScheduledMessages(accountId);
         ScheduledMessage target = null;
         int targetIndex = -1;
         for (int i = 0; i < list.size(); i++) {
@@ -189,7 +219,7 @@ public class HudScheduledMessagesManager {
             logEntry.accountId = target.accountId;
             logEntry.success = true;
             logEntry.errorReason = "";
-            addLogEntry(logEntry);
+            addLogEntry(accountId, logEntry);
 
             // Post local notification
             showNotification(context, target);
@@ -198,12 +228,12 @@ public class HudScheduledMessagesManager {
             if (target.repeatType != 0) {
                 long nextTime = calculateNextOccurrence(target.timestamp, target.repeatType, target.repeatInterval);
                 target.timestamp = nextTime;
-                saveScheduledMessages(list);
+                saveScheduledMessages(accountId, list);
                 scheduleAlarm(context, target);
             } else {
                 cancelAlarm(context, target);
                 list.remove(targetIndex);
-                saveScheduledMessages(list);
+                saveScheduledMessages(accountId, list);
             }
         }
     }
@@ -360,8 +390,12 @@ public class HudScheduledMessagesManager {
 
     // === Sent Logs Storage ===
     public static ArrayList<ScheduledMessageLogEntry> getScheduledMessagesLog() {
+        return getScheduledMessagesLog(HudConfig.getCurrentAccount());
+    }
+
+    public static ArrayList<ScheduledMessageLogEntry> getScheduledMessagesLog(int account) {
         ArrayList<ScheduledMessageLogEntry> list = new ArrayList<>();
-        String json = getPrefs().getString(KEY_LOGS, "[]");
+        String json = getPrefs(account).getString(KEY_LOGS, "[]");
         try {
             JSONArray array = new JSONArray(json);
             for (int i = 0; i < array.length(); i++) {
@@ -389,6 +423,10 @@ public class HudScheduledMessagesManager {
     }
 
     public static void saveScheduledMessagesLog(ArrayList<ScheduledMessageLogEntry> list) {
+        saveScheduledMessagesLog(HudConfig.getCurrentAccount(), list);
+    }
+
+    public static void saveScheduledMessagesLog(int account, ArrayList<ScheduledMessageLogEntry> list) {
         JSONArray array = new JSONArray();
         try {
             for (ScheduledMessageLogEntry entry : list) {
@@ -410,27 +448,35 @@ public class HudScheduledMessagesManager {
         } catch (Exception e) {
             FileLog.e(e);
         }
-        getPrefs().edit().putString(KEY_LOGS, array.toString()).apply();
+        getPrefs(account).edit().putString(KEY_LOGS, array.toString()).apply();
     }
 
     public static void addLogEntry(ScheduledMessageLogEntry entry) {
+        addLogEntry(entry.accountId, entry);
+    }
+
+    public static void addLogEntry(int account, ScheduledMessageLogEntry entry) {
         if (entry == null) return;
-        ArrayList<ScheduledMessageLogEntry> list = getScheduledMessagesLog();
+        ArrayList<ScheduledMessageLogEntry> list = getScheduledMessagesLog(account);
         list.add(0, entry);
         while (list.size() > 100) {
             list.remove(list.size() - 1);
         }
-        saveScheduledMessagesLog(list);
+        saveScheduledMessagesLog(account, list);
     }
 
     public static void clearLog() {
-        getPrefs().edit().remove(KEY_LOGS).apply();
+        clearLog(HudConfig.getCurrentAccount());
+    }
+
+    public static void clearLog(int account) {
+        getPrefs(account).edit().remove(KEY_LOGS).apply();
     }
 
     // === Message Templates Storage ===
     public static ArrayList<String> getTemplates() {
         ArrayList<String> list = new ArrayList<>();
-        String json = getPrefs().getString(KEY_TEMPLATES, "[]");
+        String json = getGlobalPrefs().getString(KEY_TEMPLATES, "[]");
         try {
             JSONArray array = new JSONArray(json);
             for (int i = 0; i < array.length(); i++) {
@@ -447,7 +493,7 @@ public class HudScheduledMessagesManager {
         for (String template : list) {
             array.put(template);
         }
-        getPrefs().edit().putString(KEY_TEMPLATES, array.toString()).apply();
+        getGlobalPrefs().edit().putString(KEY_TEMPLATES, array.toString()).apply();
     }
 
     public static void addTemplate(String template) {
@@ -474,6 +520,7 @@ public class HudScheduledMessagesManager {
         Intent intent = new Intent(context, HudScheduledMessagesReceiver.class);
         intent.setAction("com.hudgram.SEND_SCHEDULED_MESSAGE");
         intent.putExtra("message_id", msg.id);
+        intent.putExtra("account_id", msg.accountId);
 
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= 23) {
@@ -496,6 +543,7 @@ public class HudScheduledMessagesManager {
         Intent intent = new Intent(context, HudScheduledMessagesReceiver.class);
         intent.setAction("com.hudgram.SEND_SCHEDULED_MESSAGE");
         intent.putExtra("message_id", msg.id);
+        intent.putExtra("account_id", msg.accountId);
 
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= 23) {

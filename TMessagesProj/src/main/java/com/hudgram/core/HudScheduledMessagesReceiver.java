@@ -23,14 +23,15 @@ public class HudScheduledMessagesReceiver extends BroadcastReceiver {
                 FileLog.e(e);
             }
         } else if ("com.hudgram.SEND_SCHEDULED_MESSAGE".equals(action)) {
-            if (!HudConfig.scheduledMessagesEnabled) {
+            int accountId = intent.getIntExtra("account_id", 0);
+            if (!HudConfig.isScheduledMessagesEnabled(accountId)) {
                 return;
             }
             String messageId = intent.getStringExtra("message_id");
             if (!TextUtils.isEmpty(messageId)) {
                 try {
                     ApplicationLoader.postInitApplication();
-                    HudScheduledMessagesManager.sendMessage(context, messageId);
+                    HudScheduledMessagesManager.sendMessage(context, accountId, messageId);
                 } catch (Exception e) {
                     FileLog.e(e);
                 }

@@ -121,6 +121,7 @@ public class NotificationsController extends BaseController {
     private final ArrayList<StoryNotification> storyPushMessages = new ArrayList<>();
     private final LongSparseArray<StoryNotification> storyPushMessagesDict = new LongSparseArray<>();
     private final HashMap<Long, Long> lastAutoReplyTimeMap = new HashMap<>();
+    private final HashMap<String, Long> lastAutoReplyDMTimeMap = new HashMap<>();
     private long openedDialogId = 0;
     private long openedTopicId = 0;
     private int lastButtonId = 5000;
@@ -1217,31 +1218,31 @@ public class NotificationsController extends BaseController {
                     }
                     dialogId = messageObject.getFromChatId();
 
-                    if (com.hudgram.core.HudConfig.autoReplyMentionEnabled &&
+                    if (com.hudgram.core.HudConfig.isAutoReplyMentionEnabled(currentAccount) &&
                             !messageObject.isOutOwner() &&
                             messageObject.getDialogId() < 0 &&
                             messageObject.getSenderId() != UserConfig.getInstance(currentAccount).getClientUserId()) {
 
                         // --- Group filter check ---
                         long groupDialogId = messageObject.getDialogId();
-                        int filterMode = com.hudgram.core.HudConfig.autoReplyFilterMode;
+                        int filterMode = com.hudgram.core.HudConfig.getAutoReplyFilterMode(currentAccount);
                         boolean passesFilter = true;
                         if (filterMode == 1) {
                             // Whitelist: only selected groups
-                            passesFilter = com.hudgram.core.HudConfig.isGroupInAutoReplyFilter(groupDialogId);
+                            passesFilter = com.hudgram.core.HudConfig.isGroupInAutoReplyFilter(currentAccount, groupDialogId);
                         } else if (filterMode == 2) {
                             // Blacklist: all except selected groups
-                            passesFilter = !com.hudgram.core.HudConfig.isGroupInAutoReplyFilter(groupDialogId);
+                            passesFilter = !com.hudgram.core.HudConfig.isGroupInAutoReplyFilter(currentAccount, groupDialogId);
                         }
 
                         if (passesFilter) {
                             // --- Schedule check ---
                             boolean passesSchedule = true;
-                            if (com.hudgram.core.HudConfig.autoReplyScheduleEnabled) {
+                            if (com.hudgram.core.HudConfig.isAutoReplyScheduleEnabled(currentAccount)) {
                                 java.util.Calendar cal = java.util.Calendar.getInstance();
                                 int nowMinutes = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
-                                int startMinutes = com.hudgram.core.HudConfig.autoReplyScheduleStartHour * 60 + com.hudgram.core.HudConfig.autoReplyScheduleStartMinute;
-                                int endMinutes = com.hudgram.core.HudConfig.autoReplyScheduleEndHour * 60 + com.hudgram.core.HudConfig.autoReplyScheduleEndMinute;
+                                int startMinutes = com.hudgram.core.HudConfig.getAutoReplyScheduleStartHour(currentAccount) * 60 + com.hudgram.core.HudConfig.getAutoReplyScheduleStartMinute(currentAccount);
+                                int endMinutes = com.hudgram.core.HudConfig.getAutoReplyScheduleEndHour(currentAccount) * 60 + com.hudgram.core.HudConfig.getAutoReplyScheduleEndMinute(currentAccount);
                                 if (startMinutes <= endMinutes) {
                                     passesSchedule = nowMinutes >= startMinutes && nowMinutes <= endMinutes;
                                 } else {
@@ -1257,7 +1258,7 @@ public class NotificationsController extends BaseController {
 
                                     // --- Cooldown check (per-group or per-sender) ---
                                     long cooldownKey;
-                                    if (com.hudgram.core.HudConfig.autoReplyCooldownMode == 1) {
+                                    if (com.hudgram.core.HudConfig.getAutoReplyCooldownMode(currentAccount) == 1) {
                                         // Per sender: combine dialogId + senderId
                                         cooldownKey = groupDialogId * 31 + messageObject.getSenderId();
                                     } else {
@@ -1265,16 +1266,16 @@ public class NotificationsController extends BaseController {
                                         cooldownKey = groupDialogId;
                                     }
                                     Long lastTime = lastAutoReplyTimeMap.get(cooldownKey);
-                                    long cooldownMs = com.hudgram.core.HudConfig.autoReplyMentionCooldown * 1000L;
+                                    long cooldownMs = com.hudgram.core.HudConfig.getAutoReplyMentionCooldown(currentAccount) * 1000L;
                                     if (lastTime == null || (currentTime - lastTime) >= cooldownMs) {
                                         lastAutoReplyTimeMap.put(cooldownKey, currentTime);
 
                                         // --- Select reply text based on mode ---
                                         String replyText = null;
-                                        int mode = com.hudgram.core.HudConfig.autoReplyMode;
+                                        int mode = com.hudgram.core.HudConfig.getAutoReplyMode(currentAccount);
                                         if (mode == 1) {
                                             // Multiple messages: random selection
-                                            java.util.ArrayList<String> msgs = com.hudgram.core.HudConfig.getAutoReplyMessages();
+                                            java.util.ArrayList<String> msgs = com.hudgram.core.HudConfig.getAutoReplyMessages(currentAccount);
                                             if (msgs != null && !msgs.isEmpty()) {
                                                 replyText = msgs.get(new java.util.Random().nextInt(msgs.size()));
                                             }
@@ -1283,17 +1284,17 @@ public class NotificationsController extends BaseController {
                                             java.util.Calendar cal = java.util.Calendar.getInstance();
                                             int hour = cal.get(java.util.Calendar.HOUR_OF_DAY);
                                             if (hour >= 6 && hour < 12) {
-                                                replyText = com.hudgram.core.HudConfig.autoReplyMorningText;
+                                                replyText = com.hudgram.core.HudConfig.getAutoReplyMorningText(currentAccount);
                                             } else if (hour >= 12 && hour < 18) {
-                                                replyText = com.hudgram.core.HudConfig.autoReplyAfternoonText;
+                                                replyText = com.hudgram.core.HudConfig.getAutoReplyAfternoonText(currentAccount);
                                             } else if (hour >= 18 && hour < 23) {
-                                                replyText = com.hudgram.core.HudConfig.autoReplyEveningText;
+                                                replyText = com.hudgram.core.HudConfig.getAutoReplyEveningText(currentAccount);
                                             } else {
-                                                replyText = com.hudgram.core.HudConfig.autoReplyNightText;
+                                                replyText = com.hudgram.core.HudConfig.getAutoReplyNightText(currentAccount);
                                             }
                                         } else {
                                             // Single message (default)
-                                            replyText = com.hudgram.core.HudConfig.autoReplyMentionText;
+                                            replyText = com.hudgram.core.HudConfig.getAutoReplyMentionText(currentAccount);
                                         }
 
                                         if (!TextUtils.isEmpty(replyText)) {
@@ -1309,7 +1310,7 @@ public class NotificationsController extends BaseController {
                                             long logGroupId = chat.id;
                                             long logSenderId = sender != null ? sender.id : 0;
                                             int logMessageId = messageObject.getId();
-                                            com.hudgram.core.HudConfig.addAutoReplyLogEntry(chatTitle, senderName, finalReplyText, logGroupId, logSenderId, logMessageId);
+                                            com.hudgram.core.HudConfig.addAutoReplyLogEntry(currentAccount, chatTitle, senderName, finalReplyText, logGroupId, logSenderId, logMessageId);
 
                                             // --- Send reply as quote ---
                                             AndroidUtilities.runOnUIThread(() -> {
@@ -1334,6 +1335,134 @@ public class NotificationsController extends BaseController {
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+
+                // --- Hudgram: Auto-Reply DM Pro ---
+                if (com.hudgram.core.HudConfig.isAutoReplyDMEnabled(currentAccount) && !messageObject.isOutOwner() && !isChannel) {
+                    long senderId = messageObject.getSenderId();
+                    if (senderId != UserConfig.getInstance(currentAccount).getClientUserId()) {
+                        boolean isGroup = DialogObject.isChatDialog(dialogId);
+                        String messageText = messageObject.messageText != null ? messageObject.messageText.toString() : "";
+
+                        java.util.ArrayList<com.hudgram.core.HudConfig.AutoReplyDMRule> rules = com.hudgram.core.HudConfig.getAutoReplyDMRules(currentAccount);
+                        if (rules != null && !rules.isEmpty()) {
+                            for (com.hudgram.core.HudConfig.AutoReplyDMRule rule : rules) {
+                                if (!rule.enabled) continue;
+
+                                // 1. Scope check
+                                if (rule.scope == 1 && !isGroup) continue;   // groups only
+                                if (rule.scope == 2 && isGroup) continue;    // private only
+
+                                // 2. Bot check
+                                TLRPC.User senderUser = getMessagesController().getUser(senderId);
+                                boolean isBot = senderUser != null && senderUser.bot;
+                                if (rule.excludeBots && isBot) continue;
+
+                                // 3. Forwarded check
+                                if (rule.excludeForwarded && messageObject.messageOwner.fwd_from != null) continue;
+
+                                // 4. Match check
+                                if (rule.matchMode == 1) { // Contains
+                                    String keyword = rule.matchKeyword != null ? rule.matchKeyword.toLowerCase() : "";
+                                    if (!messageText.toLowerCase().contains(keyword)) continue;
+                                } else if (rule.matchMode == 2) { // Equals
+                                    if (!messageText.equalsIgnoreCase(rule.matchKeyword)) continue;
+                                }
+
+                                // 5. Schedule check
+                                boolean passesSchedule = true;
+                                if (rule.scheduleEnabled) {
+                                    java.util.Calendar cal = java.util.Calendar.getInstance();
+                                    int nowMinutes = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
+                                    int startMinutes = rule.scheduleStartHour * 60 + rule.scheduleStartMinute;
+                                    int endMinutes = rule.scheduleEndHour * 60 + rule.scheduleEndMinute;
+                                    if (startMinutes <= endMinutes) {
+                                        passesSchedule = nowMinutes >= startMinutes && nowMinutes <= endMinutes;
+                                    } else {
+                                        passesSchedule = nowMinutes >= startMinutes || nowMinutes <= endMinutes;
+                                    }
+                                }
+                                if (!passesSchedule) continue;
+
+                                // 6. Filter check (whitelist/blacklist)
+                                boolean containsChat = rule.filterChats != null && rule.filterChats.contains(String.valueOf(dialogId));
+                                if (rule.filterMode == 1 && !containsChat) continue; // Whitelist
+                                if (rule.filterMode == 2 && containsChat) continue;  // Blacklist
+
+                                // 7. First-message-only check
+                                if (rule.firstMessageOnly && com.hudgram.core.HudConfig.hasAutoReplyDMRepliedInChat(currentAccount, rule.id, dialogId)) continue;
+
+                                // 8. Cooldown check
+                                String cooldownKey = rule.id + "_" + dialogId;
+                                Long lastTime = lastAutoReplyDMTimeMap.get(cooldownKey);
+                                long currentTime = System.currentTimeMillis();
+                                long cooldownMs = rule.cooldown * 1000L;
+                                if (lastTime != null && (currentTime - lastTime) < cooldownMs) {
+                                    continue;
+                                }
+
+                                // 9. Select reply text
+                                String replyText = null;
+                                if (rule.replyMode == 1) {
+                                    if (rule.replyTexts != null && !rule.replyTexts.isEmpty()) {
+                                        replyText = rule.replyTexts.get(new java.util.Random().nextInt(rule.replyTexts.size()));
+                                    }
+                                } else if (rule.replyMode == 2) {
+                                    java.util.Calendar cal = java.util.Calendar.getInstance();
+                                    int hour = cal.get(java.util.Calendar.HOUR_OF_DAY);
+                                    if (hour >= 6 && hour < 12) {
+                                        replyText = rule.morningText;
+                                    } else if (hour >= 12 && hour < 18) {
+                                        replyText = rule.afternoonText;
+                                    } else if (hour >= 18 && hour < 23) {
+                                        replyText = rule.eveningText;
+                                    } else {
+                                        replyText = rule.nightText;
+                                    }
+                                } else {
+                                    replyText = rule.replyText;
+                                }
+
+                                if (TextUtils.isEmpty(replyText)) continue;
+
+                                // 10. Send reply
+                                final String finalReplyText = replyText;
+                                final long targetDialogId = dialogId;
+                                final int account = currentAccount;
+                                int delayMs = rule.delay * 1000;
+
+                                // Resolve names for logging
+                                String chatName = "";
+                                if (dialogId > 0) {
+                                    TLRPC.User chatUser = getMessagesController().getUser(dialogId);
+                                    chatName = chatUser != null ? ContactsController.formatName(chatUser.first_name, chatUser.last_name) : "";
+                                } else {
+                                    TLRPC.Chat chat = getMessagesController().getChat(-dialogId);
+                                    chatName = chat != null && chat.title != null ? chat.title : "";
+                                }
+                                String senderName = senderUser != null ? ContactsController.formatName(senderUser.first_name, senderUser.last_name) : "";
+
+                                final String finalRuleName = rule.name;
+                                final String finalChatName = chatName;
+                                final String finalSenderName = senderName;
+                                final long finalSenderId = senderId;
+
+                                AndroidUtilities.runOnUIThread(() -> {
+                                    SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(finalReplyText, targetDialogId);
+                                    SendMessagesHelper.getInstance(account).sendMessage(params);
+                                }, delayMs);
+
+                                // 11. Log + mark first message + update cooldown
+                                lastAutoReplyDMTimeMap.put(cooldownKey, currentTime);
+                                if (rule.firstMessageOnly) {
+                                    com.hudgram.core.HudConfig.markAutoReplyDMRepliedInChat(currentAccount, rule.id, dialogId);
+                                }
+                                com.hudgram.core.HudConfig.addAutoReplyDMLogEntry(currentAccount, finalRuleName, finalChatName, finalSenderName, finalReplyText, targetDialogId, finalSenderId);
+
+                                break; // Trigger only first matching rule
                             }
                         }
                     }

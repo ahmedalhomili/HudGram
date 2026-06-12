@@ -16,8 +16,109 @@ public class HudConfig {
     public static final int ID_TYPE_API = 1;
     public static final int ID_TYPE_BOTAPI = 2;
 
+    // Account tracking for multi-account support
+    private static int currentAccount = 0;
+    private static final boolean[] accountMigrated = new boolean[4];
+
+    public static int getCurrentAccount() {
+        return currentAccount;
+    }
+
+    public static void switchAccount(int account) {
+        if (account < 0 || account >= 4) return;
+        currentAccount = account;
+        ensureMigration(account);
+        reloadConfig();
+    }
+
+    // Global prefs — shared across all accounts (UI settings)
     private static SharedPreferences getPrefs() {
         return ApplicationLoader.applicationContext.getSharedPreferences("hudgram_settings", Context.MODE_PRIVATE);
+    }
+
+    // Per-account prefs
+    private static SharedPreferences getAccountPrefs() {
+        return getAccountPrefs(currentAccount);
+    }
+
+    private static SharedPreferences getAccountPrefs(int account) {
+        String name = account == 0 ? "hudgram_account_settings" : "hudgram_account_settings_" + account;
+        SharedPreferences prefs = ApplicationLoader.applicationContext.getSharedPreferences(name, Context.MODE_PRIVATE);
+        if (!accountMigrated[account]) {
+            ensureMigration(account);
+        }
+        return prefs;
+    }
+
+    private static void ensureMigration(int account) {
+        if (accountMigrated[account]) return;
+        String name = account == 0 ? "hudgram_account_settings" : "hudgram_account_settings_" + account;
+        SharedPreferences accountPrefs = ApplicationLoader.applicationContext.getSharedPreferences(name, Context.MODE_PRIVATE);
+        if (accountPrefs.getBoolean("migrated_from_global_v1", false)) {
+            accountMigrated[account] = true;
+            return;
+        }
+        SharedPreferences globalPrefs = getPrefs();
+        SharedPreferences.Editor editor = accountPrefs.edit();
+
+        // Migrate boolean keys
+        String[] boolKeys = {
+            "quickReplyEnabled", "scheduledMessagesEnabled", "draftsManagerEnabled",
+            "autoReplyMentionEnabled", "autoReplyScheduleEnabled",
+            "autoReplyDMEnabled", "translationEnabled", "autoTranslate", "showOriginal"
+        };
+        for (String key : boolKeys) {
+            if (globalPrefs.contains(key)) editor.putBoolean(key, globalPrefs.getBoolean(key, false));
+        }
+        // Fix defaults that should be true
+        if (!globalPrefs.contains("quickReplyEnabled")) editor.putBoolean("quickReplyEnabled", true);
+        if (!globalPrefs.contains("scheduledMessagesEnabled")) editor.putBoolean("scheduledMessagesEnabled", true);
+        if (!globalPrefs.contains("draftsManagerEnabled")) editor.putBoolean("draftsManagerEnabled", true);
+        if (!globalPrefs.contains("translationEnabled")) editor.putBoolean("translationEnabled", true);
+        if (!globalPrefs.contains("autoTranslate")) editor.putBoolean("autoTranslate", true);
+        if (!globalPrefs.contains("showOriginal")) editor.putBoolean("showOriginal", true);
+
+        // Migrate int keys
+        String[] intKeys = {
+            "autoReplyMentionCooldown", "autoReplyMode", "autoReplyCooldownMode",
+            "autoReplyScheduleStartHour", "autoReplyScheduleStartMinute",
+            "autoReplyScheduleEndHour", "autoReplyScheduleEndMinute",
+            "autoReplyFilterMode", "transType", "quickRepliesVersion"
+        };
+        for (String key : intKeys) {
+            if (globalPrefs.contains(key)) editor.putInt(key, globalPrefs.getInt(key, 0));
+        }
+
+        // Migrate String keys
+        String[] stringKeys = {
+            "autoReplyMentionText", "autoReplyMorningText", "autoReplyAfternoonText",
+            "autoReplyEveningText", "autoReplyNightText", "autoReplyMessages",
+            "autoReplyLog", "autoReplyDMRules", "autoReplyDMLog",
+            "quickRepliesJson", "translationProvider", "translationTarget"
+        };
+        for (String key : stringKeys) {
+            if (globalPrefs.contains(key)) editor.putString(key, globalPrefs.getString(key, ""));
+        }
+
+        // Migrate StringSet keys
+        if (globalPrefs.contains("autoReplyFilterGroups")) {
+            editor.putStringSet("autoReplyFilterGroups", globalPrefs.getStringSet("autoReplyFilterGroups", new java.util.HashSet<>()));
+        }
+        if (globalPrefs.contains("restrictedLanguages")) {
+            editor.putStringSet("restrictedLanguages", globalPrefs.getStringSet("restrictedLanguages", null));
+        }
+
+        // Migrate dmFirstMsg_ keys
+        java.util.Map<String, ?> allEntries = globalPrefs.getAll();
+        for (java.util.Map.Entry<String, ?> entry : allEntries.entrySet()) {
+            if (entry.getKey().startsWith("dmFirstMsg_") && entry.getValue() instanceof String) {
+                editor.putString(entry.getKey(), (String) entry.getValue());
+            }
+        }
+
+        editor.putBoolean("migrated_from_global_v1", true);
+        editor.apply();
+        accountMigrated[account] = true;
     }
 
     // preferIPv6
@@ -125,46 +226,46 @@ public class HudConfig {
     }
 
     // showOriginal
-    public static boolean showOriginal = getPrefs().getBoolean("showOriginal", true);
+    public static boolean showOriginal = getAccountPrefs().getBoolean("showOriginal", true);
     public static void toggleShowOriginal() {
         showOriginal = !showOriginal;
-        getPrefs().edit().putBoolean("showOriginal", showOriginal).apply();
+        getAccountPrefs().edit().putBoolean("showOriginal", showOriginal).apply();
     }
 
     // autoTranslate
-    public static boolean autoTranslate = getPrefs().getBoolean("autoTranslate", true);
+    public static boolean autoTranslate = getAccountPrefs().getBoolean("autoTranslate", true);
     public static void toggleAutoTranslate() {
         autoTranslate = !autoTranslate;
-        getPrefs().edit().putBoolean("autoTranslate", autoTranslate).apply();
+        getAccountPrefs().edit().putBoolean("autoTranslate", autoTranslate).apply();
     }
 
 
     // translationProvider
-    public static String translationProvider = getPrefs().getString("translationProvider", "google");
+    public static String translationProvider = getAccountPrefs().getString("translationProvider", "google");
     public static void setTranslationProvider(String provider) {
         translationProvider = provider;
-        getPrefs().edit().putString("translationProvider", provider).apply();
+        getAccountPrefs().edit().putString("translationProvider", provider).apply();
     }
 
     // translationTarget
-    public static String translationTarget = getPrefs().getString("translationTarget", "app");
+    public static String translationTarget = getAccountPrefs().getString("translationTarget", "app");
     public static void setTranslationTarget(String target) {
         translationTarget = target;
-        getPrefs().edit().putString("translationTarget", target).apply();
+        getAccountPrefs().edit().putString("translationTarget", target).apply();
     }
 
     // translationEnabled
-    public static boolean translationEnabled = getPrefs().getBoolean("translationEnabled", true);
+    public static boolean translationEnabled = getAccountPrefs().getBoolean("translationEnabled", true);
     public static void toggleTranslationEnabled() {
         translationEnabled = !translationEnabled;
-        getPrefs().edit().putBoolean("translationEnabled", translationEnabled).apply();
+        getAccountPrefs().edit().putBoolean("translationEnabled", translationEnabled).apply();
     }
 
     // transType
-    public static int transType = getPrefs().getInt("transType", TRANS_TYPE_HUD);
+    public static int transType = getAccountPrefs().getInt("transType", TRANS_TYPE_HUD);
     public static void setTransType(int type) {
         transType = type;
-        getPrefs().edit().putInt("transType", type).apply();
+        getAccountPrefs().edit().putInt("transType", type).apply();
     }
 
     // nameOrder
@@ -182,7 +283,7 @@ public class HudConfig {
     }
 
     // Restricted languages (do not translate list)
-    private static Set<String> restrictedLanguagesSet = getPrefs().getStringSet("restrictedLanguages", null);
+    private static Set<String> restrictedLanguagesSet = getAccountPrefs().getStringSet("restrictedLanguages", null);
     public static ArrayList<String> getRestrictedLanguages() {
         if (restrictedLanguagesSet == null) {
             ArrayList<String> defaultLangs = new ArrayList<>();
@@ -194,7 +295,7 @@ public class HudConfig {
     }
     public static void setRestrictedLanguages(ArrayList<String> langs) {
         restrictedLanguagesSet = new HashSet<>(langs);
-        getPrefs().edit().putStringSet("restrictedLanguages", restrictedLanguagesSet).apply();
+        getAccountPrefs().edit().putStringSet("restrictedLanguages", restrictedLanguagesSet).apply();
     }
 
     // hideNotificationContent
@@ -226,108 +327,108 @@ public class HudConfig {
     }
 
     // quickReplyEnabled
-    public static boolean quickReplyEnabled = getPrefs().getBoolean("quickReplyEnabled", true);
+    public static boolean quickReplyEnabled = getAccountPrefs().getBoolean("quickReplyEnabled", true);
     public static void toggleQuickReplyEnabled() {
         quickReplyEnabled = !quickReplyEnabled;
-        getPrefs().edit().putBoolean("quickReplyEnabled", quickReplyEnabled).apply();
+        getAccountPrefs().edit().putBoolean("quickReplyEnabled", quickReplyEnabled).apply();
     }
 
     // scheduledMessagesEnabled
-    public static boolean scheduledMessagesEnabled = getPrefs().getBoolean("scheduledMessagesEnabled", true);
+    public static boolean scheduledMessagesEnabled = getAccountPrefs().getBoolean("scheduledMessagesEnabled", true);
     public static void toggleScheduledMessagesEnabled() {
         scheduledMessagesEnabled = !scheduledMessagesEnabled;
-        getPrefs().edit().putBoolean("scheduledMessagesEnabled", scheduledMessagesEnabled).apply();
+        getAccountPrefs().edit().putBoolean("scheduledMessagesEnabled", scheduledMessagesEnabled).apply();
     }
 
     // autoReplyMentionEnabled
-    public static boolean autoReplyMentionEnabled = getPrefs().getBoolean("autoReplyMentionEnabled", false);
+    public static boolean autoReplyMentionEnabled = getAccountPrefs().getBoolean("autoReplyMentionEnabled", false);
     public static void toggleAutoReplyMentionEnabled() {
         autoReplyMentionEnabled = !autoReplyMentionEnabled;
-        getPrefs().edit().putBoolean("autoReplyMentionEnabled", autoReplyMentionEnabled).apply();
+        getAccountPrefs().edit().putBoolean("autoReplyMentionEnabled", autoReplyMentionEnabled).apply();
     }
 
     // autoReplyMentionText
-    public static String autoReplyMentionText = getPrefs().getString("autoReplyMentionText", "أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.");
+    public static String autoReplyMentionText = getAccountPrefs().getString("autoReplyMentionText", "أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.");
     public static void setAutoReplyMentionText(String text) {
         autoReplyMentionText = text;
-        getPrefs().edit().putString("autoReplyMentionText", autoReplyMentionText).apply();
+        getAccountPrefs().edit().putString("autoReplyMentionText", autoReplyMentionText).apply();
     }
 
     // autoReplyMentionCooldown
-    public static int autoReplyMentionCooldown = getPrefs().getInt("autoReplyMentionCooldown", 30);
+    public static int autoReplyMentionCooldown = getAccountPrefs().getInt("autoReplyMentionCooldown", 30);
     public static void setAutoReplyMentionCooldown(int cooldown) {
         autoReplyMentionCooldown = cooldown;
-        getPrefs().edit().putInt("autoReplyMentionCooldown", autoReplyMentionCooldown).apply();
+        getAccountPrefs().edit().putInt("autoReplyMentionCooldown", autoReplyMentionCooldown).apply();
     }
 
     // autoReplyMode: 0=single, 1=multiple, 2=smart
-    public static int autoReplyMode = getPrefs().getInt("autoReplyMode", 0);
+    public static int autoReplyMode = getAccountPrefs().getInt("autoReplyMode", 0);
     public static void setAutoReplyMode(int mode) {
         autoReplyMode = mode;
-        getPrefs().edit().putInt("autoReplyMode", mode).apply();
+        getAccountPrefs().edit().putInt("autoReplyMode", mode).apply();
     }
 
     // autoReplyCooldownMode: 0=per-group, 1=per-sender
-    public static int autoReplyCooldownMode = getPrefs().getInt("autoReplyCooldownMode", 1);
+    public static int autoReplyCooldownMode = getAccountPrefs().getInt("autoReplyCooldownMode", 1);
     public static void setAutoReplyCooldownMode(int mode) {
         autoReplyCooldownMode = mode;
-        getPrefs().edit().putInt("autoReplyCooldownMode", mode).apply();
+        getAccountPrefs().edit().putInt("autoReplyCooldownMode", mode).apply();
     }
 
     // Schedule
-    public static boolean autoReplyScheduleEnabled = getPrefs().getBoolean("autoReplyScheduleEnabled", false);
+    public static boolean autoReplyScheduleEnabled = getAccountPrefs().getBoolean("autoReplyScheduleEnabled", false);
     public static void toggleAutoReplyScheduleEnabled() {
         autoReplyScheduleEnabled = !autoReplyScheduleEnabled;
-        getPrefs().edit().putBoolean("autoReplyScheduleEnabled", autoReplyScheduleEnabled).apply();
+        getAccountPrefs().edit().putBoolean("autoReplyScheduleEnabled", autoReplyScheduleEnabled).apply();
     }
-    public static int autoReplyScheduleStartHour = getPrefs().getInt("autoReplyScheduleStartHour", 23);
-    public static int autoReplyScheduleStartMinute = getPrefs().getInt("autoReplyScheduleStartMinute", 0);
+    public static int autoReplyScheduleStartHour = getAccountPrefs().getInt("autoReplyScheduleStartHour", 23);
+    public static int autoReplyScheduleStartMinute = getAccountPrefs().getInt("autoReplyScheduleStartMinute", 0);
     public static void setAutoReplyScheduleStart(int hour, int minute) {
         autoReplyScheduleStartHour = hour;
         autoReplyScheduleStartMinute = minute;
-        getPrefs().edit().putInt("autoReplyScheduleStartHour", hour).putInt("autoReplyScheduleStartMinute", minute).apply();
+        getAccountPrefs().edit().putInt("autoReplyScheduleStartHour", hour).putInt("autoReplyScheduleStartMinute", minute).apply();
     }
-    public static int autoReplyScheduleEndHour = getPrefs().getInt("autoReplyScheduleEndHour", 8);
-    public static int autoReplyScheduleEndMinute = getPrefs().getInt("autoReplyScheduleEndMinute", 0);
+    public static int autoReplyScheduleEndHour = getAccountPrefs().getInt("autoReplyScheduleEndHour", 8);
+    public static int autoReplyScheduleEndMinute = getAccountPrefs().getInt("autoReplyScheduleEndMinute", 0);
     public static void setAutoReplyScheduleEnd(int hour, int minute) {
         autoReplyScheduleEndHour = hour;
         autoReplyScheduleEndMinute = minute;
-        getPrefs().edit().putInt("autoReplyScheduleEndHour", hour).putInt("autoReplyScheduleEndMinute", minute).apply();
+        getAccountPrefs().edit().putInt("autoReplyScheduleEndHour", hour).putInt("autoReplyScheduleEndMinute", minute).apply();
     }
 
     // Smart time-based reply messages
-    public static String autoReplyMorningText = getPrefs().getString("autoReplyMorningText", "صباح الخير، سأرد عليك بعد قليل إن شاء الله.");
+    public static String autoReplyMorningText = getAccountPrefs().getString("autoReplyMorningText", "صباح الخير، سأرد عليك بعد قليل إن شاء الله.");
     public static void setAutoReplyMorningText(String text) {
         autoReplyMorningText = text;
-        getPrefs().edit().putString("autoReplyMorningText", text).apply();
+        getAccountPrefs().edit().putString("autoReplyMorningText", text).apply();
     }
-    public static String autoReplyAfternoonText = getPrefs().getString("autoReplyAfternoonText", "أهلاً، سأطلع على رسالتك وأرد عليك قريباً إن شاء الله.");
+    public static String autoReplyAfternoonText = getAccountPrefs().getString("autoReplyAfternoonText", "أهلاً، سأطلع على رسالتك وأرد عليك قريباً إن شاء الله.");
     public static void setAutoReplyAfternoonText(String text) {
         autoReplyAfternoonText = text;
-        getPrefs().edit().putString("autoReplyAfternoonText", text).apply();
+        getAccountPrefs().edit().putString("autoReplyAfternoonText", text).apply();
     }
-    public static String autoReplyEveningText = getPrefs().getString("autoReplyEveningText", "مساء الخير، سأرجع لك بأقرب وقت إن شاء الله.");
+    public static String autoReplyEveningText = getAccountPrefs().getString("autoReplyEveningText", "مساء الخير، سأرجع لك بأقرب وقت إن شاء الله.");
     public static void setAutoReplyEveningText(String text) {
         autoReplyEveningText = text;
-        getPrefs().edit().putString("autoReplyEveningText", text).apply();
+        getAccountPrefs().edit().putString("autoReplyEveningText", text).apply();
     }
-    public static String autoReplyNightText = getPrefs().getString("autoReplyNightText", "شكراً على رسالتك، سأرد عليك صباحاً إن شاء الله.");
+    public static String autoReplyNightText = getAccountPrefs().getString("autoReplyNightText", "شكراً على رسالتك، سأرد عليك صباحاً إن شاء الله.");
     public static void setAutoReplyNightText(String text) {
         autoReplyNightText = text;
-        getPrefs().edit().putString("autoReplyNightText", text).apply();
+        getAccountPrefs().edit().putString("autoReplyNightText", text).apply();
     }
 
     // Group filter: 0=all, 1=whitelist, 2=blacklist
-    public static int autoReplyFilterMode = getPrefs().getInt("autoReplyFilterMode", 0);
+    public static int autoReplyFilterMode = getAccountPrefs().getInt("autoReplyFilterMode", 0);
     public static void setAutoReplyFilterMode(int mode) {
         autoReplyFilterMode = mode;
-        getPrefs().edit().putInt("autoReplyFilterMode", mode).apply();
+        getAccountPrefs().edit().putInt("autoReplyFilterMode", mode).apply();
     }
     public static java.util.Set<String> getAutoReplyFilterGroups() {
-        return getPrefs().getStringSet("autoReplyFilterGroups", new java.util.HashSet<>());
+        return getAccountPrefs().getStringSet("autoReplyFilterGroups", new java.util.HashSet<>());
     }
     public static void setAutoReplyFilterGroups(java.util.Set<String> groups) {
-        getPrefs().edit().putStringSet("autoReplyFilterGroups", groups).apply();
+        getAccountPrefs().edit().putStringSet("autoReplyFilterGroups", groups).apply();
     }
     public static void addAutoReplyFilterGroup(long dialogId) {
         java.util.Set<String> groups = new java.util.HashSet<>(getAutoReplyFilterGroups());
@@ -346,7 +447,7 @@ public class HudConfig {
     // Multiple auto-reply messages
     public static ArrayList<String> getAutoReplyMessages() {
         String defaultJson = "[\"أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.\",\"شكراً على الإشارة، سأرجع لك بأقرب وقت.\",\"تم الاستلام، سأرد عليك في أقرب فرصة إن شاء الله.\"]";
-        String json = getPrefs().getString("autoReplyMessages", defaultJson);
+        String json = getAccountPrefs().getString("autoReplyMessages", defaultJson);
         ArrayList<String> list = new ArrayList<>();
         try {
             org.json.JSONArray array = new org.json.JSONArray(json);
@@ -363,7 +464,7 @@ public class HudConfig {
         for (String s : list) {
             array.put(s);
         }
-        getPrefs().edit().putString("autoReplyMessages", array.toString()).apply();
+        getAccountPrefs().edit().putString("autoReplyMessages", array.toString()).apply();
     }
 
     // Auto-reply log
@@ -386,7 +487,7 @@ public class HudConfig {
         }
     }
     public static ArrayList<AutoReplyLogEntry> getAutoReplyLog() {
-        String json = getPrefs().getString("autoReplyLog", "[]");
+        String json = getAccountPrefs().getString("autoReplyLog", "[]");
         ArrayList<AutoReplyLogEntry> list = new ArrayList<>();
         try {
             org.json.JSONArray array = new org.json.JSONArray(json);
@@ -427,7 +528,7 @@ public class HudConfig {
         } catch (Exception e) {
             org.telegram.messenger.FileLog.e(e);
         }
-        getPrefs().edit().putString("autoReplyLog", array.toString()).apply();
+        getAccountPrefs().edit().putString("autoReplyLog", array.toString()).apply();
     }
     @Deprecated
     public static void addAutoReplyLogEntry(String groupName, String senderName, String replyText, long groupId, long senderId) {
@@ -438,7 +539,343 @@ public class HudConfig {
         addAutoReplyLogEntry(groupName, senderName, replyText, 0, 0, 0);
     }
     public static void clearAutoReplyLog() {
-        getPrefs().edit().putString("autoReplyLog", "[]").apply();
+        getAccountPrefs().edit().putString("autoReplyLog", "[]").apply();
+    }
+
+    // === Auto-Reply DM Pro ===
+
+    // Master toggle
+    public static boolean autoReplyDMEnabled = getAccountPrefs().getBoolean("autoReplyDMEnabled", false);
+    public static void toggleAutoReplyDMEnabled() {
+        autoReplyDMEnabled = !autoReplyDMEnabled;
+        getAccountPrefs().edit().putBoolean("autoReplyDMEnabled", autoReplyDMEnabled).apply();
+    }
+
+    // AutoReplyDMRule model
+    public static class AutoReplyDMRule {
+        public String id;
+        public String name;
+        public boolean enabled;
+
+        // Match
+        public int matchMode;       // 0=all, 1=contains, 2=equals
+        public String matchKeyword;
+
+        // Reply
+        public int replyMode;       // 0=single, 1=multiple, 2=smart
+        public String replyText;
+        public ArrayList<String> replyTexts;
+        public String morningText;
+        public String afternoonText;
+        public String eveningText;
+        public String nightText;
+
+        // Scope
+        public int scope;           // 0=both, 1=groups, 2=private
+
+        // Advanced
+        public int delay;           // 1-10 seconds
+        public int cooldown;        // 10-600 seconds
+        public boolean firstMessageOnly;
+        public boolean excludeBots;
+        public boolean excludeForwarded;
+
+        // Schedule
+        public boolean scheduleEnabled;
+        public int scheduleStartHour, scheduleStartMinute;
+        public int scheduleEndHour, scheduleEndMinute;
+
+        // Filter
+        public int filterMode;     // 0=all, 1=whitelist, 2=blacklist
+        public Set<String> filterChats;
+
+        public AutoReplyDMRule() {
+            this.id = java.util.UUID.randomUUID().toString();
+            this.name = "";
+            this.enabled = true;
+            this.matchMode = 0;
+            this.matchKeyword = "";
+            this.replyMode = 0;
+            this.replyText = "";
+            this.replyTexts = new ArrayList<>();
+            this.morningText = "صباح الخير، سأرد عليك بعد قليل إن شاء الله.";
+            this.afternoonText = "أهلاً، سأطلع على رسالتك وأرد عليك قريباً إن شاء الله.";
+            this.eveningText = "مساء الخير، سأرجع لك بأقرب وقت إن شاء الله.";
+            this.nightText = "شكراً على رسالتك، سأرد عليك صباحاً إن شاء الله.";
+            this.scope = 0;
+            this.delay = 1;
+            this.cooldown = 30;
+            this.firstMessageOnly = false;
+            this.excludeBots = true;
+            this.excludeForwarded = false;
+            this.scheduleEnabled = false;
+            this.scheduleStartHour = 23;
+            this.scheduleStartMinute = 0;
+            this.scheduleEndHour = 8;
+            this.scheduleEndMinute = 0;
+            this.filterMode = 0;
+            this.filterChats = new HashSet<>();
+        }
+
+        public AutoReplyDMRule copy() {
+            AutoReplyDMRule c = new AutoReplyDMRule();
+            c.id = java.util.UUID.randomUUID().toString();
+            c.name = this.name + " (copy)";
+            c.enabled = this.enabled;
+            c.matchMode = this.matchMode;
+            c.matchKeyword = this.matchKeyword;
+            c.replyMode = this.replyMode;
+            c.replyText = this.replyText;
+            c.replyTexts = new ArrayList<>(this.replyTexts);
+            c.morningText = this.morningText;
+            c.afternoonText = this.afternoonText;
+            c.eveningText = this.eveningText;
+            c.nightText = this.nightText;
+            c.scope = this.scope;
+            c.delay = this.delay;
+            c.cooldown = this.cooldown;
+            c.firstMessageOnly = this.firstMessageOnly;
+            c.excludeBots = this.excludeBots;
+            c.excludeForwarded = this.excludeForwarded;
+            c.scheduleEnabled = this.scheduleEnabled;
+            c.scheduleStartHour = this.scheduleStartHour;
+            c.scheduleStartMinute = this.scheduleStartMinute;
+            c.scheduleEndHour = this.scheduleEndHour;
+            c.scheduleEndMinute = this.scheduleEndMinute;
+            c.filterMode = this.filterMode;
+            c.filterChats = new HashSet<>(this.filterChats);
+            return c;
+        }
+
+        public org.json.JSONObject toJson() {
+            try {
+                org.json.JSONObject obj = new org.json.JSONObject();
+                obj.put("id", id);
+                obj.put("name", name);
+                obj.put("enabled", enabled);
+                obj.put("matchMode", matchMode);
+                obj.put("matchKeyword", matchKeyword != null ? matchKeyword : "");
+                obj.put("replyMode", replyMode);
+                obj.put("replyText", replyText != null ? replyText : "");
+                org.json.JSONArray textsArr = new org.json.JSONArray();
+                if (replyTexts != null) {
+                    for (String t : replyTexts) textsArr.put(t);
+                }
+                obj.put("replyTexts", textsArr);
+                obj.put("morningText", morningText != null ? morningText : "");
+                obj.put("afternoonText", afternoonText != null ? afternoonText : "");
+                obj.put("eveningText", eveningText != null ? eveningText : "");
+                obj.put("nightText", nightText != null ? nightText : "");
+                obj.put("scope", scope);
+                obj.put("delay", delay);
+                obj.put("cooldown", cooldown);
+                obj.put("firstMessageOnly", firstMessageOnly);
+                obj.put("excludeBots", excludeBots);
+                obj.put("excludeForwarded", excludeForwarded);
+                obj.put("scheduleEnabled", scheduleEnabled);
+                obj.put("scheduleStartHour", scheduleStartHour);
+                obj.put("scheduleStartMinute", scheduleStartMinute);
+                obj.put("scheduleEndHour", scheduleEndHour);
+                obj.put("scheduleEndMinute", scheduleEndMinute);
+                obj.put("filterMode", filterMode);
+                org.json.JSONArray filterArr = new org.json.JSONArray();
+                if (filterChats != null) {
+                    for (String c : filterChats) filterArr.put(c);
+                }
+                obj.put("filterChats", filterArr);
+                return obj;
+            } catch (Exception e) {
+                org.telegram.messenger.FileLog.e(e);
+                return new org.json.JSONObject();
+            }
+        }
+
+        public static AutoReplyDMRule fromJson(org.json.JSONObject obj) {
+            AutoReplyDMRule rule = new AutoReplyDMRule();
+            rule.id = obj.optString("id", rule.id);
+            rule.name = obj.optString("name", "");
+            rule.enabled = obj.optBoolean("enabled", true);
+            rule.matchMode = obj.optInt("matchMode", 0);
+            rule.matchKeyword = obj.optString("matchKeyword", "");
+            rule.replyMode = obj.optInt("replyMode", 0);
+            rule.replyText = obj.optString("replyText", "");
+            rule.replyTexts = new ArrayList<>();
+            org.json.JSONArray textsArr = obj.optJSONArray("replyTexts");
+            if (textsArr != null) {
+                for (int i = 0; i < textsArr.length(); i++) {
+                    rule.replyTexts.add(textsArr.optString(i, ""));
+                }
+            }
+            rule.morningText = obj.optString("morningText", rule.morningText);
+            rule.afternoonText = obj.optString("afternoonText", rule.afternoonText);
+            rule.eveningText = obj.optString("eveningText", rule.eveningText);
+            rule.nightText = obj.optString("nightText", rule.nightText);
+            rule.scope = obj.optInt("scope", 0);
+            rule.delay = obj.optInt("delay", 1);
+            rule.cooldown = obj.optInt("cooldown", 30);
+            rule.firstMessageOnly = obj.optBoolean("firstMessageOnly", false);
+            rule.excludeBots = obj.optBoolean("excludeBots", true);
+            rule.excludeForwarded = obj.optBoolean("excludeForwarded", false);
+            rule.scheduleEnabled = obj.optBoolean("scheduleEnabled", false);
+            rule.scheduleStartHour = obj.optInt("scheduleStartHour", 23);
+            rule.scheduleStartMinute = obj.optInt("scheduleStartMinute", 0);
+            rule.scheduleEndHour = obj.optInt("scheduleEndHour", 8);
+            rule.scheduleEndMinute = obj.optInt("scheduleEndMinute", 0);
+            rule.filterMode = obj.optInt("filterMode", 0);
+            rule.filterChats = new HashSet<>();
+            org.json.JSONArray filterArr = obj.optJSONArray("filterChats");
+            if (filterArr != null) {
+                for (int i = 0; i < filterArr.length(); i++) {
+                    rule.filterChats.add(filterArr.optString(i, ""));
+                }
+            }
+            return rule;
+        }
+    }
+
+    // CRUD operations for AutoReplyDMRule
+    public static ArrayList<AutoReplyDMRule> getAutoReplyDMRules() {
+        String json = getAccountPrefs().getString("autoReplyDMRules", "[]");
+        ArrayList<AutoReplyDMRule> list = new ArrayList<>();
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                list.add(AutoReplyDMRule.fromJson(array.getJSONObject(i)));
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        return list;
+    }
+
+    private static void saveAutoReplyDMRules(ArrayList<AutoReplyDMRule> rules) {
+        org.json.JSONArray array = new org.json.JSONArray();
+        for (AutoReplyDMRule rule : rules) {
+            array.put(rule.toJson());
+        }
+        getAccountPrefs().edit().putString("autoReplyDMRules", array.toString()).apply();
+    }
+
+    public static void addAutoReplyDMRule(AutoReplyDMRule rule) {
+        ArrayList<AutoReplyDMRule> rules = getAutoReplyDMRules();
+        rules.add(rule);
+        saveAutoReplyDMRules(rules);
+    }
+
+    public static void updateAutoReplyDMRule(AutoReplyDMRule updatedRule) {
+        ArrayList<AutoReplyDMRule> rules = getAutoReplyDMRules();
+        for (int i = 0; i < rules.size(); i++) {
+            if (rules.get(i).id.equals(updatedRule.id)) {
+                rules.set(i, updatedRule);
+                break;
+            }
+        }
+        saveAutoReplyDMRules(rules);
+    }
+
+    public static void deleteAutoReplyDMRule(String ruleId) {
+        ArrayList<AutoReplyDMRule> rules = getAutoReplyDMRules();
+        for (int i = 0; i < rules.size(); i++) {
+            if (rules.get(i).id.equals(ruleId)) {
+                rules.remove(i);
+                break;
+            }
+        }
+        saveAutoReplyDMRules(rules);
+    }
+
+    public static void toggleAutoReplyDMRule(String ruleId) {
+        ArrayList<AutoReplyDMRule> rules = getAutoReplyDMRules();
+        for (AutoReplyDMRule rule : rules) {
+            if (rule.id.equals(ruleId)) {
+                rule.enabled = !rule.enabled;
+                break;
+            }
+        }
+        saveAutoReplyDMRules(rules);
+    }
+
+    // Auto-Reply DM Log
+    public static class AutoReplyDMLogEntry {
+        public String ruleName;
+        public String chatName;
+        public String senderName;
+        public String replyText;
+        public long timestamp;
+        public long chatId;
+        public long senderId;
+        public AutoReplyDMLogEntry(String ruleName, String chatName, String senderName, String replyText, long timestamp, long chatId, long senderId) {
+            this.ruleName = ruleName;
+            this.chatName = chatName;
+            this.senderName = senderName;
+            this.replyText = replyText;
+            this.timestamp = timestamp;
+            this.chatId = chatId;
+            this.senderId = senderId;
+        }
+    }
+
+    public static ArrayList<AutoReplyDMLogEntry> getAutoReplyDMLog() {
+        String json = getAccountPrefs().getString("autoReplyDMLog", "[]");
+        ArrayList<AutoReplyDMLogEntry> list = new ArrayList<>();
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                org.json.JSONObject obj = array.getJSONObject(i);
+                list.add(new AutoReplyDMLogEntry(
+                        obj.optString("rule", ""),
+                        obj.optString("chat", ""),
+                        obj.optString("sender", ""),
+                        obj.optString("text", ""),
+                        obj.optLong("time", 0),
+                        obj.optLong("chatId", 0),
+                        obj.optLong("senderId", 0)
+                ));
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        return list;
+    }
+
+    public static void addAutoReplyDMLogEntry(String ruleName, String chatName, String senderName, String replyText, long chatId, long senderId) {
+        ArrayList<AutoReplyDMLogEntry> log = getAutoReplyDMLog();
+        log.add(0, new AutoReplyDMLogEntry(ruleName, chatName, senderName, replyText, System.currentTimeMillis(), chatId, senderId));
+        if (log.size() > 100) log = new ArrayList<>(log.subList(0, 100));
+        org.json.JSONArray array = new org.json.JSONArray();
+        try {
+            for (AutoReplyDMLogEntry entry : log) {
+                org.json.JSONObject obj = new org.json.JSONObject();
+                obj.put("rule", entry.ruleName);
+                obj.put("chat", entry.chatName);
+                obj.put("sender", entry.senderName);
+                obj.put("text", entry.replyText);
+                obj.put("time", entry.timestamp);
+                obj.put("chatId", entry.chatId);
+                obj.put("senderId", entry.senderId);
+                array.put(obj);
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        getAccountPrefs().edit().putString("autoReplyDMLog", array.toString()).apply();
+    }
+
+    public static void clearAutoReplyDMLog() {
+        getAccountPrefs().edit().putString("autoReplyDMLog", "[]").apply();
+    }
+
+    // First-message-per-day tracker
+    public static boolean hasAutoReplyDMRepliedInChat(String ruleId, long dialogId) {
+        String key = "dmFirstMsg_" + ruleId + "_" + dialogId;
+        String today = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(new java.util.Date());
+        return today.equals(getAccountPrefs().getString(key, ""));
+    }
+
+    public static void markAutoReplyDMRepliedInChat(String ruleId, long dialogId) {
+        String key = "dmFirstMsg_" + ruleId + "_" + dialogId;
+        String today = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(new java.util.Date());
+        getAccountPrefs().edit().putString(key, today).apply();
     }
 
     // Quick Replies
@@ -464,14 +901,14 @@ public class HudConfig {
                 "{\"label\":\"امان\",\"value\":\"في أمان الله ورعايته، مع السلامة\"}," +
                 "{\"label\":\"صلي\",\"value\":\"اللهم صل وسلم وبارك على نبينا محمد وعلى آله وصحبه أجمعين\"}" +
                 "]";
-        if (getPrefs().getInt("quickRepliesVersion", 1) < 2) {
-            getPrefs().edit()
+        if (getAccountPrefs().getInt("quickRepliesVersion", 1) < 2) {
+            getAccountPrefs().edit()
                     .putString("quickRepliesJson", defaultJson)
                     .putInt("quickRepliesVersion", 2)
                     .apply();
         }
 
-        String json = getPrefs().getString("quickRepliesJson", defaultJson);
+        String json = getAccountPrefs().getString("quickRepliesJson", defaultJson);
         ArrayList<QuickReplyItem> list = new ArrayList<>();
         try {
             org.json.JSONArray array = new org.json.JSONArray(json);
@@ -497,14 +934,14 @@ public class HudConfig {
         } catch (Exception e) {
             org.telegram.messenger.FileLog.e(e);
         }
-        getPrefs().edit().putString("quickRepliesJson", array.toString()).apply();
+        getAccountPrefs().edit().putString("quickRepliesJson", array.toString()).apply();
     }
 
     // draftsManagerEnabled
-    public static boolean draftsManagerEnabled = getPrefs().getBoolean("draftsManagerEnabled", true);
+    public static boolean draftsManagerEnabled = getAccountPrefs().getBoolean("draftsManagerEnabled", true);
     public static void toggleDraftsManagerEnabled() {
         draftsManagerEnabled = !draftsManagerEnabled;
-        getPrefs().edit().putBoolean("draftsManagerEnabled", draftsManagerEnabled).apply();
+        getAccountPrefs().edit().putBoolean("draftsManagerEnabled", draftsManagerEnabled).apply();
     }
 
     // showChatToolsFab
@@ -517,10 +954,28 @@ public class HudConfig {
     public static String exportBackup() {
         try {
             org.json.JSONObject backupJson = new org.json.JSONObject();
-            SharedPreferences prefs = getPrefs();
-            java.util.Map<String, ?> allEntries = prefs.getAll();
-            for (java.util.Map.Entry<String, ?> entry : allEntries.entrySet()) {
+            // Export global settings
+            SharedPreferences globalPrefs = getPrefs();
+            java.util.Map<String, ?> globalEntries = globalPrefs.getAll();
+            for (java.util.Map.Entry<String, ?> entry : globalEntries.entrySet()) {
                 String key = entry.getKey();
+                Object value = entry.getValue();
+                if (value instanceof java.util.Set) {
+                    org.json.JSONArray array = new org.json.JSONArray();
+                    for (String s : (java.util.Set<String>) value) {
+                        array.put(s);
+                    }
+                    backupJson.put(key, array);
+                } else {
+                    backupJson.put(key, value);
+                }
+            }
+            // Export per-account settings
+            SharedPreferences accountPrefs = getAccountPrefs();
+            java.util.Map<String, ?> accountEntries = accountPrefs.getAll();
+            for (java.util.Map.Entry<String, ?> entry : accountEntries.entrySet()) {
+                String key = entry.getKey();
+                if (key.equals("migrated_from_global_v1")) continue;
                 Object value = entry.getValue();
                 if (value instanceof java.util.Set) {
                     org.json.JSONArray array = new org.json.JSONArray();
@@ -543,12 +998,33 @@ public class HudConfig {
         try {
             if (android.text.TextUtils.isEmpty(json)) return false;
             org.json.JSONObject backupJson = new org.json.JSONObject(json);
-            SharedPreferences.Editor editor = getPrefs().edit();
-            editor.clear();
+            SharedPreferences.Editor globalEditor = getPrefs().edit();
+            SharedPreferences.Editor accountEditor = getAccountPrefs().edit();
+            globalEditor.clear();
+            accountEditor.clear();
+            
+            // Per-account keys set
+            java.util.Set<String> perAccountKeys = new java.util.HashSet<>(java.util.Arrays.asList(
+                "quickReplyEnabled", "scheduledMessagesEnabled", "draftsManagerEnabled",
+                "autoReplyMentionEnabled", "autoReplyScheduleEnabled",
+                "autoReplyDMEnabled", "translationEnabled", "autoTranslate", "showOriginal",
+                "autoReplyMentionCooldown", "autoReplyMode", "autoReplyCooldownMode",
+                "autoReplyScheduleStartHour", "autoReplyScheduleStartMinute",
+                "autoReplyScheduleEndHour", "autoReplyScheduleEndMinute",
+                "autoReplyFilterMode", "transType", "quickRepliesVersion",
+                "autoReplyMentionText", "autoReplyMorningText", "autoReplyAfternoonText",
+                "autoReplyEveningText", "autoReplyNightText", "autoReplyMessages",
+                "autoReplyLog", "autoReplyDMRules", "autoReplyDMLog",
+                "quickRepliesJson", "translationProvider", "translationTarget",
+                "autoReplyFilterGroups", "restrictedLanguages"
+            ));
+            
             java.util.Iterator<String> keys = backupJson.keys();
             while (keys.hasNext()) {
                 String key = keys.next();
                 Object value = backupJson.get(key);
+                boolean isPerAccount = perAccountKeys.contains(key) || key.startsWith("dmFirstMsg_");
+                SharedPreferences.Editor editor = isPerAccount ? accountEditor : globalEditor;
                 if (value instanceof org.json.JSONArray) {
                     org.json.JSONArray array = (org.json.JSONArray) value;
                     java.util.Set<String> set = new java.util.HashSet<>();
@@ -570,7 +1046,9 @@ public class HudConfig {
                     editor.putString(key, (String) value);
                 }
             }
-            editor.apply();
+            accountEditor.putBoolean("migrated_from_global_v1", true);
+            globalEditor.apply();
+            accountEditor.apply();
             reloadConfig();
             return true;
         } catch (Exception e) {
@@ -595,38 +1073,223 @@ public class HudConfig {
         openArchiveOnPull = getPrefs().getBoolean("openArchiveOnPull", false);
         accentAsNotificationColor = getPrefs().getBoolean("accentAsNotificationColor", false);
         silenceNonContacts = getPrefs().getBoolean("silenceNonContacts", false);
-        showOriginal = getPrefs().getBoolean("showOriginal", true);
-        autoTranslate = getPrefs().getBoolean("autoTranslate", true);
-        translationProvider = getPrefs().getString("translationProvider", "google");
-        translationTarget = getPrefs().getString("translationTarget", "app");
-        translationEnabled = getPrefs().getBoolean("translationEnabled", true);
-        transType = getPrefs().getInt("transType", TRANS_TYPE_HUD);
+        showOriginal = getAccountPrefs().getBoolean("showOriginal", true);
+        autoTranslate = getAccountPrefs().getBoolean("autoTranslate", true);
+        translationProvider = getAccountPrefs().getString("translationProvider", "google");
+        translationTarget = getAccountPrefs().getString("translationTarget", "app");
+        translationEnabled = getAccountPrefs().getBoolean("translationEnabled", true);
+        transType = getAccountPrefs().getInt("transType", TRANS_TYPE_HUD);
         nameOrder = getPrefs().getInt("nameOrder", 1);
         idType = getPrefs().getInt("idType", ID_TYPE_API);
-        restrictedLanguagesSet = getPrefs().getStringSet("restrictedLanguages", null);
+        restrictedLanguagesSet = getAccountPrefs().getStringSet("restrictedLanguages", null);
         hideNotificationContent = getPrefs().getBoolean("hideNotificationContent", false);
         confirmStickers = getPrefs().getBoolean("confirmStickers", false);
         confirmVoiceMessages = getPrefs().getBoolean("confirmVoiceMessages", false);
         partialCopy = getPrefs().getBoolean("partialCopy", false);
-        quickReplyEnabled = getPrefs().getBoolean("quickReplyEnabled", true);
-        scheduledMessagesEnabled = getPrefs().getBoolean("scheduledMessagesEnabled", true);
-        autoReplyMentionEnabled = getPrefs().getBoolean("autoReplyMentionEnabled", false);
-        autoReplyMentionText = getPrefs().getString("autoReplyMentionText", "أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.");
-        autoReplyMentionCooldown = getPrefs().getInt("autoReplyMentionCooldown", 30);
-        autoReplyMode = getPrefs().getInt("autoReplyMode", 0);
-        autoReplyCooldownMode = getPrefs().getInt("autoReplyCooldownMode", 1);
-        autoReplyScheduleEnabled = getPrefs().getBoolean("autoReplyScheduleEnabled", false);
-        autoReplyScheduleStartHour = getPrefs().getInt("autoReplyScheduleStartHour", 23);
-        autoReplyScheduleStartMinute = getPrefs().getInt("autoReplyScheduleStartMinute", 0);
-        autoReplyScheduleEndHour = getPrefs().getInt("autoReplyScheduleEndHour", 8);
-        autoReplyScheduleEndMinute = getPrefs().getInt("autoReplyScheduleEndMinute", 0);
-        autoReplyMorningText = getPrefs().getString("autoReplyMorningText", "صباح الخير، سأرد عليك بعد قليل إن شاء الله.");
-        autoReplyAfternoonText = getPrefs().getString("autoReplyAfternoonText", "أهلاً، سأطلع على رسالتك وأرد عليك قريباً إن شاء الله.");
-        autoReplyEveningText = getPrefs().getString("autoReplyEveningText", "مساء الخير، سأرجع لك بأقرب وقت إن شاء الله.");
-        autoReplyNightText = getPrefs().getString("autoReplyNightText", "شكراً على رسالتك، سأرد عليك صباحاً إن شاء الله.");
-        autoReplyFilterMode = getPrefs().getInt("autoReplyFilterMode", 0);
-        draftsManagerEnabled = getPrefs().getBoolean("draftsManagerEnabled", true);
+        quickReplyEnabled = getAccountPrefs().getBoolean("quickReplyEnabled", true);
+        scheduledMessagesEnabled = getAccountPrefs().getBoolean("scheduledMessagesEnabled", true);
+        autoReplyMentionEnabled = getAccountPrefs().getBoolean("autoReplyMentionEnabled", false);
+        autoReplyMentionText = getAccountPrefs().getString("autoReplyMentionText", "أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.");
+        autoReplyMentionCooldown = getAccountPrefs().getInt("autoReplyMentionCooldown", 30);
+        autoReplyMode = getAccountPrefs().getInt("autoReplyMode", 0);
+        autoReplyCooldownMode = getAccountPrefs().getInt("autoReplyCooldownMode", 1);
+        autoReplyScheduleEnabled = getAccountPrefs().getBoolean("autoReplyScheduleEnabled", false);
+        autoReplyScheduleStartHour = getAccountPrefs().getInt("autoReplyScheduleStartHour", 23);
+        autoReplyScheduleStartMinute = getAccountPrefs().getInt("autoReplyScheduleStartMinute", 0);
+        autoReplyScheduleEndHour = getAccountPrefs().getInt("autoReplyScheduleEndHour", 8);
+        autoReplyScheduleEndMinute = getAccountPrefs().getInt("autoReplyScheduleEndMinute", 0);
+        autoReplyMorningText = getAccountPrefs().getString("autoReplyMorningText", "صباح الخير، سأرد عليك بعد قليل إن شاء الله.");
+        autoReplyAfternoonText = getAccountPrefs().getString("autoReplyAfternoonText", "أهلاً، سأطلع على رسالتك وأرد عليك قريباً إن شاء الله.");
+        autoReplyEveningText = getAccountPrefs().getString("autoReplyEveningText", "مساء الخير، سأرجع لك بأقرب وقت إن شاء الله.");
+        autoReplyNightText = getAccountPrefs().getString("autoReplyNightText", "شكراً على رسالتك، سأرد عليك صباحاً إن شاء الله.");
+        autoReplyFilterMode = getAccountPrefs().getInt("autoReplyFilterMode", 0);
+        draftsManagerEnabled = getAccountPrefs().getBoolean("draftsManagerEnabled", true);
         showChatToolsFab = getPrefs().getBoolean("showChatToolsFab", true);
+        autoReplyDMEnabled = getAccountPrefs().getBoolean("autoReplyDMEnabled", false);
+    }
+
+    // Per-account settings getters/setters for background tasks
+    public static boolean isScheduledMessagesEnabled(int account) {
+        return getAccountPrefs(account).getBoolean("scheduledMessagesEnabled", true);
+    }
+    public static boolean isAutoReplyMentionEnabled(int account) {
+        return getAccountPrefs(account).getBoolean("autoReplyMentionEnabled", false);
+    }
+    public static int getAutoReplyFilterMode(int account) {
+        return getAccountPrefs(account).getInt("autoReplyFilterMode", 0);
+    }
+    public static java.util.Set<String> getAutoReplyFilterGroups(int account) {
+        return getAccountPrefs(account).getStringSet("autoReplyFilterGroups", new java.util.HashSet<>());
+    }
+    public static boolean isGroupInAutoReplyFilter(int account, long dialogId) {
+        return getAutoReplyFilterGroups(account).contains(String.valueOf(dialogId));
+    }
+    public static boolean isAutoReplyScheduleEnabled(int account) {
+        return getAccountPrefs(account).getBoolean("autoReplyScheduleEnabled", false);
+    }
+    public static int getAutoReplyScheduleStartHour(int account) {
+        return getAccountPrefs(account).getInt("autoReplyScheduleStartHour", 23);
+    }
+    public static int getAutoReplyScheduleStartMinute(int account) {
+        return getAccountPrefs(account).getInt("autoReplyScheduleStartMinute", 0);
+    }
+    public static int getAutoReplyScheduleEndHour(int account) {
+        return getAccountPrefs(account).getInt("autoReplyScheduleEndHour", 8);
+    }
+    public static int getAutoReplyScheduleEndMinute(int account) {
+        return getAccountPrefs(account).getInt("autoReplyScheduleEndMinute", 0);
+    }
+    public static int getAutoReplyCooldownMode(int account) {
+        return getAccountPrefs(account).getInt("autoReplyCooldownMode", 1);
+    }
+    public static int getAutoReplyMentionCooldown(int account) {
+        return getAccountPrefs(account).getInt("autoReplyMentionCooldown", 30);
+    }
+    public static int getAutoReplyMode(int account) {
+        return getAccountPrefs(account).getInt("autoReplyMode", 0);
+    }
+    public static ArrayList<String> getAutoReplyMessages(int account) {
+        String defaultJson = "[\"أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.\",\"شكراً على الإشارة، سأرجع لك بأقرب وقت.\",\"تم الاستلام، سأرد عليك في أقرب فرصة إن شاء الله.\"]";
+        String json = getAccountPrefs(account).getString("autoReplyMessages", defaultJson);
+        ArrayList<String> list = new ArrayList<>();
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                list.add(array.getString(i));
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        return list;
+    }
+    public static String getAutoReplyMorningText(int account) {
+        return getAccountPrefs(account).getString("autoReplyMorningText", "صباح الخير، سأرد عليك بعد قليل إن شاء الله.");
+    }
+    public static String getAutoReplyAfternoonText(int account) {
+        return getAccountPrefs(account).getString("autoReplyAfternoonText", "أهلاً، سأطلع على رسالتك وأرد عليك قريباً إن شاء الله.");
+    }
+    public static String getAutoReplyEveningText(int account) {
+        return getAccountPrefs(account).getString("autoReplyEveningText", "مساء الخير، سأرجع لك بأقرب وقت إن شاء الله.");
+    }
+    public static String getAutoReplyNightText(int account) {
+        return getAccountPrefs(account).getString("autoReplyNightText", "شكراً على رسالتك، سأرد عليك صباحاً إن شاء الله.");
+    }
+    public static String getAutoReplyMentionText(int account) {
+        return getAccountPrefs(account).getString("autoReplyMentionText", "أهلاً بك، سأطلع على رسالتك وأرد عليك قريباً.");
+    }
+    public static ArrayList<AutoReplyLogEntry> getAutoReplyLog(int account) {
+        String json = getAccountPrefs(account).getString("autoReplyLog", "[]");
+        ArrayList<AutoReplyLogEntry> list = new ArrayList<>();
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                org.json.JSONObject obj = array.getJSONObject(i);
+                list.add(new AutoReplyLogEntry(
+                        obj.optString("group", ""),
+                        obj.optString("sender", ""),
+                        obj.optString("text", ""),
+                        obj.optLong("time", 0),
+                        obj.optLong("groupId", 0),
+                        obj.optLong("senderId", 0),
+                        obj.optInt("messageId", 0)
+                ));
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        return list;
+    }
+    public static void addAutoReplyLogEntry(int account, String groupName, String senderName, String replyText, long groupId, long senderId, int messageId) {
+        ArrayList<AutoReplyLogEntry> log = getAutoReplyLog(account);
+        log.add(0, new AutoReplyLogEntry(groupName, senderName, replyText, System.currentTimeMillis(), groupId, senderId, messageId));
+        if (log.size() > 50) log = new ArrayList<>(log.subList(0, 50));
+        org.json.JSONArray array = new org.json.JSONArray();
+        try {
+            for (AutoReplyLogEntry entry : log) {
+                org.json.JSONObject obj = new org.json.JSONObject();
+                obj.put("group", entry.groupName);
+                obj.put("sender", entry.senderName);
+                obj.put("text", entry.replyText);
+                obj.put("time", entry.timestamp);
+                obj.put("groupId", entry.groupId);
+                obj.put("senderId", entry.senderId);
+                obj.put("messageId", entry.messageId);
+                array.put(obj);
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        getAccountPrefs(account).edit().putString("autoReplyLog", array.toString()).apply();
+    }
+    public static boolean isAutoReplyDMEnabled(int account) {
+        return getAccountPrefs(account).getBoolean("autoReplyDMEnabled", false);
+    }
+    public static ArrayList<AutoReplyDMRule> getAutoReplyDMRules(int account) {
+        String json = getAccountPrefs(account).getString("autoReplyDMRules", "[]");
+        ArrayList<AutoReplyDMRule> list = new ArrayList<>();
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                list.add(AutoReplyDMRule.fromJson(array.getJSONObject(i)));
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        return list;
+    }
+    public static boolean hasAutoReplyDMRepliedInChat(int account, String ruleId, long dialogId) {
+        String key = "dmFirstMsg_" + ruleId + "_" + dialogId;
+        String today = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(new java.util.Date());
+        return today.equals(getAccountPrefs(account).getString(key, ""));
+    }
+    public static void markAutoReplyDMRepliedInChat(int account, String ruleId, long dialogId) {
+        String key = "dmFirstMsg_" + ruleId + "_" + dialogId;
+        String today = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(new java.util.Date());
+        getAccountPrefs(account).edit().putString(key, today).apply();
+    }
+    public static ArrayList<AutoReplyDMLogEntry> getAutoReplyDMLog(int account) {
+        String json = getAccountPrefs(account).getString("autoReplyDMLog", "[]");
+        ArrayList<AutoReplyDMLogEntry> list = new ArrayList<>();
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                org.json.JSONObject obj = array.getJSONObject(i);
+                list.add(new AutoReplyDMLogEntry(
+                        obj.optString("rule", ""),
+                        obj.optString("chat", ""),
+                        obj.optString("sender", ""),
+                        obj.optString("text", ""),
+                        obj.optLong("time", 0),
+                        obj.optLong("chatId", 0),
+                        obj.optLong("senderId", 0)
+                ));
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        return list;
+    }
+    public static void addAutoReplyDMLogEntry(int account, String ruleName, String chatName, String senderName, String replyText, long chatId, long senderId) {
+        ArrayList<AutoReplyDMLogEntry> log = getAutoReplyDMLog(account);
+        log.add(0, new AutoReplyDMLogEntry(ruleName, chatName, senderName, replyText, System.currentTimeMillis(), chatId, senderId));
+        if (log.size() > 100) log = new ArrayList<>(log.subList(0, 100));
+        org.json.JSONArray array = new org.json.JSONArray();
+        try {
+            for (AutoReplyDMLogEntry entry : log) {
+                org.json.JSONObject obj = new org.json.JSONObject();
+                obj.put("rule", entry.ruleName);
+                obj.put("chat", entry.chatName);
+                obj.put("sender", entry.senderName);
+                obj.put("text", entry.replyText);
+                obj.put("time", entry.timestamp);
+                obj.put("chatId", entry.chatId);
+                obj.put("senderId", entry.senderId);
+                array.put(obj);
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+        getAccountPrefs(account).edit().putString("autoReplyDMLog", array.toString()).apply();
     }
 }
 
