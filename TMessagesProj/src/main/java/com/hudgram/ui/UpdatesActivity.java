@@ -95,6 +95,8 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     private AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable statusDrawable;
     private FragmentFloatingButton cameraFab;
     private FragmentFloatingButton liveFab;
+    private int navigationBarHeight;
+    private int additionFloatingButtonOffset;
     private TextView statusHeader;
     private org.telegram.ui.ActionBar.ActionBarMenuItem themeToggleItem;
     private int searchTab = 0;
@@ -234,6 +236,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
     @Override
     public View createView(Context context) {
         hasOwnBackground = true;
+        additionFloatingButtonOffset = hasMainTabs ? dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS) : 0;
 
         // Action bar
         actionBar.setTitle(getString(R.string.MainTabsUpdates));
@@ -645,7 +648,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             }
         });
 
-        rootLayout.addView(cameraFab, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 80));
+        rootLayout.addView(cameraFab, FragmentFloatingButton.createDefaultLayoutParams());
 
         // 2. Live Stream Floating Button (Above Camera - Sub)
         liveFab = new FragmentFloatingButton(context, getResourceProvider(), true);
@@ -658,7 +661,7 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             }
         });
 
-        rootLayout.addView(liveFab, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 20, 0, 20, 70 + 48 + 16));
+        rootLayout.addView(liveFab, FragmentFloatingButton.createSubButtonLayoutParams());
 
         // Auto-hide buttons and animate stories container on scroll
         listView.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -696,6 +699,8 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
             if (searchTabsContainer != null) {
                 searchTabsContainer.setTranslationY(top);
             }
+            navigationBarHeight = insets.getSystemWindowInsetBottom();
+            updateFloatingButtonOffset();
             updateStoriesScroll();
             return insets;
         });
@@ -2047,6 +2052,16 @@ public class UpdatesActivity extends BaseFragment implements NotificationCenter.
         int scrollY = getStoriesScrollY();
         float alpha = isStoriesBarVisible() ? (1.0f - Math.min(1.0f, (float) scrollY / height)) : 0f;
         storiesContainer.setAlpha(alpha);
+    }
+
+    private void updateFloatingButtonOffset() {
+        int baseTranslationY = -navigationBarHeight - additionFloatingButtonOffset;
+        if (cameraFab != null) {
+            cameraFab.setTranslationY(baseTranslationY);
+        }
+        if (liveFab != null) {
+            liveFab.setTranslationY(baseTranslationY - dp(52));
+        }
     }
 
     private void executeSwipeAction(long dialogId, int action, int position) {
