@@ -29,6 +29,7 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.ScaleStateListAnimator;
 import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
+import org.telegram.ui.Components.FragmentFloatingButton;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -118,24 +119,11 @@ public class HudAutoReplyDMAddActivity extends BaseHudSettingsActivity {
         View view = super.createView(context);
 
         // Save FAB
-        FrameLayout fabContainer = new FrameLayout(context);
-        GradientDrawable fabBg = new GradientDrawable();
-        fabBg.setShape(GradientDrawable.RECTANGLE);
-        fabBg.setCornerRadius(AndroidUtilities.dp(12));
-        fabBg.setColor(Theme.getColor(Theme.key_chats_actionBackground));
-        fabContainer.setBackground(fabBg);
-        fabContainer.setElevation(AndroidUtilities.dp(4));
-        ScaleStateListAnimator.apply(fabContainer);
-
-        ImageView fabIcon = new ImageView(context);
-        fabIcon.setImageResource(R.drawable.msg_saved);
-        fabIcon.setColorFilter(Theme.getColor(Theme.key_chats_actionIcon));
-        fabIcon.setScaleType(ImageView.ScaleType.CENTER);
-        fabContainer.addView(fabIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
-
+        FragmentFloatingButton fabContainer = new FragmentFloatingButton(context, getResourceProvider());
+        fabContainer.setImageResource(R.drawable.msg_saved);
         fabContainer.setOnClickListener(v -> saveRule());
 
-        contentView.addView(fabContainer, LayoutHelper.createFrame(56, 56, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 16, 0, 16, 16));
+        contentView.addView(fabContainer, FragmentFloatingButton.createDefaultLayoutParams());
 
         return view;
     }

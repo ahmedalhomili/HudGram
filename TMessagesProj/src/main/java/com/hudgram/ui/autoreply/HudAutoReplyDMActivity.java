@@ -30,6 +30,7 @@ import org.telegram.ui.Components.Switch;
 import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
 import org.telegram.ui.Components.UniversalRecyclerView;
+import org.telegram.ui.Components.FragmentFloatingButton;
 
 import java.util.ArrayList;
 
@@ -38,7 +39,7 @@ public class HudAutoReplyDMActivity extends BaseHudSettingsActivity {
     private final int logRow = rowId++;
 
     private Switch actionBarSwitch;
-    private FrameLayout fabContainer;
+    private FragmentFloatingButton fabContainer;
     private ArrayList<HudConfig.AutoReplyDMRule> rules;
 
     @Override
@@ -92,26 +93,13 @@ public class HudAutoReplyDMActivity extends BaseHudSettingsActivity {
         View view = super.createView(context);
 
         // FAB
-        fabContainer = new FrameLayout(context);
-        GradientDrawable fabBg = new GradientDrawable();
-        fabBg.setShape(GradientDrawable.RECTANGLE);
-        fabBg.setCornerRadius(AndroidUtilities.dp(12));
-        fabBg.setColor(Theme.getColor(Theme.key_chats_actionBackground));
-        fabContainer.setBackground(fabBg);
-        fabContainer.setElevation(AndroidUtilities.dp(4));
-        ScaleStateListAnimator.apply(fabContainer);
-
-        ImageView fabIcon = new ImageView(context);
-        fabIcon.setImageResource(R.drawable.msg_add);
-        fabIcon.setColorFilter(Theme.getColor(Theme.key_chats_actionIcon));
-        fabIcon.setScaleType(ImageView.ScaleType.CENTER);
-        fabContainer.addView(fabIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
-
+        fabContainer = new FragmentFloatingButton(context, getResourceProvider());
+        fabContainer.setImageResource(R.drawable.msg_add);
         fabContainer.setOnClickListener(v -> {
             presentFragment(new HudAutoReplyDMAddActivity(null));
         });
 
-        contentView.addView(fabContainer, LayoutHelper.createFrame(56, 56, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, 16, 0, 16, 16));
+        contentView.addView(fabContainer, FragmentFloatingButton.createDefaultLayoutParams());
 
         updateFabVisibility();
 
@@ -120,7 +108,7 @@ public class HudAutoReplyDMActivity extends BaseHudSettingsActivity {
 
     private void updateFabVisibility() {
         if (fabContainer != null) {
-            fabContainer.setVisibility(HudConfig.autoReplyDMEnabled ? View.VISIBLE : View.GONE);
+            fabContainer.setButtonVisible(HudConfig.autoReplyDMEnabled, true);
         }
     }
 

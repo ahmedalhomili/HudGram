@@ -36,6 +36,7 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.Switch;
 import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
+import org.telegram.ui.Components.FragmentFloatingButton;
 import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.UniversalRecyclerView;
 import org.telegram.ui.Components.RecyclerListView;
@@ -48,7 +49,7 @@ import java.util.Locale;
 public class HudScheduledMessagesActivity extends BaseHudSettingsActivity {
 
     private ArrayList<ScheduledMessage> scheduledMessages = new ArrayList<>();
-    private FrameLayout fab;
+    private FragmentFloatingButton fab;
     private Switch actionBarSwitch;
 
     private final int logRow = 500;
@@ -119,7 +120,7 @@ public class HudScheduledMessagesActivity extends BaseHudSettingsActivity {
 
     private void updateFabVisibility() {
         if (fab != null) {
-            fab.setVisibility(HudConfig.scheduledMessagesEnabled ? View.VISIBLE : View.GONE);
+            fab.setButtonVisible(HudConfig.scheduledMessagesEnabled, true);
         }
     }
 
@@ -128,39 +129,14 @@ public class HudScheduledMessagesActivity extends BaseHudSettingsActivity {
         super.createView(context);
 
         // Green Floating Action Button (FAB) at bottom right - matching Quick Replies Style (RoundRect)
-        fab = new FrameLayout(context);
-        int fabColor = getThemedColor(Theme.key_featuredStickers_addButton);
-        int fabPressedColor = getThemedColor(Theme.key_featuredStickers_addButtonPressed);
-        if (fabPressedColor == 0) {
-            fabPressedColor = Theme.blendOver(fabColor, 0x1A000000);
-        }
-        fab.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(12), fabColor, fabPressedColor));
-        
-        if (Build.VERSION.SDK_INT >= 21) {
-            fab.setElevation(AndroidUtilities.dp(4));
-            fab.setOutlineProvider(new android.view.ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, android.graphics.Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), AndroidUtilities.dp(12));
-                }
-            });
-        }
-
-        ImageView fabIcon = new ImageView(context);
-        fabIcon.setImageResource(R.drawable.msg_add);
-        fabIcon.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chats_actionIcon), PorterDuff.Mode.SRC_IN));
-        fab.addView(fabIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
-
-        FrameLayout.LayoutParams lp = LayoutHelper.createFrame(56, 56, 
-                Gravity.BOTTOM | (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT), 
-                16, 0, 16, 16);
-        contentView.addView(fab, lp);
+        fab = new FragmentFloatingButton(context, getResourceProvider());
+        fab.setImageResource(R.drawable.msg_add);
+        contentView.addView(fab, FragmentFloatingButton.createDefaultLayoutParams());
 
         fab.setOnClickListener(v -> {
             presentFragment(new HudScheduledMessageAddActivity());
         });
 
-        org.telegram.ui.Components.ScaleStateListAnimator.apply(fab, 0.85f, 1.2f);
         updateFabVisibility();
 
         return fragmentView;
