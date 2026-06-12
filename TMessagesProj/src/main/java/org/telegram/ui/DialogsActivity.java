@@ -13449,39 +13449,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void openToolsBottomSheet() {
-        if (getParentActivity() == null) {
-            return;
-        }
-        org.telegram.ui.ActionBar.BottomSheet.Builder builder = new org.telegram.ui.ActionBar.BottomSheet.Builder(getParentActivity(), false, resourceProvider);
-        CharSequence[] items = new CharSequence[]{
-            LocaleController.getString("HudQuickReplyTitle", R.string.HudQuickReplyTitle),
-            LocaleController.getString("HudAutoReplyTitle", R.string.HudAutoReplyTitle),
-            LocaleController.getString("HudDraftsTitle", R.string.HudDraftsTitle),
-            LocaleController.getString("HudMessageByNumber", R.string.HudMessageByNumber)
-        };
-        int[] icons = new int[]{
-            R.drawable.msg_reply_small,
-            R.drawable.msg_mention,
-            R.drawable.msg_edit,
-            R.drawable.msg_contacts
-        };
-        builder.setItems(items, icons, (dialogInterface, i) -> {
-            if (i == 0) {
-                presentFragment(new com.hudgram.ui.quickreply.HudQuickReplyActivity());
-            } else if (i == 1) {
-                presentFragment(new com.hudgram.ui.autoreply.HudAutoReplyActivity());
-            } else if (i == 2) {
-                presentFragment(new com.hudgram.ui.drafts.HudDraftsActivity());
-            } else if (i == 3) {
-                com.hudgram.ui.utils.ContactSearchUiHelper.showSearchDialog(
-                    getParentActivity(),
-                    currentAccount,
-                    resourceProvider,
-                    parentLayout
-                );
-            }
-        });
-        showDialog(builder.create());
+        com.hudgram.ui.utils.HudChatToolsHelper.openToolsBottomSheet(this, currentAccount, resourceProvider);
     }
 
 
