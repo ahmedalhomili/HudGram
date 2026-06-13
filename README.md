@@ -1,39 +1,58 @@
-## Telegram messenger for Android
+# Hudgram for Android
 
-[Telegram](https://telegram.org) is a messaging app with a focus on speed and security. It’s superfast, simple and free.
-This repo contains the official source code for [Telegram App for Android](https://play.google.com/store/apps/details?id=org.telegram.messenger).
+Hudgram is an enhanced, open-source client based on the official [Telegram for Android](https://github.com/DrKLO/Telegram) application. It introduces advanced productivity utilities and customization features while maintaining the core performance, security, and messaging protocols of Telegram.
 
-## Creating your Telegram Application
+This repository contains the source code for building Hudgram.
 
-We welcome all developers to use our API and source code to create applications on our platform.
-There are several things we require from **all developers** for the moment.
+## Key Features
 
-1. [**Obtain your own api_id**](https://core.telegram.org/api/obtaining_api_id) for your application.
-2. Please **do not** use the name Telegram for your app — or make sure your users understand that it is unofficial.
-3. Kindly **do not** use our standard logo (white paper plane in a blue circle) as your app's logo.
-3. Please study our [**security guidelines**](https://core.telegram.org/mtproto/security_guidelines) and take good care of your users' data and privacy.
-4. Please remember to publish **your** code too in order to comply with the licences.
+* **Advanced Auto-Reply:** Define rule-based automated responses for private chats (Direct Messages) and group mentions, complete with logging and filtering.
+* **Quick Replies Manager:** Organize pre-written message templates to reply instantly using custom options.
+* **Enhanced Scheduled Messages:** Set up advanced alarms and repeat rules for scheduling messages, with separate logs for sent actions.
+* **Interface Customization:** Options to toggle individual UI components, such as hiding the stories bar, disabling the instant camera, customizing search bar visibility, and adjusting header layouts.
+* **Multi-Account Support:** Full configuration isolation for all custom features, allowing separate auto-reply configurations, templates, and schedule rules per logged-in account.
 
-### API, Protocol documentation
+## Prerequisites
 
-Telegram API manuals: https://core.telegram.org/api
+To build Hudgram, you will need:
+* Android Studio (Koala or newer recommended)
+* JDK 17 or JDK 21 (configured in your build environment)
+* Android SDK Platform 35 and Build Tools `35.0.0`
+* Android NDK `26.3.11579264`
 
-MTproto protocol manuals: https://core.telegram.org/mtproto
+## Compilation and Setup
 
-### Compilation Guide
+### 1. Keystore & Credentials
+Ensure your release keys are secured. This project reads release signing credentials dynamically from local properties to prevent accidental exposure:
 
-**Note**: In order to support [reproducible builds](https://core.telegram.org/reproducible-builds), this repo contains dummy release.keystore,  google-services.json and filled variables inside BuildVars.java. Before publishing your own APKs please make sure to replace all these files with your own.
+1. Create or open `local.properties` in the root directory.
+2. Add your signing configurations:
+   ```properties
+   RELEASE_KEY_ALIAS=your_key_alias
+   RELEASE_KEY_PASSWORD=your_key_password
+   RELEASE_STORE_PASSWORD=your_store_password
+   ```
+3. Copy your release keystore file (`.keystore` or `.jks`) to the root folder (or specify its location in the signing configuration).
 
-You will require Android Studio 3.4, Android NDK rev. 20 and Android SDK 8.1
+### 2. Firebase Configuration
+Obtain a `google-services.json` file from your Google Firebase Console for your package name, and place it in the root directory of the project.
 
-1. Download the Telegram source code from https://github.com/DrKLO/Telegram ( git clone https://github.com/DrKLO/Telegram.git )
-2. Copy your release.keystore into TMessagesProj/config
-3. Fill out RELEASE_KEY_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_STORE_PASSWORD in gradle.properties to access your  release.keystore
-4.  Go to https://console.firebase.google.com/, create two android apps with application IDs org.telegram.messenger and org.telegram.messenger.beta, turn on firebase messaging and download google-services.json, which should be copied to the same folder as TMessagesProj.
-5. Open the project in the Studio (note that it should be opened, NOT imported).
-6. Fill out values in TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java – there’s a link for each of the variables showing where and which data to obtain.
-7. You are ready to compile Telegram.
+### 3. API Credentials
+Set up your custom Telegram API application keys:
+* Open `BuildVars.java` (located under the messenger module) or specify `APP_ID` and `APP_HASH` values to associate your application with the Telegram API.
 
-### Localization
+### 4. Build
+You can compile the app using the command line or Android Studio:
+* **Command Line:**
+  ```bash
+  ./gradlew assembleAfatRelease
+  ```
+* **PowerShell (Windows):** Run the automated release build script:
+  ```powershell
+  ./build_release.ps1
+  ```
 
-We moved all translations to https://translations.telegram.org/en/android/. Please use it.
+## License and Brand Compliance
+
+* **License:** Hudgram is distributed under the GNU General Public License v2.0 or later. See `LICENSE` for details.
+* **Brand Guidelines:** This project is an independent modification. It uses the Telegram API but is unofficial. We request developers building forks of this repository to comply with [Telegram's API terms](https://core.telegram.org/api/obtaining_api_id), use their own package name/API keys, and use custom branding to avoid user confusion.
