@@ -157,6 +157,9 @@ android {
 
         buildConfigField "int", "APP_ID", getAppId()
         buildConfigField "String", "APP_HASH", getAppHash()
+        buildConfigField "String", "APP_PACKAGE", "\"" + APP_PACKAGE + "\""
+        buildConfigField "int", "APP_VERSION_CODE", APP_VERSION_CODE
+        buildConfigField "String", "APP_VERSION_NAME", "\"" + APP_VERSION_NAME + "\""
 
         externalNativeBuild {
             cmake {

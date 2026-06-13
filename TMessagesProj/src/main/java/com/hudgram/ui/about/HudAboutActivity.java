@@ -14,6 +14,7 @@ import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.browser.Browser;
@@ -113,17 +114,8 @@ public class HudAboutActivity extends BaseFragment {
         titleView.setGravity(Gravity.CENTER);
         headerContainer.addView(titleView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 12, 0, 0));
 
-        String versionName = "1.0.0";
-        String packageName = "com.hudgram.messenger";
-        try {
-            android.content.pm.PackageInfo pInfo = ApplicationLoader.applicationContext.getPackageManager().getPackageInfo(ApplicationLoader.applicationContext.getPackageName(), 0);
-            versionName = pInfo.versionName;
-            packageName = pInfo.packageName;
-        } catch (Exception e) {
-            org.telegram.messenger.FileLog.e(e);
-        }
         versionView = new TextView(context);
-        versionView.setText(LocaleController.formatString("AboutHudgramVersion", R.string.AboutHudgramVersion, versionName, packageName));
+        versionView.setText(LocaleController.formatString("AboutHudgramVersion", R.string.AboutHudgramVersion, BuildVars.HUD_VERSION, BuildVars.APP_VERSION_NAME));
         versionView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         versionView.setTextColor(secondaryTextColor);
         versionView.setGravity(Gravity.CENTER);
@@ -205,22 +197,22 @@ public class HudAboutActivity extends BaseFragment {
 
         TextSettingsCell l1 = new TextSettingsCell(context, resourceProvider);
         l1.setTextAndIcon(LocaleController.getString("HudOfficialChannel", R.string.HudOfficialChannel), R.drawable.msg_channel, true);
-        l1.setOnClickListener(v -> Browser.openUrl(getParentActivity(), "https://t.me/hudgramchannel"));
+        l1.setOnClickListener(v -> Browser.openUrl(getParentActivity(), BuildVars.HUDGRAM_CHANNEL_URL));
         linksCard.addView(l1, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         TextSettingsCell l2 = new TextSettingsCell(context, resourceProvider);
         l2.setTextAndIcon(LocaleController.getString("AboutHudgramSupport", R.string.AboutHudgramSupport), R.drawable.msg_help, true);
-        l2.setOnClickListener(v -> Browser.openUrl(getParentActivity(), "https://t.me/hudgramsupport"));
+        l2.setOnClickListener(v -> Browser.openUrl(getParentActivity(), BuildVars.HUDGRAM_SUPPORT_URL));
         linksCard.addView(l2, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         TextSettingsCell l3 = new TextSettingsCell(context, resourceProvider);
         l3.setTextAndIcon(LocaleController.getString("AboutHudgramSource", R.string.AboutHudgramSource), R.drawable.msg_link, true);
-        l3.setOnClickListener(v -> Browser.openUrl(getParentActivity(), "https://github.com/ahmedalhomili/Telegram"));
+        l3.setOnClickListener(v -> Browser.openUrl(getParentActivity(), BuildVars.HUDGRAM_SOURCE_URL));
         linksCard.addView(l3, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         TextSettingsCell l4 = new TextSettingsCell(context, resourceProvider);
         l4.setTextAndIcon(LocaleController.getString("AboutHudgramWebsite", R.string.AboutHudgramWebsite), R.drawable.msg_link2, false);
-        l4.setOnClickListener(v -> Browser.openUrl(getParentActivity(), "https://hudgram.com"));
+        l4.setOnClickListener(v -> Browser.openUrl(getParentActivity(), BuildVars.HUDGRAM_WEBSITE_URL));
         linksCard.addView(l4, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         scrollContent.addView(linksCard, cardLp);

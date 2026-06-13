@@ -11064,7 +11064,8 @@
     <string name="AboutHudgramSupport">Support Group</string>
     <string name="AboutHudgramSource">Source Code (GitHub)</string>
     <string name="AboutHudgramLinks">Links &amp; Resources</string>
-    <string name="AboutHudgramVersion">Version %1$s (%2$s)</string>
+    <string name="AboutHudgramVersion">Hudgram v%1$s built on official Telegram v%2$s</string>
+    <string name="HudgramVersionFooter">Hudgram v%1$s | %2$s</string>
     <string name="HudMessageByNumber">Message/Call by Identifier</string>
     <string name="HudMessageByNumberHint">Phone number (+...), username (@...), or user ID</string>
     <string name="HudMessageByNumberVerify">Searching...</string>

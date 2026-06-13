@@ -35,6 +35,8 @@ import android.widget.TextView;
 import androidx.core.graphics.ColorUtils;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
@@ -513,8 +515,34 @@ public class HudSideMenuView extends FrameLayout
         footRow.addView(dot, new LinearLayout.LayoutParams(
                 AndroidUtilities.dp(7), AndroidUtilities.dp(7)));
 
+        String versionText = "";
+        try {
+            android.content.pm.PackageInfo pInfo = ApplicationLoader.applicationContext.getPackageManager().getPackageInfo(ApplicationLoader.applicationContext.getPackageName(), 0);
+            int code = pInfo.versionCode / 10;
+            String abi = "";
+            switch (pInfo.versionCode % 10) {
+                case 1:
+                case 2:
+                    abi = "store bundled " + android.os.Build.CPU_ABI + " " + android.os.Build.CPU_ABI2;
+                    break;
+                default:
+                case 9:
+                    if (ApplicationLoader.isStandaloneBuild()) {
+                        abi = "direct " + android.os.Build.CPU_ABI + " " + android.os.Build.CPU_ABI2;
+                    } else {
+                        abi = "universal " + android.os.Build.CPU_ABI + " " + android.os.Build.CPU_ABI2;
+                    }
+                    break;
+            }
+            String telegramVersion = LocaleController.formatString("TelegramVersion", R.string.TelegramVersion, String.format(java.util.Locale.US, "v%s (%d)\n%s", pInfo.versionName, code, abi));
+            versionText = LocaleController.formatString("HudgramVersionFooter", R.string.HudgramVersionFooter, BuildVars.HUD_VERSION, telegramVersion);
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+            versionText = "Hudgram v" + BuildVars.HUD_VERSION;
+        }
+
         footerVersionText = new TextView(context);
-        footerVersionText.setText("Hudgram  v26.6");
+        footerVersionText.setText(versionText);
         footerVersionText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
         footerVersionText.setAlpha(0.5f);
         LinearLayout.LayoutParams tvLp = new LinearLayout.LayoutParams(

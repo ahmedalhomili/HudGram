@@ -16,3 +16,15 @@ buildscript {
 repositories {
     google()
 }
+
+allprojects {
+    if (rootProject.file("local.properties").exists()) {
+        Properties localProperties = new Properties()
+        localProperties.load(rootProject.file("local.properties").newDataInputStream())
+        localProperties.each { key, val ->
+            if (key.startsWith("RELEASE_")) {
+                ext.set(key, val)
+            }
+        }
+    }
+}

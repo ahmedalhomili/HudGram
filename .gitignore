@@ -15,5 +15,8 @@ TMessagesProj_AppStandalone/afat/
 TMessagesProj_AppHuawei/afat/
 API_KEYS
 release.keystore
+hudgram_keystore
 *.jks
 google-services.json
+docs
+skills.md

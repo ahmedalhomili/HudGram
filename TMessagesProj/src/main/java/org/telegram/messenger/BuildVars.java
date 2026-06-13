@@ -25,6 +25,14 @@ public class BuildVars {
     public static boolean CHECK_UPDATES = false;
     public static boolean NO_SCOPED_STORAGE = Build.VERSION.SDK_INT <= 29;
     public static String BUILD_VERSION_STRING = BuildConfig.BUILD_VERSION_STRING;
+    public static final String APP_PACKAGE = BuildConfig.APP_PACKAGE;
+    public static final int APP_VERSION_CODE = BuildConfig.APP_VERSION_CODE;
+    public static final String APP_VERSION_NAME = BuildConfig.APP_VERSION_NAME;
+    public static final String HUD_VERSION = "1.0.0";
+    public static final String HUDGRAM_CHANNEL_URL = "https://t.me/hudgramchannel";
+    public static final String HUDGRAM_SUPPORT_URL = "https://t.me/hudgramsupport";
+    public static final String HUDGRAM_SOURCE_URL = "https://github.com/ahmedalhomili/Telegram";
+    public static final String HUDGRAM_WEBSITE_URL = "https://hudgram.com";
 
     public static int APP_ID = BuildConfig.APP_ID;
     public static String APP_HASH = BuildConfig.APP_HASH;

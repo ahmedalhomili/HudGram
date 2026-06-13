@@ -11027,7 +11027,8 @@
     <string name="AboutHudgramSupport">مجموعة الدعم</string>
     <string name="AboutHudgramSource">سورس كود (GitHub)</string>
     <string name="AboutHudgramLinks">روابط ومصادر</string>
-    <string name="AboutHudgramVersion">الإصدار %1$s (%2$s)</string>
+    <string name="AboutHudgramVersion">نسخة هُدْجرام رقمها %1$s مبنية على تيليجرام الرسمي رقم %2$s</string>
+    <string name="HudgramVersionFooter">هُدْجرام v%1$s | %2$s</string>
     <string name="HudMessageByNumber">مراسلة/اتصال برقم أو معرف</string>
     <string name="HudMessageByNumberHint">رقم الهاتف (+...)، اسم المستخدم (@...)، أو معرف المستخدم</string>
     <string name="HudMessageByNumberVerify">جاري البحث...</string>
