@@ -31,7 +31,7 @@ public class BuildVars {
     public static final String HUD_VERSION = "1.0.0";
     public static final String HUDGRAM_CHANNEL_URL = "https://t.me/hudgramchannel";
     public static final String HUDGRAM_SUPPORT_URL = "https://t.me/hudgramsupport";
-    public static final String HUDGRAM_SOURCE_URL = "https://github.com/ahmedalhomili/Telegram";
+    public static final String HUDGRAM_SOURCE_URL = "https://github.com/hudgram/HudGram";
     public static final String HUDGRAM_WEBSITE_URL = "https://hudgram.com";
 
     public static int APP_ID = BuildConfig.APP_ID;
