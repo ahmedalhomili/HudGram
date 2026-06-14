@@ -39,7 +39,7 @@ public class BuildVars {
 
     // SafetyNet key for Google Identity SDK, set it to empty to disable
     public static String SAFETYNET_KEY = "";
-    public static String PLAYSTORE_APP_URL = "https://github.com/ahmedalhomili/HudGram";
+    public static String PLAYSTORE_APP_URL = "https://play.google.com/store/apps/details?id=com.hudgram.messenger";
     public static String HUAWEI_STORE_URL = PLAYSTORE_APP_URL;
     public static String GOOGLE_AUTH_CLIENT_ID = "";
 
