@@ -329,7 +329,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
             return;
         }
 
-        if ("telegram".equals(com.hudgram.ui.HudConfig.translationProvider)) {
+        if ("telegram".equals(com.hudgram.core.HudConfig.translationProvider)) {
             TLRPC.TL_messages_translateText req = new TLRPC.TL_messages_translateText();
             if (reqPeer != null) {
                 req.flags |= 1;

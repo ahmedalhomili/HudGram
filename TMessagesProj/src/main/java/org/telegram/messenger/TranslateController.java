@@ -1824,25 +1824,81 @@ public class TranslateController extends BaseController {
         final TLRPC.TL_textWithEntities text = new TLRPC.TL_textWithEntities();
         text.text = storyItem.caption;
         text.entities = storyItem.entities;
-                    if (done != null) {
-                        done.run();
+        if (text.entities == null) {
+            text.entities = new ArrayList<>();
+        }
+        final long start = System.currentTimeMillis();
+        if ("telegram".equals(com.hudgram.core.HudConfig.translationProvider)) {
+            final TLRPC.TL_messages_translateText req = new TLRPC.TL_messages_translateText();
+            req.flags |= 2;
+            req.text.add(text);
+            req.to_lang = normalizeLanguage(toLang);
+            getConnectionsManager().sendRequest(req, (res, err) -> {
+                if (res instanceof TLRPC.TL_messages_translateResult) {
+                    ArrayList<TLRPC.TL_textWithEntities> result = ((TLRPC.TL_messages_translateResult) res).result;
+                    if (result.size() <= 0) {
+                        AndroidUtilities.runOnUIThread(() -> {
+                            storyItem.translatedLng = toLang;
+                            storyItem.translatedText = null;
+                            getMessagesController().getStoriesController().getStoriesStorage().putStoryInternal(storyItem.dialogId, storyItem);
+                            translatingStories.remove(key);
+                            if (done != null) {
+                                AndroidUtilities.runOnUIThread(done, Math.max(0, 400L - (System.currentTimeMillis() - start)));
+                            }
+                        });
+                        return;
                     }
-                });
-            }
+                    final TLRPC.TL_textWithEntities textWithEntities = result.get(0);
+                    AndroidUtilities.runOnUIThread(() -> {
+                        storyItem.translatedLng = toLang;
+                        storyItem.translatedText = TranslateAlert2.preprocess(text, textWithEntities);
+                        getMessagesController().getStoriesController().getStoriesStorage().putStoryInternal(storyItem.dialogId, storyItem);
+                        translatingStories.remove(key);
+                        if (done != null) {
+                            AndroidUtilities.runOnUIThread(done, Math.max(0, 400L - (System.currentTimeMillis() - start)));
+                        }
+                    });
+                } else {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        storyItem.translatedLng = toLang;
+                        storyItem.translatedText = null;
+                        getMessagesController().getStoriesController().getStoriesStorage().putStoryInternal(storyItem.dialogId, storyItem);
+                        translatingStories.remove(key);
+                        if (done != null) {
+                            AndroidUtilities.runOnUIThread(done, Math.max(0, 400L - (System.currentTimeMillis() - start)));
+                        }
+                    });
+                }
+            });
+        } else {
+            com.hudgram.translator.Translator.translate(text, null, null, toLang, new com.hudgram.translator.Translator.TranslateCallBack() {
+                @Override
+                public void onSuccess(TLRPC.TL_textWithEntities translation, String sourceLanguage, String targetLanguage) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        storyItem.translatedLng = toLang;
+                        storyItem.translatedText = TranslateAlert2.preprocess(text, translation);
+                        getMessagesController().getStoriesController().getStoriesStorage().putStoryInternal(storyItem.dialogId, storyItem);
+                        translatingStories.remove(key);
+                        if (done != null) {
+                            AndroidUtilities.runOnUIThread(done, Math.max(0, 400L - (System.currentTimeMillis() - start)));
+                        }
+                    });
+                }
 
-            @Override
-            public void onError(Throwable t) {
-                AndroidUtilities.runOnUIThread(() -> {
-                    storyItem.translatedLng = toLang;
-                    storyItem.translatedText = null;
-                    getMessagesController().getStoriesController().getStoriesStorage().putStoryInternal(storyItem.dialogId, storyItem);
-                    translatingStories.remove(key);
-                    if (done != null) {
-                        done.run();
-                    }
-                });
-            }
-        });
+                @Override
+                public void onError(Throwable t) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        storyItem.translatedLng = toLang;
+                        storyItem.translatedText = null;
+                        getMessagesController().getStoriesController().getStoriesStorage().putStoryInternal(storyItem.dialogId, storyItem);
+                        translatingStories.remove(key);
+                        if (done != null) {
+                            AndroidUtilities.runOnUIThread(done, Math.max(0, 400L - (System.currentTimeMillis() - start)));
+                        }
+                    });
+                }
+            });
+        }
     }
 
     public boolean isTranslatingStory(TL_stories.StoryItem storyItem) {
@@ -2011,6 +2067,7 @@ public class TranslateController extends BaseController {
             }
         });
     }
+}
 
     public static String normalizeLanguage(String lng) {
         if (lng == null) return null;
