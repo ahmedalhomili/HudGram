@@ -211,9 +211,14 @@ public class HudAboutActivity extends BaseFragment {
         linksCard.addView(l3, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         TextSettingsCell l4 = new TextSettingsCell(context, resourceProvider);
-        l4.setTextAndIcon(LocaleController.getString("AboutHudgramWebsite", R.string.AboutHudgramWebsite), R.drawable.msg_link2, false);
+        l4.setTextAndIcon(LocaleController.getString("AboutHudgramWebsite", R.string.AboutHudgramWebsite), R.drawable.msg_link2, true);
         l4.setOnClickListener(v -> Browser.openUrl(getParentActivity(), BuildVars.HUDGRAM_WEBSITE_URL));
         linksCard.addView(l4, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        TextSettingsCell l5 = new TextSettingsCell(context, resourceProvider);
+        l5.setTextAndIcon(LocaleController.getString("PrivacyPolicy", R.string.PrivacyPolicy), R.drawable.msg_secret, false);
+        l5.setOnClickListener(v -> Browser.openUrl(getParentActivity(), BuildVars.HUDGRAM_PRIVACY_URL));
+        linksCard.addView(l5, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         scrollContent.addView(linksCard, cardLp);
 

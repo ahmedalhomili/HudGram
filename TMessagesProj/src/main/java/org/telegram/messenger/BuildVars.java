@@ -33,6 +33,7 @@ public class BuildVars {
     public static final String HUDGRAM_SUPPORT_URL = "https://t.me/hudgramsupport";
     public static final String HUDGRAM_SOURCE_URL = "https://github.com/hudgram/HudGram";
     public static final String HUDGRAM_WEBSITE_URL = "https://hudgram.com";
+    public static final String HUDGRAM_PRIVACY_URL = "https://hudgram.com/privacy-policy";
 
     public static int APP_ID = BuildConfig.APP_ID;
     public static String APP_HASH = BuildConfig.APP_HASH;
