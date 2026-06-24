@@ -97,7 +97,7 @@ android {
                 abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
             }
             ext {
-                abiVersionCode = 9
+                abiVersionCode = 0
             }
             sourceSets.standalone {
                 manifest.srcFile '../TMessagesProj/config/release/AndroidManifest_standalone.xml'
