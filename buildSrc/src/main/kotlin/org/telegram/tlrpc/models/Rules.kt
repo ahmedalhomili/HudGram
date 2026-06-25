@@ -1,5 +1,6 @@
 package org.telegram.tlrpc.models
 
+
 data class Rules(
     val databaseTypes: Set<String>,
     val ignoredTypes: Set<String>,

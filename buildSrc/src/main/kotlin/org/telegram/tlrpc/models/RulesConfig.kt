@@ -37,6 +37,7 @@ object RulesConfig {
             "InputClientProxy",
             "InputStarsTransaction",
             "InputStickerSetItem",
+            "bots.AccessSettings",
         ),
         ignoredConstructors = mapOf(
             "Update" to setOf(
@@ -79,6 +80,8 @@ object RulesConfig {
             "InputInvoice" to setOf("inputInvoiceBusinessBotTransferStars"),
             "InputBotInlineMessageID" to setOf("inputBotInlineMessageID64"),
             "InputPasskeyCredential" to setOf("inputPasskeyCredentialFirebasePNV"),
+            "InputRichMessage" to setOf("inputRichMessageHTML", "inputRichMessageMarkdown"),
+            "SendMessageAction" to setOf("inputSendMessageRichMessageDraftAction")
         )
     )
 }
