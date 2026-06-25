@@ -10895,7 +10895,20 @@
     <string name="ApproveNewMembersEnableForLinksChannel_one">Also enable **Approve New Members** for **%1$d existing invite link** in this channel?</string>
     <string name="ApproveNewMembersEnableForLinksChannel_other">Also enable **Approve New Members** for **%1$d existing invite links** in this channel?</string>
     <string name="ApproveNewMembersDisableForLinksChannel_one">Also disable **Approve New Members** for **%1$d existing invite link** in this channel?</string>
-    <string name="ApproveNewMembersDisableForLinksChannel_other">Also disable **Approve New Members** for **%1$d existin    <string name="SelectAndCopyText">Select &amp; Copy Text</string>
+    <string name="ApproveNewMembersDisableForLinksChannel_other">Also disable **Approve New Members** for **%1$d existing invite links** in this channel?</string>
+    <string name="ApproveNewMembersApplyToLinksDontApply">Don\'t Apply</string>
+    <string name="ApproveNewMembersApplyToLinksApply">Apply</string>
+    <string name="GuardBotReplaceTitle">Replace Bot</string>
+    <string name="GuardBotReplaceMessage">**%1$s** is currently processing join requests. Switch to **%2$s** instead?</string>
+    <string name="GuardBotReplaceUseNew">Use %1$s</string>
+    <string name="GuardBotReplaceKeepCurrent">Keep %1$s</string>
+    <string name="GuardBotJoinRequestApproved">Your request to join **%1$s** has been approved</string>
+    <string name="GuardBotJoinRequestDeclined">Your request to join **%1$s** has been declined</string>
+    <string name="GuardBotJoinRequestQueued">Your request to join **%1$s** has been sent to the admins</string>
+    <string name="BotCantReadChatTooltip">This bot can\'t read the chat — only the message where it was mentioned.</string>
+
+    <string name="GuestBotFor"> for </string>
+    <string name="SelectAndCopyText">Select &amp; Copy Text</string>
     <string name="CopyAll">Copy All</string>
     <string name="ConfirmSend">Confirm Send</string>
     <string name="ConfirmSendSticker">Do you want to send this sticker?</string>
