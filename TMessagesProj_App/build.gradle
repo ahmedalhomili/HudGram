@@ -148,7 +148,7 @@ android {
                 manifest.srcFile '../TMessagesProj/config/release/AndroidManifest_standalone.xml'
             }
             ext {
-                abiVersionCode = 0
+                abiVersionCode = 1
             }
             buildConfigField "boolean", "BUNDLE", "false"
         }
